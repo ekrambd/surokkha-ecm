@@ -1,0 +1,150 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: #faf9f6;
+    color: #1a1a1a;
+  }
+
+  h1, h2, h3, .font-luxury {
+    font-family: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
+    letter-spacing: -0.02em;
+  }
+}
+
+/* Custom Utilities */
+.luxury-letterspacing {
+  letter-spacing: 0.35em;
+}
+
+.luxury-gradient-gold {
+  background: linear-gradient(135deg, #dfba73 0%, #c59b4e 50%, #e8cf8d 100%);
+}
+
+.luxury-glass {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.luxury-glass-dark {
+  background: rgba(17, 24, 39, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Video Header Smooth Overlay & Controls Suppression */
+.video-hero-overlay {
+  background: radial-gradient(circle at center, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+video.hero-bg-video::-webkit-media-controls,
+video.hero-bg-video::-webkit-media-controls-enclosure,
+video.hero-bg-video::-webkit-media-controls-panel,
+video.hero-bg-video::-webkit-media-controls-overlay-play-button,
+video.hero-bg-video::-webkit-media-controls-start-playback-button {
+  display: none !important;
+  -webkit-appearance: none;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body {
+    margin: 0 !important;
+  }
+
+  .invoice-sheet {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .invoice-sheet:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  .invoice-sheet-inner {
+    padding: 0 !important;
+  }
+
+  .invoice-sheet table {
+    break-inside: auto;
+  }
+
+  .invoice-sheet tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+
+/* Smooth Marquee Ticker */
+@keyframes marquee-scroll {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.animate-marquee-brands {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 24s linear infinite;
+  will-change: transform;
+}
+
+.animate-marquee-brands:hover {
+  animation-play-state: paused;
+}
+
+@keyframes text-shimmer {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+@keyframes slideInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
