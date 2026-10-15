@@ -21,8 +21,9 @@ const handleGetSettings = (_req: any, res: any) => {
     steadfastSecretKey: _steadfastSecretKey,
     pathaoClientSecret: _pathaoClientSecret,
     pathaoClientPassword: _pathaoClientPassword,
+    adminCustomPassword: _adminCustomPassword,
     ...publicSettings 
-  } = storeSettings;
+  } = storeSettings as any;
   res.json(publicSettings);
 };
 
@@ -32,14 +33,22 @@ const handlePostSettings = (req: any, res: any) => {
     metaApiToken: _metaApiToken, 
     steadfastApiKey: _steadfastApiKey, 
     steadfastSecretKey: _steadfastSecretKey,
+    adminCustomPassword: _adminCustomPassword,
     ...safeSettings 
   } = req.body;
+
+  // Preserve stored adminCustomPassword across general settings saves
+  if ((storeSettings as any)?.adminCustomPassword) {
+    (safeSettings as any).adminCustomPassword = (storeSettings as any).adminCustomPassword;
+  }
+
   const updated = updateStoreSettings(safeSettings);
 
   // Invalidate settings cache
   globalCache.invalidateTag('settings');
 
-  res.json({ success: true, settings: updated });
+  const { adminCustomPassword: _pass, ...cleanUpdated } = updated as any;
+  res.json({ success: true, settings: cleanUpdated });
 };
 
 settingsRouter.get('/', cacheResponse({ ttlSeconds: 300, staleWhileRevalidateSeconds: 600, tag: 'settings' }), handleGetSettings);

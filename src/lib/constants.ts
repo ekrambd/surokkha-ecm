@@ -4,293 +4,9 @@ import {
   EcomSettings, InstituteInfo, FlashSaleSettings, HighlightSpotlightSettings 
 } from '../types';
 
-export const DEFAULT_PRODUCTS: Product[] = [
-  {
-    id: 'prod-vb5-repair-serum',
-    title: 'VB5 Repair Serum',
-    author: 'FANTINE Korea',
-    regularPrice: 1800,
-    price: 1550,
-    discountPercentage: 14,
-    stockQuantity: 100,
-    category: 'Serums',
-    series: 'Ultra Repair Series',
-    coverImage: '/uploads/file-1791830876714-429462367.jpg',
-    images: [
-      '/uploads/file-1791830876714-429462367.jpg',
-      '/uploads/file-1791830880605-206422960.jpeg',
-      '/uploads/file-1791830885183-155996593.jpeg'
-    ],
-    additionalImages: [
-      '/uploads/file-1791830880605-206422960.jpeg',
-      '/uploads/file-1791830885183-155996593.jpeg'
-    ],
-    description: 'Provitamin B5 (D-Panthenol) intensive calming essence. Relieves itching, eliminates redness, and rapidly reinforces damaged skin barrier.',
-    benefitsHighlights: 'High-purity Provitamin B5 • Deep cellular moisture lock • Barrier restoration • Zero irritation',
-    howToUse: 'Dispense 2-3 drops after cleansing and toning. Pat gently over face and neck until fully absorbed.',
-    badge: 'Best Seller',
-    isFeatured: true
-  },
-  {
-    id: 'prod-vc-brightening-serum',
-    title: 'VC Brightening Serum',
-    author: 'FANTINE Korea',
-    regularPrice: 2200,
-    price: 1350,
-    discountPercentage: 39,
-    stockQuantity: 100,
-    category: 'Serums',
-    series: 'Whitening and Brightening Series',
-    coverImage: '/uploads/file-1791830762714-399075316.jpg',
-    images: [
-      '/uploads/file-1791830762714-399075316.jpg',
-      '/uploads/file-1791830766725-465711461.jpeg',
-      '/uploads/file-1791830769792-761661464.jpeg'
-    ],
-    additionalImages: [
-      '/uploads/file-1791830766725-465711461.jpeg',
-      '/uploads/file-1791830769792-761661464.jpeg'
-    ],
-    description: 'Stabilized Pure Vitamin C antioxidant formula. Fades pigmentation, lightens sun spots, and illuminates fatigued skin with natural radiance.',
-    benefitsHighlights: 'Pure Vitamin C complex • Stronger antioxidant efficacy • Non-oxidizing formula • Instant dewy glow',
-    howToUse: 'Apply morning and night after toner. Follow with moisturizer and sunscreen in the morning.',
-    badge: 'Popular',
-    isFeatured: true
-  },
-  {
-    id: 'prod-vb3-spot-lightening-essence',
-    title: 'VB3 Spot-Lightening Essence',
-    author: 'FANTINE Korea',
-    regularPrice: 2100,
-    price: 1500,
-    discountPercentage: 29,
-    stockQuantity: 100,
-    category: 'Serums',
-    series: 'Whitening and Brightening Series',
-    coverImage: '/uploads/file-1791830989305-696330059.jpg',
-    images: [
-      '/uploads/file-1791830989305-696330059.jpg',
-      '/uploads/file-1791830994106-62464748.jpeg',
-      '/uploads/file-1791830999191-605068443.jpeg'
-    ],
-    additionalImages: [
-      '/uploads/file-1791830994106-62464748.jpeg',
-      '/uploads/file-1791830999191-605068443.jpeg'
-    ],
-    description: 'High-potency Vitamin B3 (Niacinamide) target solution. Eliminates stubborn post-acne dark marks and evens skin complexion.',
-    benefitsHighlights: 'Niacinamide active formula • Dark spot correction • Pore refining • Non-sticky velvet finish',
-    howToUse: 'Smooth evenly across face, focusing on areas with dark spots and discoloration.',
-    badge: 'Trending',
-    isFeatured: true
-  },
-  {
-    id: 'prod-super-antioxidant-serum',
-    title: 'Super Antioxidant Serum',
-    author: 'FANTINE Korea',
-    regularPrice: 2300,
-    price: 1600,
-    discountPercentage: 30,
-    stockQuantity: 100,
-    category: 'Serums',
-    series: 'Ultra Repair Series',
-    coverImage: '/uploads/file-1791831243256-923954313.jpg',
-    images: [
-      '/uploads/file-1791831243256-923954313.jpg',
-      '/uploads/file-1791831246663-670212725.jpeg',
-      '/uploads/file-1791831250379-772129356.jpeg'
-    ],
-    additionalImages: [
-      '/uploads/file-1791831246663-670212725.jpeg',
-      '/uploads/file-1791831250379-772129356.jpeg'
-    ],
-    description: 'Bio-botanical green tea & phyto-complex defending against urban pollution, reversing oxidative damage, and smoothing fine lines.',
-    benefitsHighlights: 'Super antioxidant barrier • Reduces oxidative stress • Youthful firming elasticity • Eco-certified extracts',
-    howToUse: 'Massage 2-3 drops into face and neck before heavier face creams.',
-    badge: 'Antioxidant',
-    isFeatured: true
-  },
-  {
-    id: 'prod-ve-nourishing-serum',
-    title: 'VE Nourishing Serum',
-    author: 'FANTINE Korea',
-    regularPrice: 1950,
-    price: 1450,
-    discountPercentage: 26,
-    stockQuantity: 100,
-    category: 'Serums',
-    series: 'Deep Hydration Series',
-    coverImage: '/uploads/file-1791830588893-187058483.jpg',
-    images: [
-      '/uploads/file-1791830588893-187058483.jpg',
-      '/uploads/file-1791830593541-799200212.jpeg',
-      '/uploads/file-1791830597458-464719743.jpeg'
-    ],
-    additionalImages: [
-      '/uploads/file-1791830593541-799200212.jpeg',
-      '/uploads/file-1791830597458-464719743.jpeg'
-    ],
-    description: 'Rich Vitamin E tocopherol concentrate restoring deep lipid hydration to severely dry, flaky, or weather-damaged skin.',
-    benefitsHighlights: 'Intense lipid nourishment • Repairs flakiness • Soothing botanical oils • 48h moisture shield',
-    howToUse: 'Gently warm 2 drops between palms and press onto face after serum step.',
-    badge: 'Moisture Care',
-    isFeatured: true
-  },
-  {
-    id: 'prod-rapid-acne-treatment-essence',
-    title: 'Rapid Acne Treatment Essence',
-    author: 'FANTINE Korea',
-    regularPrice: 3000,
-    price: 2000,
-    discountPercentage: 33,
-    stockQuantity: 100,
-    category: 'Rapid Acne Treatment Series',
-    series: 'Rapid Acne Treatment Series',
-    coverImage: '/uploads/file-1791826953559-621616270.jpg',
-    images: [
-      '/uploads/file-1791826953559-621616270.jpg',
-      '/uploads/file-1791826958408-501895547.jpeg',
-      '/uploads/file-1791826961577-101639256.jpeg'
-    ],
-    additionalImages: [
-      '/uploads/file-1791826958408-501895547.jpeg',
-      '/uploads/file-1791826961577-101639256.jpeg'
-    ],
-    description: 'Fast-action anti-inflammatory clarifying essence. Deeply clears congested pores, controls excess sebum, and prevents recurrent breakouts.',
-    benefitsHighlights: 'Rapid blemish relief • Pores decongested • Oil balancing • Gentle botanical actives',
-    howToUse: 'Apply to problem areas or all over face after cleansing.',
-    badge: 'Acne Care',
-    isFeatured: true
-  },
-  {
-    id: 'prod-aha-exfoliating-essence',
-    title: 'AHA Exfoliating Essence',
-    author: 'FANTINE Korea',
-    regularPrice: 3000,
-    price: 2000,
-    discountPercentage: 33,
-    stockQuantity: 100,
-    category: 'Toners',
-    series: 'Rapid Acne Treatment Series',
-    coverImage: '/uploads/file-1791822354692-346436357.jpg',
-    images: [
-      '/uploads/file-1791822354692-346436357.jpg',
-      '/uploads/file-1791822359176-731563340.webp',
-      '/uploads/file-1791822363053-980807663.webp'
-    ],
-    additionalImages: [
-      '/uploads/file-1791822359176-731563340.webp',
-      '/uploads/file-1791822363053-980807663.webp'
-    ],
-    description: 'Gentle fruit acid resurfacing elixir removing dead keratinized cells, smoothing rough texture, and unlocking clean radiant skin.',
-    benefitsHighlights: 'Gentle AHA resurfacing • Dissolves dead skin cells • Unclogs comedones • Enhances absorption',
-    howToUse: 'Use 2-3 nights per week with a cotton pad on cleansed skin. Follow with hydration.',
-    badge: 'Exfoliation',
-    isFeatured: true
-  },
-  {
-    id: 'prod-retinol-anti-aging-serum',
-    title: 'Retinol Anti-Aging Serum',
-    author: 'FANTINE Korea',
-    regularPrice: 3200,
-    price: 2200,
-    discountPercentage: 31,
-    stockQuantity: 100,
-    category: 'Serums',
-    series: 'Ultra Repair Series',
-    coverImage: '/uploads/file-1791827320010-515338106.jpg',
-    images: [
-      '/uploads/file-1791827320010-515338106.jpg',
-      '/uploads/file-1791827334201-693066165.jpeg',
-      '/uploads/file-1791827334452-792065672.jpeg'
-    ],
-    additionalImages: [
-      '/uploads/file-1791827334201-693066165.jpeg',
-      '/uploads/file-1791827334452-792065672.jpeg'
-    ],
-    description: 'Stabilized Retinol micro-capsules stimulating collagen synthesis, diminishing deep expression lines, and promoting cellular turnover.',
-    benefitsHighlights: 'Micro-encapsulated Retinol • Anti-wrinkle firming • Boosts renewal • Safe nocturnal regimen',
-    howToUse: 'Apply at night. Start 2 nights per week, gradually increasing frequency as skin adapts.',
-    badge: 'Anti-Aging',
-    isFeatured: true
-  },
-  {
-    id: 'prod-collagen-elastic-essence',
-    title: 'Collagen Elastic Essence',
-    author: 'FANTINE Korea',
-    regularPrice: 2500,
-    price: 1800,
-    discountPercentage: 28,
-    stockQuantity: 100,
-    category: 'Serums',
-    series: 'Deep Hydration Series',
-    coverImage: '/uploads/file-1791823814770-967689183.jpg',
-    images: [
-      '/uploads/file-1791823814770-967689183.jpg',
-      '/uploads/file-1791823819604-611080923.jpeg',
-      '/uploads/file-1791823819691-282589560.jpeg'
-    ],
-    additionalImages: [
-      '/uploads/file-1791823819604-611080923.jpeg',
-      '/uploads/file-1791823819691-282589560.jpeg'
-    ],
-    description: 'Hydrolyzed marine and botanical collagen peptides restoring bounce, plumpling fine dehydration lines, and imparting glass skin finish.',
-    benefitsHighlights: 'Hydrolyzed collagen • Plumps skin firmness • Dewy finish • Non-comedogenic',
-    howToUse: 'Apply generously to face and neck morning and evening before face cream.',
-    badge: 'Elasticity',
-    isFeatured: true
-  }
-];
+export const DEFAULT_PRODUCTS: Product[] = [];
 
-export const DEFAULT_COUPONS: Coupon[] = [
-  {
-    id: 'cpn-1',
-    code: 'DIS2000',
-    title: '2000',
-    discount: 2500,
-    type: 'fixed',
-    status: 'Active',
-    visibility: 'Private',
-    usageCount: 2,
-    usageLimit: 10000,
-    updatedAt: '16 days ago'
-  },
-  {
-    id: 'cpn-2',
-    code: 'TEST20',
-    title: 'TEST20',
-    discount: 780,
-    type: 'fixed',
-    status: 'Active',
-    visibility: 'Private',
-    usageCount: 1,
-    usageLimit: 10,
-    updatedAt: '2 months ago'
-  },
-  {
-    id: 'cpn-3',
-    code: 'TEST10',
-    title: 'TEST10',
-    discount: 1990,
-    type: 'fixed',
-    status: 'Active',
-    visibility: 'Private',
-    usageCount: 1,
-    usageLimit: 100,
-    updatedAt: '2 months ago'
-  },
-  {
-    id: 'cpn-4',
-    code: 'old790',
-    title: 'mobile course',
-    discount: 100,
-    type: 'percentage',
-    status: 'Active',
-    visibility: 'Private',
-    usageCount: 0,
-    usageLimit: 10000,
-    updatedAt: '2 months ago'
-  }
-];
+export const DEFAULT_COUPONS: Coupon[] = [];
 
 export const DEFAULT_BRANDS: Brand[] = [];
 
@@ -304,7 +20,7 @@ export const DEFAULT_PAYMENT_GATEWAYS: PaymentGatewayItem[] = [
     discountAmount: 0,
     priority: 1,
     instruction: 'Pay with cash upon delivery of your order.',
-    updatedAt: 'Jul 23, 2026',
+    updatedAt: new Date().toLocaleDateString(),
     accountNumber: ''
   }
 ];
@@ -312,59 +28,31 @@ export const DEFAULT_PAYMENT_GATEWAYS: PaymentGatewayItem[] = [
 export const DEFAULT_DELIVERY_METHODS: DeliveryMethodItem[] = [
   {
     id: 'dm-1',
-    title: 'Rakibul Hasan - (Inside Dhaka)',
-    status: 'Inactive',
+    title: 'Inside Dhaka',
+    status: 'Active',
     mode: 'Fixed',
     type: 'Fixed',
     minimumCharge: 0,
     maximumCharge: 0,
     deliveryCharge: 60,
-    updatedAt: 'Aug 4, 2026'
+    updatedAt: new Date().toLocaleDateString()
   },
   {
     id: 'dm-2',
-    title: 'SteadFast - (Steadfast)',
-    status: 'Inactive',
-    mode: 'Fixed',
-    type: 'Fixed',
-    minimumCharge: 0,
-    maximumCharge: 0,
-    deliveryCharge: 80,
-    updatedAt: 'Jul 23, 2026'
-  },
-  {
-    id: 'dm-3',
-    title: 'All bangladesh - (Outside Dhaka)',
+    title: 'Outside Dhaka',
     status: 'Active',
     mode: 'Fixed',
     type: 'Fixed',
     minimumCharge: 0,
     maximumCharge: 0,
     deliveryCharge: 110,
-    updatedAt: 'Jul 23, 2026'
+    updatedAt: new Date().toLocaleDateString()
   }
 ];
 
 export const DEFAULT_HERO_BANNERS: HeroBannerItem[] = [];
 
-export const DEFAULT_PROMO_CARDS: PromoCardItem[] = [
-  {
-    id: 'promo-1',
-    title: 'PREDATOR HELIOS NEO 16',
-    badge: 'PREDATOR',
-    subtitle: 'POWER. PRECISION. PREDATOR.',
-    discountText: '3,20,000 BDT',
-    imageUrl: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=500&auto=format&fit=crop&q=80'
-  },
-  {
-    id: 'promo-2',
-    title: 'MSI VECTOR A16 HX',
-    badge: 'MSI EDITION',
-    subtitle: 'POWER. PRECISION. VICTORY.',
-    discountText: '2,59,999 BDT',
-    imageUrl: 'https://images.unsplash.com/photo-1524805444758-089113d48a6d?w=500&auto=format&fit=crop&q=80'
-  }
-];
+export const DEFAULT_PROMO_CARDS: PromoCardItem[] = [];
 
 export const DEFAULT_ABOUT_SETTINGS: import('../types').AboutPageSettings = {
   title: 'about us',
@@ -422,7 +110,7 @@ export const DEFAULT_ABOUT_SETTINGS: import('../types').AboutPageSettings = {
   hqSubtitle: 'Global R&D Center & Innovation Hub',
   hqAddress: '9F, Gangnamjeil Bldg, 109, Teheran-ro, Gangnam-gu, Seoul, Republic of Korea',
   hqImage: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1200&auto=format&fit=crop&q=85',
-  missionStatement: 'We sincerely hope we can relieve your tensions and stresses, and give you a healthier and more peaceful life.',
+  missionStatement: '',
   founderQuote: 'True skin radiance is not an overnight illusion, but a harmonious balance between natural botanical resilience and scientific dermal precision.',
   founderName: 'FANTINE Dermal Research Institute',
   founderTitle: 'Clinical Formulation & Botanical Science Division',
@@ -436,25 +124,25 @@ export const DEFAULT_ABOUT_SETTINGS: import('../types').AboutPageSettings = {
 };
 
 export const DEFAULT_FLASH_SALE_SETTINGS: FlashSaleSettings = {
-  enabled: true,
+  enabled: false,
   productId: '',
-  badgeTag: 'BRIGHTENING AND WHITENING SERIES',
-  title: 'FANTINE Whitening and Brightening Series',
-  subtitle: 'Instantly brightens and revitalizes the skin with just one application. Infused with six powerful botanical whitening extracts for a rosy and radiant complexion.',
-  customImage: 'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=1000&auto=format&fit=crop&q=90',
-  flashPrice: 1250,
-  originalPrice: 1850,
-  endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+  badgeTag: '',
+  title: '',
+  subtitle: '',
+  customImage: '',
+  flashPrice: 0,
+  originalPrice: 0,
+  endDate: '',
   buttonText: 'SHOP NOW',
-  showVideoSection: true,
-  videoTitle: 'Clinical Hanbang Formulation & Daily Application Ritual',
-  videoSubtitle: 'Watch how our Korean active formula penetrates deeply to soothe inflammation, rebuild the skin barrier, and restore glass-skin radiance.',
+  showVideoSection: false,
+  videoTitle: '',
+  videoSubtitle: '',
   videoType: 'file',
-  videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-dropper-dropping-oil-into-a-glass-jar-42790-large.mp4'
+  videoUrl: ''
 };
 
 export const DEFAULT_HIGHLIGHT_SPOTLIGHT_SETTINGS: HighlightSpotlightSettings = {
-  enabled: true,
+  enabled: false,
   targetType: 'product',
   productId: '',
   categoryName: '',
@@ -467,53 +155,57 @@ export const DEFAULT_HIGHLIGHT_SPOTLIGHT_SETTINGS: HighlightSpotlightSettings = 
 };
 
 export const DEFAULT_ECOM_SETTINGS: EcomSettings = {
-  storeName: 'F A И T I И E',
-  companyName: 'Brandini Co., Ltd.',
+  storeName: '',
+  companyName: '',
   storeLogo: '',
-  storeTagline: 'Brandini Co., Ltd. • Seoul, Republic of Korea. Clinical Hanbang Skincare & Botanical Whitening Solutions.',
-  topAnnouncementText: 'WELCOME TO BRANDINI CO.,LTD',
-  contactEmail: 'FANTINE@BRANDINI.CO.KR',
-  contactPhone: '+82 (02) 884-9021',
-  storeAddress: '9F, Gangnamjeil Bldg, 109, Teheran-ro, Gangnam-gu, Seoul, Republic of Korea',
-  footerDescription: 'Brandini Co., Ltd. • Seoul, Republic of Korea. Clinical Hanbang Skincare & Botanical Whitening Solutions.',
+  storeFavicon: '',
+  favicon: '',
+  storeTagline: '',
+  topAnnouncementText: '',
+  contactEmail: '',
+  contactPhone: '',
+  storeAddress: '',
+  footerDescription: '',
   socialLinks: {
     facebook: '',
-    instagram: 'https://instagram.com',
-    youtube: 'https://youtube.com',
-    twitter: 'https://twitter.com',
-    tiktok: 'https://tiktok.com',
-    linkedin: 'https://linkedin.com',
-    whatsapp: '+82 (02) 884-9021'
+    instagram: '',
+    youtube: '',
+    twitter: '',
+    tiktok: '',
+    linkedin: '',
+    whatsapp: ''
   },
-  primaryColor: '#93c5fd',
+  primaryColor: '#0f766e',
   gtmId: '',
-  deliveryChargeInsideDhaka: 0,
-  deliveryChargeOutsideDhaka: 0,
+  deliveryChargeInsideDhaka: 60,
+  deliveryChargeOutsideDhaka: 110,
   bkashNumber: '',
   nagadNumber: '',
   paymentGateways: DEFAULT_PAYMENT_GATEWAYS,
   deliveryMethods: DEFAULT_DELIVERY_METHODS,
-  categories: ['Cleansers', 'Toners', 'Serums', 'Creams', 'Sets', 'Sun Care'],
+  categories: [],
   heroBanners: [],
-  promoCards: DEFAULT_PROMO_CARDS,
-  showViewCountOnWebsite: true,
-  websiteViewsCount: 14200,
-  landingViewsCount: 8900,
+  promoCards: [],
+  showViewCountOnWebsite: false,
+  websiteViewsCount: 0,
+  landingViewsCount: 0,
   aboutSettings: DEFAULT_ABOUT_SETTINGS,
   flashSale: DEFAULT_FLASH_SALE_SETTINGS,
   highlightSpotlight: DEFAULT_HIGHLIGHT_SPOTLIGHT_SETTINGS
 };
 
 export const DEFAULT_INSTITUTE_INFO: InstituteInfo = {
-  name: 'Brandini Co., Ltd.',
+  name: '',
   regNo: '',
-  phone: '+82 (02) 884-9021',
-  email: 'FANTINE@BRANDINI.CO.KR',
-  address: '9F, Gangnamjeil Bldg, 109, Teheran-ro, Gangnam-gu, Seoul, Republic of Korea',
-  street: '109, Teheran-ro, Gangnam-gu, Seoul, Korea',
-  description: 'Brandini Co., Ltd. • Seoul, Republic of Korea. Clinical Hanbang Skincare & Botanical Whitening Solutions.',
-  industry: 'Cosmetics & Skincare',
-  bearingRollLocation: 'Seoul'
+  phone: '',
+  email: '',
+  address: '',
+  street: '',
+  description: '',
+  industry: '',
+  bearingRollLocation: '',
+  logo: '',
+  favicon: ''
 };
 
 export const DEFAULT_LANDING_PAGE_SETTINGS: import('../types').LandingPageData = {
@@ -524,9 +216,9 @@ export const DEFAULT_LANDING_PAGE_SETTINGS: import('../types').LandingPageData =
   bookSubtitle: 'CASIO AE-1200 Watch',
   authorName: 'CASIO AE-1200 Watch',
   authorDesignation: '10০% অরিজিনাল ও প্রিমিয়াম কোয়ালিT',
-  authorPhoto: '/watch.jpg',
-  mainBookImage: '/watch.jpg',
-  heroBookImage: '/watch.jpg',
+  authorPhoto: '/placeholder-image.svg',
+  mainBookImage: '/placeholder-image.svg',
+  heroBookImage: '/placeholder-image.svg',
   logoUrl: '',
   pageCount: '10 Year Battery',
   paperQuality: '100M Water Resist',
@@ -553,7 +245,7 @@ export const DEFAULT_LANDING_PAGE_SETTINGS: import('../types').LandingPageData =
     {
       id: 'var-silver',
       name: 'CASIO AE-1200WHL — সিলভার',
-      image: '/watch.jpg',
+      image: '/placeholder-image.svg',
       price: 950,
       regularPrice: 2500,
       tag: 'Best seller'
@@ -561,7 +253,7 @@ export const DEFAULT_LANDING_PAGE_SETTINGS: import('../types').LandingPageData =
     {
       id: 'var-black',
       name: 'CASIO AE-1200WHL — ব্ল্যাক',
-      image: '/watch.jpg',
+      image: '/placeholder-image.svg',
       price: 950,
       regularPrice: 2500,
       tag: 'popular'
@@ -569,7 +261,7 @@ export const DEFAULT_LANDING_PAGE_SETTINGS: import('../types').LandingPageData =
     {
       id: 'var-gold',
       name: 'CASIO AE-1200WHL — ভিন্টেজ গোল্ড',
-      image: '/watch.jpg',
+      image: '/placeholder-image.svg',
       price: 950,
       regularPrice: 2500,
       tag: 'এক্সক্লুসিভ'

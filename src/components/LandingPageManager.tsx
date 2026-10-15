@@ -56,13 +56,13 @@ export default function LandingPageManager() {
         ? landingStatusMap[prod.id] 
         : (lpSettings.isEnabled !== undefined ? lpSettings.isEnabled : true);
       
-      // Ensure fallbacks are properly set to /watch.jpg if empty
+      // Ensure fallbacks are properly set to /placeholder-image.svg if empty
       setData({
         ...lpSettings,
         isEnabled,
         productId: prod.id,
-        heroBookImage: lpSettings.heroBookImage || prod.image || '/watch.jpg',
-        mainBookImage: lpSettings.mainBookImage || prod.image || '/watch.jpg'
+        heroBookImage: lpSettings.heroBookImage || prod.image || '/placeholder-image.svg',
+        mainBookImage: lpSettings.mainBookImage || prod.image || '/placeholder-image.svg'
       });
     } catch (err) {
       console.error('Error loading product landing settings:', err);
@@ -287,11 +287,11 @@ export default function LandingPageManager() {
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-3">
                             <img 
-                              src={prod.image || '/watch.jpg'} 
+                              src={prod.image || '/placeholder-image.svg'} 
                               alt={prod.title} 
                               onError={(e) => {
                                 const t = e.currentTarget;
-                                if (!t.src.endsWith('/watch.jpg')) t.src = '/watch.jpg';
+                                if (!t.src.endsWith('/placeholder-image.svg')) t.src = '/placeholder-image.svg';
                               }}
                               className="w-12 h-12 rounded-xl object-cover border border-slate-200 bg-slate-50 shrink-0"
                             />
@@ -389,7 +389,7 @@ export default function LandingPageManager() {
   const activeCampaignUrl = getCampaignUrl(data.slug);
 
   return (
-    <div className="space-y-6 font-sans max-w-4xl mx-auto pb-16">
+    <div className="space-y-6 font-sans w-full pb-16">
       {/* Top Banner Header */}
       <div className="bg-gradient-to-r from-slate-900 via-teal-950 to-slate-900 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden border border-teal-800/40">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -670,11 +670,11 @@ export default function LandingPageManager() {
               </label>
               <div className="flex items-center space-x-3">
                 <img 
-                  src={data.heroBookImage || data.mainBookImage || '/watch.jpg'} 
+                  src={data.heroBookImage || data.mainBookImage || '/placeholder-image.svg'} 
                   alt="Hero Preview" 
                   onError={(e) => {
                     const t = e.currentTarget;
-                    if (!t.src.endsWith('/watch.jpg')) t.src = '/watch.jpg';
+                    if (!t.src.endsWith('/placeholder-image.svg')) t.src = '/placeholder-image.svg';
                   }}
                   className="h-20 w-20 rounded-xl object-cover border border-slate-200 bg-slate-50 p-1 shadow-xs shrink-0" 
                 />
@@ -692,10 +692,10 @@ export default function LandingPageManager() {
                     </label>
                     <button
                       type="button"
-                      onClick={() => setData(prev => ({ ...prev, heroBookImage: '/watch.jpg', mainBookImage: '/watch.jpg' }))}
+                      onClick={() => setData(prev => ({ ...prev, heroBookImage: '/placeholder-image.svg', mainBookImage: '/placeholder-image.svg' }))}
                       className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg transition-colors border border-slate-200"
                     >
-                      default (/watch.jpg) set
+                      Reset to placeholder
                     </button>
                   </div>
                   <p className="text-[10px] text-slate-400">Images below 800 KB will be saved in 100% original quality without any compression</p>
@@ -719,7 +719,7 @@ export default function LandingPageManager() {
                   }));
                 }}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="For example: /watch.jpg or https://.../image.jpg"
+                placeholder="For example: /placeholder-image.svg or https://.../image.jpg"
               />
             </div>
           </div>

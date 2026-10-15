@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { BookOrder } from '../types';
 import { Printer, MessageCircle, Copy, CheckCircle, Info } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
+import { isOrderCod, isOrderPaid } from '../lib/orderPaymentUtils';
 
 interface Props {
   order: BookOrder;
@@ -68,7 +69,11 @@ export function InvoicePreview({ order }: Props) {
   };
 
   const dt = formatDate(order.createdAt);
-  const storeName = instituteInfo?.name || 'FANTINE BD';
+  const storeName = ecomSettings?.storeName || instituteInfo?.name || 'SHOSTIR BAZAR';
+  const storePhone = instituteInfo?.phone || ecomSettings?.supportPhone || '';
+  const storeDomain = ecomSettings?.storeDomain 
+    ? ecomSettings.storeDomain.replace(/^https?:\/\//i, '').replace(/\/$/, '')
+    : (instituteInfo?.website ? instituteInfo.website.replace(/^https?:\/\//i, '').replace(/\/$/, '') : '');
 
   return (
     <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden flex flex-col">
@@ -103,17 +108,18 @@ export function InvoicePreview({ order }: Props) {
               
               <div className="h-16 bg-slate-900 rounded-lg flex items-center justify-center px-4 py-2 shrink-0">
                 <img 
-                  src={ecomSettings?.storeLogo || instituteInfo?.logo || '/logo_transparent.webp'} 
+                  src={ecomSettings?.storeLogo || instituteInfo?.logo || '/placeholder-logo.svg'} 
                   alt="Logo" 
                   className="max-h-full w-auto object-contain"
-                  onError={(e) => { e.currentTarget.src = '/logo_transparent.webp'; }}
+                  onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = '/placeholder-logo.svg'; }}
                 />
               </div>
 
               <div>
                 <h1 className="text-2xl font-black uppercase tracking-tight">{storeName}</h1>
                 <p className="text-slate-500 text-sm mt-1">Bangladesh</p>
-                <p className="text-slate-500 text-sm">{instituteInfo?.phone || '8801XXXXXXXXX'}</p>
+                {storePhone && <p className="text-slate-500 text-sm">{storePhone}</p>}
+                {storeDomain && <p className="text-slate-400 text-xs">{storeDomain}</p>}
               </div>
             </div>
             
@@ -136,9 +142,9 @@ export function InvoicePreview({ order }: Props) {
               <div className="border border-slate-300 rounded-lg p-4 text-center min-w-[160px] bg-slate-50">
                 <p className="text-[10px] font-bold text-slate-500 tracking-widest uppercase mb-2">Tracking ID</p>
                 <div className="border border-dashed border-slate-300 rounded py-2 mt-2">
-                  <p className="text-xs font-bold text-slate-400">NOT ASSIGNED</p>
+                  <p className="text-xs font-bold text-slate-400">{order.steadfastTrackingCode || order.pathaoTrackingCode || 'NOT ASSIGNED'}</p>
                 </div>
-                <p className="text-[10px] text-slate-400 mt-4 italic">by {ecomSettings?.storeDomain || 'fantinebd.com'}</p>
+                <p className="text-[10px] text-slate-400 mt-4 italic">by {storeDomain || storeName}</p>
               </div>
             </div>
           </div>
@@ -181,11 +187,13 @@ export function InvoicePreview({ order }: Props) {
                   </tr>
                   <tr>
                     <td className="py-2 text-slate-500">Method:</td>
-                    <td className="py-2 text-right font-bold text-slate-900">{order.paymentMethod === 'COD' ? 'Cash In Delivery' : (order.paymentMethod || 'Prepaid')}</td>
+                    <td className="py-2 text-right font-bold text-slate-900">{isOrderCod(order.paymentMethod) ? 'Cash on Delivery' : (order.paymentMethod || 'Prepaid')}</td>
                   </tr>
                   <tr>
                     <td className="py-2 text-slate-500">Status:</td>
-                    <td className="py-2 text-right font-bold text-blue-600 uppercase tracking-wide">{order.status}</td>
+                    <td className={`py-2 text-right font-bold uppercase tracking-wide ${isOrderPaid(order) ? 'text-emerald-600' : 'text-amber-600'}`}>
+                      {isOrderPaid(order) ? 'PAID' : 'UNPAID'}
+                    </td>
                   </tr>
                 </tbody>
               </table>
@@ -231,30 +239,40 @@ export function InvoicePreview({ order }: Props) {
           </table>
 
           {/* Totals */}
-          <div className="flex justify-end mb-10 border-t-2 border-slate-900 pt-4">
-            <div className="w-80">
-              <div className="flex justify-between py-2 text-sm">
-                <span className="text-slate-600">Subtotal</span>
-                <span className="font-mono text-slate-900">৳ {(order.totalPrice ? order.totalPrice - (order.deliveryCharge || 0) + (order.couponDiscount || order.discountAmount || 0) : ((order.price || 0) * (order.quantity || 1))).toFixed(2)}</span>
+          {(() => {
+            const isPaid = isOrderPaid(order);
+            const subtotal = order.totalPrice ? order.totalPrice - (order.deliveryCharge || 0) + (order.couponDiscount || order.discountAmount || 0) : ((order.price || 0) * (order.quantity || 1));
+            const grandTotal = order.totalAmount || order.totalPrice || ((order.price || 0) * (order.quantity || 1) + (order.deliveryCharge || 0));
+            const paidAmount = isPaid ? grandTotal : 0;
+            const dueAmount = isPaid ? 0 : grandTotal;
+
+            return (
+              <div className="flex justify-end mb-10 border-t-2 border-slate-900 pt-4">
+                <div className="w-80">
+                  <div className="flex justify-between py-2 text-sm">
+                    <span className="text-slate-600">Subtotal</span>
+                    <span className="font-mono text-slate-900">৳ {subtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between py-2 text-sm border-b border-slate-200 mb-2">
+                    <span className="text-slate-600">Shipping</span>
+                    <span className="font-mono text-slate-900">৳ {(order.deliveryCharge || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between py-3 items-center">
+                    <span className="font-black text-xl text-slate-900 uppercase">Grand Total</span>
+                    <span className="font-mono font-black text-xl text-slate-900">৳ {grandTotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between py-2 text-sm">
+                    <span className="text-slate-600">Paid</span>
+                    <span className="font-mono text-slate-900">৳ {paidAmount.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between py-3 mt-1 bg-slate-50 px-3 rounded font-bold">
+                    <span className="text-slate-900">Due Amount</span>
+                    <span className="font-mono text-slate-900">৳ {dueAmount.toFixed(2)}</span>
+                  </div>
+                </div>
               </div>
-              <div className="flex justify-between py-2 text-sm border-b border-slate-200 mb-2">
-                <span className="text-slate-600">Shipping</span>
-                <span className="font-mono text-slate-900">৳ {(order.deliveryCharge || 0).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between py-3 items-center">
-                <span className="font-black text-xl text-slate-900 uppercase">Grand Total</span>
-                <span className="font-mono font-black text-xl text-slate-900">৳ {(order.totalAmount || order.totalPrice || ((order.price || 0) * (order.quantity || 1) + (order.deliveryCharge || 0))).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between py-2 text-sm">
-                <span className="text-slate-600">Paid</span>
-                <span className="font-mono text-slate-900">৳ 0.00</span>
-              </div>
-              <div className="flex justify-between py-3 mt-1 bg-slate-50 px-3 rounded font-bold">
-                <span className="text-slate-900">Due Amount</span>
-                <span className="font-mono text-slate-900">৳ {(order.totalAmount || order.totalPrice || ((order.price || 0) * (order.quantity || 1) + (order.deliveryCharge || 0))).toFixed(2)}</span>
-              </div>
-            </div>
-          </div>
+            );
+          })()}
 
 
 

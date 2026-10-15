@@ -11,6 +11,7 @@ import { Product, EcomSettings, BookOrder, LandingPageData, DeliveryMethodItem, 
 import { initPixelAndGtm, trackEvent, createEventId } from '../lib/pixelGtmService';
 import { getProductSlug } from '../lib/seoUtils';
 import { FeedbackDialog } from './ui/FeedbackDialog';
+import { playOrderSuccessVibe } from '../lib/soundUtils';
 
 interface BookLandingPageProps {
   onNavigateHome: () => void;
@@ -206,8 +207,8 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
     subtitle: 'CASIO AE-1200 Watch',
     price: 999,
     regularPrice: 1650,
-    image: '/watch.jpg',
-    description: 'World Time48 Cities, LED Backlight, Stopwatch1/100 sec, 5 Daily Alarms, 100M Water Resistance। per Lucky coupon to win Yamaha R15 on order.'
+    image: '/placeholder-image.svg',
+    description: ''
   };
 
   const displayTitle = landingConfig?.bookTitle || product?.title || fallbackProduct.title;
@@ -215,10 +216,10 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
   const displayDesc = landingConfig?.heroDescription || product?.description || fallbackProduct.description;
   const displayPrice = selectedVariant?.price || landingConfig?.offerPrice || product?.price || fallbackProduct.price;
   const regularPrice = selectedVariant?.regularPrice || landingConfig?.regularPrice || product?.regularPrice || fallbackProduct.regularPrice;
-  const displayImage = selectedVariant?.image || landingConfig?.heroBookImage || landingConfig?.mainBookImage || product?.image || fallbackProduct.image || '/watch.jpg';
+  const displayImage = selectedVariant?.image || landingConfig?.heroBookImage || landingConfig?.mainBookImage || product?.image || fallbackProduct.image || '/placeholder-image.svg';
   
   // Dedicated Top Hero Banner image (uploaded in Section 2 as 'Landing page hero product image' - Original/HD)
-  const heroTopImage = landingConfig?.heroBookImage || landingConfig?.mainBookImage || landingConfig?.campaignBannerImage || product?.image || fallbackProduct.image || '/watch.jpg';
+  const heroTopImage = landingConfig?.heroBookImage || landingConfig?.mainBookImage || landingConfig?.campaignBannerImage || product?.image || fallbackProduct.image || '/placeholder-image.svg';
 
   // YouTube Video Embed URL Helper
   const getYouTubeEmbedUrl = (url?: string): string | null => {
@@ -537,6 +538,7 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
         num_items: quantity
       }, eventId);
 
+      playOrderSuccessVibe();
       setPlacedOrderId(orderId);
       setPlacedLuckyCoupon(luckyCode);
       setOrderSuccess(true);
@@ -610,15 +612,15 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
           {/* Top Graphic Poster Banner (Hero Top Image) */}
           <div className="relative rounded-2xl overflow-hidden border border-[#b8863b]/30 shadow-2xl bg-[#16120e]">
             <img 
-              src={heroTopImage || '/watch.jpg'} 
+              src={heroTopImage || '/placeholder-image.svg'} 
               alt={displayTitle} 
               loading="eager"
               fetchPriority="high"
               decoding="async"
               onError={(e) => {
                 const target = e.currentTarget;
-                if (!target.src.endsWith('/watch.jpg')) {
-                  target.src = '/watch.jpg';
+                if (!target.src.endsWith('/placeholder-image.svg')) {
+                  target.src = '/placeholder-image.svg';
                 }
               }}
               className="w-full h-auto max-h-[480px] object-cover mx-auto"
@@ -748,14 +750,14 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
             onTouchEnd={handleTouchEnd}
           >
             <img 
-              src={galleryImages[galleryIndex] || displayImage || '/watch.jpg'} 
+              src={galleryImages[galleryIndex] || displayImage || '/placeholder-image.svg'} 
               alt="Watch Gallery" 
               loading="lazy"
               decoding="async"
               onError={(e) => {
                 const target = e.currentTarget;
-                if (!target.src.endsWith('/watch.jpg')) {
-                  target.src = '/watch.jpg';
+                if (!target.src.endsWith('/placeholder-image.svg')) {
+                  target.src = '/placeholder-image.svg';
                 }
               }}
               className="w-full h-full object-cover transition-all duration-300"
@@ -885,8 +887,8 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
                           alt={v.name} 
                           onError={(e) => {
                             const target = e.currentTarget;
-                            if (!target.src.endsWith('/watch.jpg')) {
-                              target.src = '/watch.jpg';
+                            if (!target.src.endsWith('/placeholder-image.svg')) {
+                              target.src = '/placeholder-image.svg';
                             }
                           }}
                           className="w-6 h-6 object-contain rounded" 
@@ -912,12 +914,12 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-12 h-12 rounded-xl bg-[#0f0c08] border border-[#382d22] p-1 shrink-0 flex items-center justify-center">
                     <img
-                      src={selectedVariant?.image || displayImage || '/watch.jpg'}
+                      src={selectedVariant?.image || displayImage || '/placeholder-image.svg'}
                       alt={selectedVariant?.name || displayTitle}
                       onError={(e) => {
                         const target = e.currentTarget;
-                        if (!target.src.endsWith('/watch.jpg')) {
-                          target.src = '/watch.jpg';
+                        if (!target.src.endsWith('/placeholder-image.svg')) {
+                          target.src = '/placeholder-image.svg';
                         }
                       }}
                       className="w-full h-full object-contain"

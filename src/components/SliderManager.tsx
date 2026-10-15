@@ -636,7 +636,7 @@ export default function SliderManager() {
                         Or provide Image URL directly:
                       </label>
                       <input
-                        type="url"
+                        type="text"
                         placeholder={`https://example.com/banner-${bannerUploadTab}.jpg`}
                         value={bannerUploadTab === 'mobile' ? (editingBanner.mobileImageUrl || '') : (editingBanner.imageUrl || '')}
                         onChange={(e) => {
@@ -788,8 +788,8 @@ export default function SliderManager() {
                           or hosted video fileof URL write down:
                         </label>
                         <input
-                          type="url"
-                          placeholder="https://assets.mixkit.co/videos/.../video.mp4"
+                          type="text"
+                          placeholder="/uploads/... or https://assets.mixkit.co/videos/.../video.mp4"
                           value={editingBanner.videoUrl || ''}
                           onChange={(e) => setEditingBanner({ ...editingBanner, videoUrl: e.target.value })}
                           className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs text-slate-800 outline-none focus:ring-2 focus:ring-rose-500"
@@ -1010,8 +1010,8 @@ export default function SliderManager() {
                   <div className="pt-2">
                     <label className="block font-bold text-slate-700 mb-1">Web link or URLExternal Link:</label>
                     <input
-                      type="url"
-                      placeholder="For example: https://example.com/special-offer"
+                      type="text"
+                      placeholder="For example: /shop or https://example.com/special-offer"
                       value={editingBanner.link || ''}
                       onChange={(e) => setEditingBanner({ ...editingBanner, link: e.target.value })}
                       className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-mono text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none"

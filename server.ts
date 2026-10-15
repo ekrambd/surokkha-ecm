@@ -6,12 +6,17 @@ import zlib from "zlib";
 import dotenv from "dotenv";
 import { createServer as createViteServer } from "vite";
 import { app } from "./src/server/app";
-import { storeProducts } from "./src/server/data/store";
+import { storeProducts, storeSettings } from "./src/server/data/store";
 
 function injectServerMeta(html: string, reqPath: string, host: string, proto: string): string {
-  let title = "FAИTIИE (F A И T I И E) - Luxury Korean Hanbang Skincare";
-  let description = "Premium Korean Hanbang Skincare & Botanical Whitening Solutions by Brandini Co., Ltd. Order authentic Korean skincare with Cash on Delivery in Bangladesh.";
-  let image = "https://fantinebd.com/logo_transparent.webp";
+  const storeName = storeSettings?.storeName?.trim() || "Online Store";
+  let title = storeName;
+  let description = storeSettings?.storeTagline?.trim() || storeSettings?.footerDescription?.trim() || "Welcome to our store";
+  
+  // Use user-uploaded logo/favicon if configured, otherwise use clean placeholder SVG
+  const uploadedLogo = storeSettings?.storeLogo?.trim();
+  const uploadedFavicon = (storeSettings?.storeFavicon || storeSettings?.favicon)?.trim();
+  let image = uploadedLogo || (uploadedFavicon ? uploadedFavicon : `${proto}://${host}/placeholder-logo.svg`);
   const fullUrl = `${proto}://${host}${reqPath}`;
 
   if (reqPath.startsWith('/product')) {
@@ -23,24 +28,19 @@ function injectServerMeta(html: string, reqPath: string, host: string, proto: st
     });
 
     if (matched) {
-      title = `${matched.title} | FAИTIИE`;
+      title = `${matched.title} | ${storeName}`;
       description = matched.description || (matched as any).subtitle || description;
       image = (matched as any).coverImage || matched.image || image;
     }
   } else if (reqPath.startsWith('/shop')) {
-    title = "Shop All Korean Skincare Formulations | FAИTIИE";
-    description = "Explore our complete catalog of Korean Hanbang botanical skincare, creams, toners, and cleansers.";
+    title = `Shop All Products | ${storeName}`;
+    description = `Explore our complete product catalog at ${storeName}.`;
   } else if (reqPath.startsWith('/about')) {
-    title = "About Us & Hanbang Story | FAИTIИE";
-    description = "Learn about our Seoul heritage, brand story, and traditional Korean herbal skincare philosophy.";
+    title = `About Us | ${storeName}`;
+    description = `Learn more about ${storeName}.`;
   } else if (reqPath.startsWith('/contact')) {
-    title = "Contact Us & Customer Support | FAИTIИE";
-    description = "Reach out to the FAИTIИE team via WhatsApp, phone, or email for customer support and order inquiries.";
-  } else if (reqPath.startsWith('/quiz')) {
-    title = "Personalized Skin Routine Quiz | FAИTIИE";
-    description = "Take the 1-minute Korean skincare quiz to find your personalized daily routine.";
-  } else {
-    return html;
+    title = `Contact Us | ${storeName}`;
+    description = `Reach out to the ${storeName} team for customer support and order inquiries.`;
   }
 
   let modified = html;
@@ -60,6 +60,11 @@ function injectServerMeta(html: string, reqPath: string, host: string, proto: st
   modified = modified.replace(/<meta name="twitter:title" content=".*?"\s*\/?>/i, `<meta name="twitter:title" content="${title}" />`);
   modified = modified.replace(/<meta name="twitter:description" content=".*?"\s*\/?>/i, `<meta name="twitter:description" content="${description}" />`);
   modified = modified.replace(/<meta name="twitter:image" content=".*?"\s*\/?>/i, `<meta name="twitter:image" content="${image}" />`);
+
+  // Dynamically update favicon tag
+  const faviconUrl = uploadedFavicon || '/placeholder-favicon.svg';
+  modified = modified.replace(/<link rel="icon" [^>]*>/i, `<link rel="icon" href="${faviconUrl}" />`);
+  modified = modified.replace(/<link rel="shortcut icon" [^>]*>/i, `<link rel="shortcut icon" href="${faviconUrl}" />`);
 
   return modified;
 }
@@ -101,7 +106,11 @@ app.use((req, res, next) => {
 
 // ==================== VITE / STATIC SERVER ====================
 async function startServer() {
-  if (process.env.NODE_ENV !== "production") {
+  const isDev = process.env.NODE_ENV !== "production" ||
+                process.env.npm_lifecycle_event === 'dev' ||
+                !fs.existsSync(path.join(process.cwd(), 'dist', 'index.html'));
+
+  if (isDev) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
@@ -143,16 +152,22 @@ async function startServer() {
         return res.status(404).json({ error: 'Endpoint not found' });
       }
 
+      // Prevent non-HTML file requests (e.g. missing .js, .tsx, .css) from returning index.html
+      const ext = path.extname(req.path);
+      if (ext && ext !== '.html') {
+        return res.status(404).end();
+      }
+
       const { html, etag } = getIndexHtml();
       if (!html) {
         return res.sendFile(path.join(process.cwd(), 'index.html'));
       }
 
-      const host = req.headers.host || 'fantinebd.com';
+      const host = req.headers.host || 'localhost:3000';
       const proto = (req.headers['x-forwarded-proto'] as string) || req.protocol || 'https';
-      const isDynamicRoute = req.path.startsWith('/product') || req.path.startsWith('/shop') || req.path.startsWith('/about') || req.path.startsWith('/contact') || req.path.startsWith('/quiz');
+      const isMetaRoute = req.path === '/' || req.path.startsWith('/product') || req.path.startsWith('/shop') || req.path.startsWith('/about') || req.path.startsWith('/contact') || req.path.startsWith('/quiz');
 
-      if (isDynamicRoute) {
+      if (isMetaRoute) {
         const enrichedHtml = injectServerMeta(html, req.path, host, proto);
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');

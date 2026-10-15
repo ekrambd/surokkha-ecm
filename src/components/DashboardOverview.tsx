@@ -149,153 +149,135 @@ export default function DashboardOverview({
       {/* Top Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {/* Total Sales */}
-        <motion.div 
-          whileHover={{ y: -4, scale: 1.02 }}
-          className="bg-gradient-to-br from-emerald-500 to-teal-600 p-5 rounded-2xl shadow-lg shadow-emerald-500/20 flex items-center justify-between text-white relative overflow-hidden"
-        >
-          <div className="absolute -right-4 -top-4 bg-white/10 w-24 h-24 rounded-full blur-2xl"></div>
-          <div className="space-y-1 relative z-10">
-            <span className="text-emerald-50 font-semibold text-xs block">Revenue</span>
-            <h3 className="text-2xl font-extrabold tracking-tight drop-shadow-sm">Tk.{totalRevenue.toLocaleString()}</h3>
-            <span className="text-[10px] text-emerald-100 font-medium block">With cash on delivery</span>
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all flex items-center justify-between">
+          <div className="space-y-1">
+            <span className="text-slate-500 font-semibold text-xs uppercase tracking-wider block">Revenue</span>
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">৳{totalRevenue.toLocaleString()}</h3>
+            <span className="text-[11px] text-slate-400 font-medium block">Total sales income</span>
           </div>
-          <div className="h-12 w-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center relative z-10 border border-white/10">
-            <DollarSign className="h-6 w-6 text-white" />
+          <div className="h-12 w-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center ring-4 ring-emerald-500/10">
+            <DollarSign className="h-6 w-6" />
           </div>
-        </motion.div>
+        </div>
 
         {/* Total Orders */}
-        <motion.div 
-          whileHover={{ y: -4, scale: 1.02 }}
+        <div 
           onClick={() => onNavigateTab('orders')}
-          className="bg-gradient-to-br from-violet-500 to-fuchsia-600 p-5 rounded-2xl shadow-lg shadow-violet-500/20 cursor-pointer flex items-center justify-between text-white group relative overflow-hidden"
+          className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center justify-between group"
         >
-          <div className="absolute -right-4 -top-4 bg-white/10 w-24 h-24 rounded-full blur-2xl"></div>
-          <div className="space-y-1 relative z-10">
-            <span className="text-violet-50 font-semibold text-xs block">total order</span>
-            <h3 className="text-2xl font-extrabold tracking-tight drop-shadow-sm">{orders.length} t</h3>
-            <span className="text-[10px] text-violet-100 font-medium block">Pending Orders: {pendingOrdersCount}</span>
+          <div className="space-y-1">
+            <span className="text-slate-500 font-semibold text-xs uppercase tracking-wider block">Total Orders</span>
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight group-hover:text-blue-600 transition-colors">{orders.length.toLocaleString()}</h3>
+            <span className="text-[11px] text-slate-400 font-medium block">Pending: {pendingOrdersCount}</span>
           </div>
-          <div className="h-12 w-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center relative z-10 border border-white/10 group-hover:rotate-6 transition-transform">
-            <ShoppingBag className="h-6 w-6 text-white" />
+          <div className="h-12 w-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center ring-4 ring-blue-500/10 group-hover:scale-105 transition-transform">
+            <ShoppingBag className="h-6 w-6" />
           </div>
-        </motion.div>
+        </div>
 
         {/* Stock / Products */}
-        <motion.div 
-          whileHover={{ y: -4, scale: 1.02 }}
+        <div 
           onClick={() => onNavigateTab('products')}
-          className={`bg-gradient-to-br ${lowStockProductsCount > 0 ? 'from-rose-500 to-red-600 shadow-rose-500/20' : 'from-indigo-500 to-purple-600 shadow-indigo-500/20'} p-5 rounded-2xl shadow-lg cursor-pointer flex items-center justify-between text-white group relative overflow-hidden`}
+          className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center justify-between group"
         >
-          <div className="absolute -right-4 -top-4 bg-white/10 w-24 h-24 rounded-full blur-2xl"></div>
-          <div className="space-y-1 relative z-10">
-            <span className={`font-semibold text-xs block ${lowStockProductsCount > 0 ? 'text-rose-50' : 'text-indigo-50'}`}>Inventory & Stock</span>
-            <h3 className="text-2xl font-extrabold tracking-tight drop-shadow-sm">{products.length} t</h3>
-            <span className={`text-[10px] font-medium block ${lowStockProductsCount > 0 ? 'text-white font-bold bg-white/20 px-1.5 py-0.5 rounded inline-block mt-1' : 'text-indigo-100'}`}>
-              Stock is limited/Stockout: {lowStockProductsCount} T
+          <div className="space-y-1">
+            <span className="text-slate-500 font-semibold text-xs uppercase tracking-wider block">Inventory & Stock</span>
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight group-hover:text-purple-600 transition-colors">{products.length.toLocaleString()}</h3>
+            <span className={`text-[11px] font-medium block ${lowStockProductsCount > 0 ? 'text-rose-600 font-semibold' : 'text-slate-400'}`}>
+              {lowStockProductsCount > 0 ? `Low Stock / Stockout: ${lowStockProductsCount}` : 'All items in stock'}
             </span>
           </div>
-          <div className="h-12 w-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center relative z-10 border border-white/10 group-hover:rotate-6 transition-transform">
-            <Package className="h-6 w-6 text-white" />
+          <div className="h-12 w-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center ring-4 ring-purple-500/10 group-hover:scale-105 transition-transform">
+            <Package className="h-6 w-6" />
           </div>
-        </motion.div>
+        </div>
 
         {/* Total Customers */}
-        <motion.div 
-          whileHover={{ y: -4, scale: 1.02 }}
+        <div 
           onClick={() => onNavigateTab('customers')}
-          className="bg-gradient-to-br from-blue-500 to-cyan-500 p-5 rounded-2xl shadow-lg shadow-blue-500/20 cursor-pointer flex items-center justify-between text-white group relative overflow-hidden"
+          className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center justify-between group"
         >
-          <div className="absolute -right-4 -top-4 bg-white/10 w-24 h-24 rounded-full blur-2xl"></div>
-          <div className="space-y-1 relative z-10">
-            <span className="text-blue-50 font-semibold text-xs block">total customers</span>
-            <h3 className="text-2xl font-extrabold tracking-tight drop-shadow-sm">{customers.length} John</h3>
-            <span className="text-[10px] text-blue-100 font-medium block">Shipped/Delivered: {shippedOrdersCount}</span>
+          <div className="space-y-1">
+            <span className="text-slate-500 font-semibold text-xs uppercase tracking-wider block">Total Customers</span>
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight group-hover:text-sky-600 transition-colors">{customers.length.toLocaleString()}</h3>
+            <span className="text-[11px] text-slate-400 font-medium block">Delivered: {deliveredOrdersCount}</span>
           </div>
-          <div className="h-12 w-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center relative z-10 border border-white/10 group-hover:rotate-6 transition-transform">
-            <Users className="h-6 w-6 text-white" />
+          <div className="h-12 w-12 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center ring-4 ring-sky-500/10 group-hover:scale-105 transition-transform">
+            <Users className="h-6 w-6" />
           </div>
-        </motion.div>
+        </div>
       </div>
 
       {/* Additional Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {/* Pending Orders */}
-        <motion.div 
-          whileHover={{ y: -4, scale: 1.02 }}
+        <div 
           onClick={() => onNavigateTab('orders')}
-          className="bg-gradient-to-br from-amber-500 to-orange-500 p-5 rounded-2xl shadow-lg shadow-amber-500/20 cursor-pointer flex items-center justify-between text-white group relative overflow-hidden"
+          className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center justify-between group"
         >
-          <div className="absolute -right-4 -top-4 bg-white/10 w-24 h-24 rounded-full blur-2xl"></div>
-          <div className="space-y-1 relative z-10">
-            <span className="text-amber-50 font-semibold text-xs block">Pending</span>
-            <h3 className="text-2xl font-extrabold tracking-tight drop-shadow-sm">{pendingOrdersCount} t</h3>
-            <span className="text-[10px] text-amber-100 font-medium block">Awaiting processing</span>
+          <div className="space-y-1">
+            <span className="text-slate-500 font-semibold text-xs uppercase tracking-wider block">Pending</span>
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-amber-600 tracking-tight">{pendingOrdersCount.toLocaleString()}</h3>
+            <span className="text-[11px] text-slate-400 font-medium block">Awaiting processing</span>
           </div>
-          <div className="h-12 w-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center relative z-10 border border-white/10 group-hover:rotate-6 transition-transform">
-            <Clock className="h-6 w-6 text-white" />
+          <div className="h-12 w-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center ring-4 ring-amber-500/10 group-hover:scale-105 transition-transform">
+            <Clock className="h-6 w-6" />
           </div>
-        </motion.div>
+        </div>
 
         {/* Delivered Product */}
-        <motion.div 
-          whileHover={{ y: -4, scale: 1.02 }}
+        <div 
           onClick={() => onNavigateTab('orders')}
-          className="bg-gradient-to-br from-green-500 to-emerald-600 p-5 rounded-2xl shadow-lg shadow-green-500/20 cursor-pointer flex items-center justify-between text-white group relative overflow-hidden"
+          className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center justify-between group"
         >
-          <div className="absolute -right-4 -top-4 bg-white/10 w-24 h-24 rounded-full blur-2xl"></div>
-          <div className="space-y-1 relative z-10">
-            <span className="text-green-50 font-semibold text-xs block">Delivered</span>
-            <h3 className="text-2xl font-extrabold tracking-tight drop-shadow-sm">{deliveredOrdersCount} t</h3>
-            <span className="text-[10px] text-green-100 font-medium block">Successful delivery completed</span>
+          <div className="space-y-1">
+            <span className="text-slate-500 font-semibold text-xs uppercase tracking-wider block">Delivered</span>
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-emerald-600 tracking-tight">{deliveredOrdersCount.toLocaleString()}</h3>
+            <span className="text-[11px] text-slate-400 font-medium block">Successful delivery</span>
           </div>
-          <div className="h-12 w-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center relative z-10 border border-white/10 group-hover:rotate-6 transition-transform">
-            <CheckCircle2 className="h-6 w-6 text-white" />
+          <div className="h-12 w-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center ring-4 ring-emerald-500/10 group-hover:scale-105 transition-transform">
+            <CheckCircle2 className="h-6 w-6" />
           </div>
-        </motion.div>
+        </div>
 
         {/* Cancelled Product */}
-        <motion.div 
-          whileHover={{ y: -4, scale: 1.02 }}
+        <div 
           onClick={() => onNavigateTab('orders')}
-          className="bg-gradient-to-br from-rose-500 to-red-600 p-5 rounded-2xl shadow-lg shadow-rose-500/20 cursor-pointer flex items-center justify-between text-white group relative overflow-hidden"
+          className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center justify-between group"
         >
-          <div className="absolute -right-4 -top-4 bg-white/10 w-24 h-24 rounded-full blur-2xl"></div>
-          <div className="space-y-1 relative z-10">
-            <span className="text-rose-50 font-semibold text-xs block">Cancelled</span>
-            <h3 className="text-2xl font-extrabold tracking-tight drop-shadow-sm">{cancelledOrdersCount} t</h3>
-            <span className="text-[10px] text-rose-100 font-medium block">Canceled by customer/admin</span>
+          <div className="space-y-1">
+            <span className="text-slate-500 font-semibold text-xs uppercase tracking-wider block">Cancelled</span>
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-rose-600 tracking-tight">{cancelledOrdersCount.toLocaleString()}</h3>
+            <span className="text-[11px] text-slate-400 font-medium block">Canceled orders</span>
           </div>
-          <div className="h-12 w-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center relative z-10 border border-white/10 group-hover:rotate-6 transition-transform">
-            <XCircle className="h-6 w-6 text-white" />
+          <div className="h-12 w-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center ring-4 ring-rose-500/10 group-hover:scale-105 transition-transform">
+            <XCircle className="h-6 w-6" />
           </div>
-        </motion.div>
+        </div>
 
         {/* Returned Product */}
-        <motion.div 
-          whileHover={{ y: -4, scale: 1.02 }}
+        <div 
           onClick={() => onNavigateTab('orders')}
-          className="bg-gradient-to-br from-yellow-500 to-amber-600 p-5 rounded-2xl shadow-lg shadow-yellow-500/20 cursor-pointer flex items-center justify-between text-white group relative overflow-hidden"
+          className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center justify-between group"
         >
-          <div className="absolute -right-4 -top-4 bg-white/10 w-24 h-24 rounded-full blur-2xl"></div>
-          <div className="space-y-1 relative z-10">
-            <span className="text-yellow-50 font-semibold text-xs block">Returned</span>
-            <h3 className="text-2xl font-extrabold tracking-tight drop-shadow-sm">{returnedOrdersCount} t</h3>
-            <span className="text-[10px] text-yellow-100 font-medium block">Courier returned parcel</span>
+          <div className="space-y-1">
+            <span className="text-slate-500 font-semibold text-xs uppercase tracking-wider block">Returned</span>
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-orange-600 tracking-tight">{returnedOrdersCount.toLocaleString()}</h3>
+            <span className="text-[11px] text-slate-400 font-medium block">Courier returned parcel</span>
           </div>
-          <div className="h-12 w-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center relative z-10 border border-white/10 group-hover:rotate-6 transition-transform">
-            <RefreshCw className="h-6 w-6 text-white" />
+          <div className="h-12 w-12 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center ring-4 ring-orange-500/10 group-hover:scale-105 transition-transform">
+            <RefreshCw className="h-6 w-6" />
           </div>
-        </motion.div>
+        </div>
       </div>
 
       {/* Analytics Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Orders Trend */}
         <div className="w-full min-w-0 bg-white rounded-2xl border border-slate-100 shadow-xs p-5">
-          <h3 className="text-sm font-bold text-slate-800 mb-4">last 7 days</h3>
+          <h3 className="text-sm font-bold text-slate-800 mb-4">Orders (Last 7 Days)</h3>
           <div className="h-64 w-full min-w-0">
-            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={220}>
+            <ResponsiveContainer width="100%" height={240} minWidth={100} minHeight={220}>
               <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} />
@@ -309,9 +291,9 @@ export default function DashboardOverview({
 
         {/* Revenue Trend */}
         <div className="w-full min-w-0 bg-white rounded-2xl border border-slate-100 shadow-xs p-5">
-          <h3 className="text-sm font-bold text-slate-800 mb-4">last 7 days</h3>
+          <h3 className="text-sm font-bold text-slate-800 mb-4">Revenue (Last 7 Days)</h3>
           <div className="h-64 w-full min-w-0">
-            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={220}>
+            <ResponsiveContainer width="100%" height={240} minWidth={100} minHeight={220}>
               <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
@@ -321,8 +303,8 @@ export default function DashboardOverview({
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={(val) => `Tk.${val}`} />
-                <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(val) => [`Tk.${val}`, 'Revenue']} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={(val) => `৳${val}`} />
+                <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(val) => [`৳${val}`, 'Revenue']} />
                 <Area type="monotone" dataKey="revenue" name="Revenue" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
               </AreaChart>
             </ResponsiveContainer>

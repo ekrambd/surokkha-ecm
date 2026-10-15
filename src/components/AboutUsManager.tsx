@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { EcomSettings, AboutPageSettings } from '../types';
 import { dbService } from '../lib/dbService';
 import { DEFAULT_ABOUT_SETTINGS } from '../lib/constants';
@@ -6,7 +6,7 @@ import { compressImage } from '../lib/imageUtils';
 import { uploadDataUrlToStorage } from '../lib/storageService';
 import { FeedbackDialog } from './ui/FeedbackDialog';
 import { 
-  Save, Upload, Image as ImageIcon, FileText, Type, X
+  Save, Upload, FileText, X, Bold, Italic, Heading2, List, ListOrdered, Quote, Eye, Edit3, Minus
 } from 'lucide-react';
 
 export default function AboutUsManager() {
@@ -14,6 +14,10 @@ export default function AboutUsManager() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [editorTab, setEditorTab] = useState<'write' | 'preview'>('write');
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [feedback, setFeedback] = useState<{
     isOpen: boolean;
@@ -38,8 +42,8 @@ export default function AboutUsManager() {
           const merged: AboutPageSettings = {
             ...DEFAULT_ABOUT_SETTINGS,
             ...loaded,
-            title: loaded.title || loaded.heroTitle || DEFAULT_ABOUT_SETTINGS.title,
-            subtitle: loaded.subtitle || loaded.heroSubtitle || DEFAULT_ABOUT_SETTINGS.subtitle,
+            title: loaded.title || loaded.heroTitle || 'About Us',
+            subtitle: loaded.subtitle || loaded.heroSubtitle || '',
             content: loaded.content || [
               loaded.storyParagraph1,
               loaded.storyParagraph2,
@@ -60,6 +64,27 @@ export default function AboutUsManager() {
     loadSettings();
   }, []);
 
+  // Text formatting insertion helper
+  const insertFormatting = (prefix: string, suffix: string = '', defaultText: string = '') => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = settings.content || '';
+    const selectedText = text.substring(start, end) || defaultText;
+
+    const replacement = `${prefix}${selectedText}${suffix}`;
+    const newContent = text.substring(0, start) + replacement + text.substring(end);
+
+    setSettings(prev => ({ ...prev, content: newContent }));
+
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + prefix.length, start + prefix.length + selectedText.length);
+    }, 0);
+  };
+
   // Image Upload handler
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -73,8 +98,8 @@ export default function AboutUsManager() {
       setFeedback({
         isOpen: true,
         type: 'success',
-        title: 'Image upload complete',
-        message: 'Banner image uploaded successfully.'
+        title: 'Image uploaded',
+        message: 'Cover image uploaded successfully.'
       });
     } catch (uploadErr) {
       console.error('Image upload failed:', uploadErr);
@@ -82,7 +107,7 @@ export default function AboutUsManager() {
         isOpen: true,
         type: 'error',
         title: 'Upload failed',
-        message: 'Failed to upload image. Please check the size.'
+        message: 'Failed to upload image. Please try again with a valid image.'
       });
     } finally {
       setUploadingImage(false);
@@ -97,13 +122,12 @@ export default function AboutUsManager() {
 
       const updatedAboutSettings: AboutPageSettings = {
         ...currentEcom.aboutSettings,
-        ...settings,
-        title: settings.title || 'about us',
-        subtitle: settings.subtitle || '',
+        title: settings.title || currentEcom.aboutSettings?.title || 'About Us',
+        subtitle: '',
         content: settings.content || '',
         image: settings.image || '',
-        heroTitle: settings.title || 'about us',
-        heroSubtitle: settings.subtitle || '',
+        heroTitle: settings.title || currentEcom.aboutSettings?.title || 'About Us',
+        heroSubtitle: '',
         heroImage: settings.image || '',
         storyParagraph1: settings.content || ''
       };
@@ -118,8 +142,8 @@ export default function AboutUsManager() {
       setFeedback({
         isOpen: true,
         type: 'success',
-        title: 'Saved successfully',
-        message: 'About us page information has been successfully saved.'
+        title: 'Saved Successfully',
+        message: 'About us page details and image have been saved.'
       });
     } catch (err: any) {
       console.error('Save failed:', err);
@@ -127,7 +151,7 @@ export default function AboutUsManager() {
         isOpen: true,
         type: 'error',
         title: 'Save failed',
-        message: 'There was a problem saving content. Try again.'
+        message: 'There was a problem saving content. Please try again.'
       });
     } finally {
       setIsSaving(false);
@@ -138,24 +162,27 @@ export default function AboutUsManager() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[350px] space-y-3">
         <div className="w-8 h-8 border-2 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-sm text-slate-500 font-medium">Loading information about us...</p>
+        <p className="text-sm text-slate-500 font-medium">Loading About Us information...</p>
       </div>
     );
   }
 
+  const wordCount = (settings.content || '').trim() ? (settings.content || '').trim().split(/\s+/).length : 0;
+  const charCount = (settings.content || '').length;
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-20">
+    <div className="w-full space-y-6 pb-20 font-sans">
       
-      {/* Header Bar */}
+      {/* Header Card */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 sm:p-6 rounded-2xl shadow-xs border border-slate-200">
         <div className="flex items-center gap-3">
           <span className="p-2.5 bg-teal-50 text-teal-700 rounded-xl">
             <FileText className="w-6 h-6" />
           </span>
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900">about us</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900">About Us</h1>
             <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-              Enter your store contact and description with a simple text editor।
+              Enter your store details and optional cover image.
             </p>
           </div>
         </div>
@@ -175,80 +202,155 @@ export default function AboutUsManager() {
             ) : (
               <>
                 <Save className="w-4 h-4" />
-                save
+                Save Changes
               </>
             )}
           </button>
         </div>
       </div>
 
-      {/* SIMPLE CLEAN FORM */}
+      {/* Main Content Area */}
       <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6">
         
-        {/* 1. Page Title */}
-        <div className="space-y-1.5">
-          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-            ShiRoname <span className="text-rose-500">*</span>
-          </label>
-          <div className="relative">
-            <Type className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-            <input
-              type="text"
-              value={settings.title || ''}
-              onChange={(e) => setSettings({ ...settings, title: e.target.value })}
-              placeholder="about us"
-              className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:border-teal-600 focus:bg-white transition-all"
-            />
-          </div>
-        </div>
-
-        {/* 2. Subtitle / Tagline */}
-        <div className="space-y-1.5">
-          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-            Sub-ShRoname or tagline
-          </label>
-          <input
-            type="text"
-            value={settings.subtitle || ''}
-            onChange={(e) => setSettings({ ...settings, subtitle: e.target.value })}
-            placeholder="Trusted destination for premium quality and authentic products"
-            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-600 focus:bg-white transition-all"
-          />
-        </div>
-
-        {/* 3. Main Text Editor / Content */}
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-              about us details <span className="text-rose-500">*</span>
+        {/* Details Rich Text Editor */}
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <label className="block text-sm font-bold text-slate-800">
+              Details Content <span className="text-rose-500">*</span>
             </label>
-            <span className="text-[11px] text-slate-400">
-              {(settings.content || '').length} letters
-            </span>
+
+            {/* Editor Mode Tabs */}
+            <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-xs">
+              <button
+                type="button"
+                onClick={() => setEditorTab('write')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-bold transition-all cursor-pointer ${
+                  editorTab === 'write' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                <span>Write</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditorTab('preview')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-bold transition-all cursor-pointer ${
+                  editorTab === 'preview' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <Eye className="w-3.5 h-3.5" />
+                <span>Preview</span>
+              </button>
+            </div>
           </div>
-          <textarea
-            rows={12}
-            value={settings.content || ''}
-            onChange={(e) => setSettings({ ...settings, content: e.target.value })}
-            placeholder="Enter details about your company or store here..."
-            className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 leading-relaxed focus:outline-none focus:border-teal-600 focus:bg-white transition-all font-sans resize-y"
-          />
-          <p className="text-[11px] text-slate-400">
-            💡 TPos: perT One in the middle to separate paragraphsT Enter a blank line।
-          </p>
+
+          {/* Formatting Toolbar (Only visible in Write mode) */}
+          {editorTab === 'write' && (
+            <div className="flex flex-wrap items-center gap-1 p-2 bg-slate-50 border border-slate-200 rounded-t-xl border-b-0 text-slate-700">
+              <button
+                type="button"
+                onClick={() => insertFormatting('**', '**', 'bold text')}
+                className="p-1.5 hover:bg-slate-200 rounded-lg text-xs font-bold text-slate-700 cursor-pointer flex items-center gap-1"
+                title="Bold"
+              >
+                <Bold className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => insertFormatting('*', '*', 'italic text')}
+                className="p-1.5 hover:bg-slate-200 rounded-lg text-xs text-slate-700 cursor-pointer flex items-center gap-1"
+                title="Italic"
+              >
+                <Italic className="w-4 h-4" />
+              </button>
+              <div className="h-4 w-px bg-slate-300 mx-1" />
+              <button
+                type="button"
+                onClick={() => insertFormatting('### ', '', 'Heading')}
+                className="p-1.5 hover:bg-slate-200 rounded-lg text-xs font-bold text-slate-700 cursor-pointer flex items-center gap-1"
+                title="Heading"
+              >
+                <Heading2 className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => insertFormatting('• ', '', 'List item')}
+                className="p-1.5 hover:bg-slate-200 rounded-lg text-xs text-slate-700 cursor-pointer flex items-center gap-1"
+                title="Bullet List"
+              >
+                <List className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => insertFormatting('1. ', '', 'Numbered item')}
+                className="p-1.5 hover:bg-slate-200 rounded-lg text-xs text-slate-700 cursor-pointer flex items-center gap-1"
+                title="Numbered List"
+              >
+                <ListOrdered className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => insertFormatting('> ', '', 'Quote text')}
+                className="p-1.5 hover:bg-slate-200 rounded-lg text-xs text-slate-700 cursor-pointer flex items-center gap-1"
+                title="Quote"
+              >
+                <Quote className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => insertFormatting('\n---\n', '')}
+                className="p-1.5 hover:bg-slate-200 rounded-lg text-xs text-slate-700 cursor-pointer flex items-center gap-1"
+                title="Divider"
+              >
+                <Minus className="w-4 h-4" />
+              </button>
+
+              <div className="ml-auto text-xs text-slate-400 font-medium">
+                {wordCount} words · {charCount} characters
+              </div>
+            </div>
+          )}
+
+          {/* Editor Input / Live Preview */}
+          {editorTab === 'write' ? (
+            <textarea
+              ref={textareaRef}
+              rows={14}
+              value={settings.content || ''}
+              onChange={(e) => setSettings({ ...settings, content: e.target.value })}
+              placeholder="Enter details about your company, brand story, quality commitment, and contact details..."
+              className="w-full p-4 bg-slate-50 border border-slate-200 rounded-b-xl text-base text-slate-800 leading-relaxed focus:outline-none focus:border-teal-600 focus:bg-white transition-all font-sans resize-y"
+            />
+          ) : (
+            <div className="w-full min-h-[300px] p-6 bg-slate-50/70 border border-slate-200 rounded-xl">
+              {settings.content ? (
+                <div className="prose prose-slate max-w-none text-slate-800 whitespace-pre-line leading-relaxed text-base">
+                  {settings.content}
+                </div>
+              ) : (
+                <p className="text-slate-400 italic text-sm">No content entered yet. Switch to Write tab to add details.</p>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* 4. Banner / Cover Image (Optional) */}
-        <div className="space-y-3 pt-2 border-t border-slate-100">
-          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-            banner picture (optional)
-          </label>
+        {/* Optional Cover / Banner Image */}
+        <div className="space-y-3 pt-6 border-t border-slate-200">
+          <div>
+            <label className="block text-sm font-bold text-slate-800">
+              Banner / Cover Image (Optional)
+            </label>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Header cover image shown on the storefront About Us page.
+            </p>
+          </div>
           
           <div className="flex flex-wrap items-center gap-3">
-            <label className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl cursor-pointer transition-colors shrink-0">
+            <label className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl cursor-pointer transition-colors shrink-0 border border-slate-200">
               <Upload className="w-4 h-4" />
-              {uploadingImage ? 'Uploading...' : 'Upload image'}
+              <span>{uploadingImage ? 'Uploading...' : settings.image ? 'Change Image' : 'Upload Image'}</span>
               <input
+                ref={fileInputRef}
                 type="file"
                 accept="image/*"
                 onChange={handleImageUpload}
@@ -260,18 +362,21 @@ export default function AboutUsManager() {
             {settings.image && (
               <button
                 type="button"
-                onClick={() => setSettings({ ...settings, image: '', heroImage: '' })}
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-xl transition-colors cursor-pointer"
-                title="Delete the picture"
+                onClick={() => {
+                  setSettings(prev => ({ ...prev, image: '', heroImage: '' }));
+                  if (fileInputRef.current) fileInputRef.current.value = '';
+                }}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-semibold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl transition-colors cursor-pointer"
+                title="Remove image"
               >
                 <X className="w-4 h-4" />
-                picture remove
+                <span>Remove Image</span>
               </button>
             )}
           </div>
 
           {settings.image && (
-            <div className="mt-3 relative inline-block rounded-xl overflow-hidden border border-slate-200 max-h-56 max-w-md">
+            <div className="mt-3 relative inline-block rounded-xl overflow-hidden border border-slate-200 max-h-56 max-w-md shadow-xs bg-slate-100">
               <img src={settings.image} alt="Banner Preview" className="h-44 w-full object-cover rounded-lg" />
             </div>
           )}
@@ -282,7 +387,7 @@ export default function AboutUsManager() {
       {/* Feedback modal */}
       <FeedbackDialog
         isOpen={feedback.isOpen}
-        onClose={() => setFeedback({ ...feedback, isOpen: false })}
+        onClose={() => setFeedback(prev => ({ ...prev, isOpen: false }))}
         type={feedback.type}
         title={feedback.title}
         message={feedback.message}

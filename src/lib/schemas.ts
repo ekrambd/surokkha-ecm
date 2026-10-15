@@ -113,6 +113,8 @@ export const PromoCardItemSchema = z.object({
 export const EcomSettingsSchema = z.object({
   storeName: z.string().optional(),
   storeLogo: z.string().optional(),
+  storeFavicon: z.string().optional(),
+  favicon: z.string().optional(),
   storeTagline: z.string().optional(),
   primaryColor: z.string().optional(),
   pixelId: z.string().optional(),
@@ -129,8 +131,18 @@ export const EcomSettingsSchema = z.object({
   heroBanners: z.array(HeroBannerItemSchema).optional(),
   categories: z.array(z.string()).optional(),
   categoryItems: z.array(CategoryItemSchema).optional(),
-  promoCards: z.array(PromoCardItemSchema).optional()
-});
+  promoCards: z.array(PromoCardItemSchema).optional(),
+  hotlinePhone: z.string().optional(),
+  whatsappNumber: z.string().optional(),
+  calloutBannerText: z.string().optional(),
+  calloutBannerSubtext: z.string().optional(),
+  showCalloutBanner: z.boolean().optional(),
+  heroBannerLeftImage: z.string().optional(),
+  heroBannerLeftLink: z.string().optional(),
+  heroBannerRightImage: z.string().optional(),
+  heroBannerRightLink: z.string().optional(),
+  trustBadges: z.record(z.any()).optional()
+}).passthrough();
 
 export const BookOrderSchema = z.object({
   id: z.string(),

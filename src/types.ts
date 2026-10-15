@@ -322,6 +322,8 @@ export interface HighlightSpotlightSettings {
 export interface EcomSettings {
   storeName?: string;
   storeLogo?: string;
+  storeFavicon?: string;
+  favicon?: string;
   storeTagline?: string;
   topAnnouncementText?: string;
   companyName?: string;
@@ -337,6 +339,28 @@ export interface EcomSettings {
     tiktok?: string;
     linkedin?: string;
     whatsapp?: string;
+    messenger?: string;
+  };
+  hotlinePhone?: string;
+  whatsappNumber?: string;
+  messengerUrl?: string;
+  calloutBannerText?: string;
+  calloutBannerSubtext?: string;
+  showCalloutBanner?: boolean;
+  heroBannerLeftImage?: string;
+  heroBannerLeftLink?: string;
+  heroBannerRightImage?: string;
+  heroBannerRightLink?: string;
+  trustBadges?: {
+    badge1Icon?: string;
+    badge1Title?: string;
+    badge1Subtitle?: string;
+    badge2Icon?: string;
+    badge2Title?: string;
+    badge2Subtitle?: string;
+    badge3Icon?: string;
+    badge3Title?: string;
+    badge3Subtitle?: string;
   };
   primaryColor?: string;
   pixelId?: string;
@@ -450,6 +474,7 @@ export interface InstituteInfo {
   zipCode?: string;
   website?: string;
   logo?: string;
+  favicon?: string;
   tagline?: string;
   establishedYear?: string;
   description?: string;
@@ -581,7 +606,7 @@ export interface Brand {
   updatedAt?: string;
 }
 
-export type ActiveTab = 'dashboard' | 'products' | 'orders' | 'customers' | 'coupons' | 'inventory' | 'category_management' | 'brand_management' | 'flash_sale' | 'highlight_spotlight' | 'about_settings' | 'landing_setup' | 'payment_settings' | 'delivery_settings' | 'pixel_settings' | 'courier_settings' | 'profile' | 'points' | 'contact_messages';
+export type ActiveTab = 'dashboard' | 'products' | 'orders' | 'customers' | 'coupons' | 'inventory' | 'category_management' | 'brand_management' | 'flash_sale' | 'highlight_spotlight' | 'about_settings' | 'landing_setup' | 'payment_settings' | 'delivery_settings' | 'pixel_settings' | 'courier_settings' | 'profile' | 'points';
 
 export interface ContactMessage {
   id: string;

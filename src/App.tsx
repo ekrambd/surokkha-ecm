@@ -19,52 +19,18 @@ if (typeof window !== 'undefined') {
   }
 }
 
-//ch ages
-function GlobalBrandingFix() {
+function DynamicFaviconSync({ ecomSettings }: { ecomSettings: any }) {
   useEffect(() => {
-    let pending = false;
-    const replaceFantine = () => {
-      pending = false;
-      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
-      let node;
-      const nodesToUpdate = [];
-      while (node = walker.nextNode()) {
-        if (node.nodeValue && (node.nodeValue.includes('FANTINE') || node.nodeValue.includes('Fantine'))) {
-          nodesToUpdate.push(node);
-        }
-      }
-      nodesToUpdate.forEach(n => {
-        n.nodeValue = n.nodeValue.replace(/FANTINE/g, 'FAИTIИE').replace(/Fantine/g, 'FAИTIИE');
-      });
-    };
-    
-    replaceFantine();
-    
-    const observer = new MutationObserver((mutations) => {
-      let shouldReplace = false;
-      for (const m of mutations) {
-        if (m.type === 'characterData' && m.target.nodeValue && (m.target.nodeValue.includes('FANTINE') || m.target.nodeValue.includes('Fantine'))) {
-          shouldReplace = true; break;
-        }
-        if (m.type === 'childList' && m.addedNodes.length > 0) {
-          shouldReplace = true; break;
-        }
-      }
-      if (shouldReplace && !pending) {
-        pending = true;
-        requestAnimationFrame(() => {
-          observer.disconnect();
-          replaceFantine();
-          observer.observe(document.body, { childList: true, subtree: true, characterData: true });
-        });
-      }
-    });
-    
-    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
-    
-    return () => observer.disconnect();
-  }, []);
-  
+    const faviconUrl = ecomSettings?.storeFavicon || ecomSettings?.favicon || '/placeholder-favicon.svg';
+    let link: HTMLLinkElement | null = document.querySelector("link[rel*='icon']");
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      document.head.appendChild(link);
+    }
+    link.href = faviconUrl;
+  }, [ecomSettings?.storeFavicon, ecomSettings?.favicon]);
+
   return null;
 }
 
@@ -183,6 +149,7 @@ function AppRoutes() {
 
   return (
     <div className="bg-[#faf9f6] min-h-screen text-slate-900">
+      <DynamicFaviconSync ecomSettings={ecomSettings} />
       <Suspense fallback={
         <div className="min-h-screen bg-[#faf9f6] flex flex-col items-center justify-center space-y-3">
           <div className="w-8 h-8 border-2 border-[#111827] border-t-transparent rounded-full animate-spin"></div>
@@ -291,7 +258,6 @@ export default function App() {
   return (
     <ErrorBoundary>
       <BrowserRouter>
-        <GlobalBrandingFix />
         <AppRoutes />
       </BrowserRouter>
     </ErrorBoundary>

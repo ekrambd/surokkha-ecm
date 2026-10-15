@@ -72,7 +72,7 @@ export const publicStoreService = {
       const res = await fetch('/api/products');
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           writeCache('noor_ecom_products', data);
           return data;
         }
@@ -80,7 +80,7 @@ export const publicStoreService = {
     } catch {
       // offline / fallback to cache
     }
-    return cached;
+    return cached || [];
   },
 
   async getEcomSettings(): Promise<EcomSettings> {

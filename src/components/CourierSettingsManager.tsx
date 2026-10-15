@@ -140,7 +140,7 @@ export default function CourierSettingsManager() {
   }
 
   return (
-    <form onSubmit={handleSave} className="space-y-6 font-sans max-w-4xl mx-auto pb-16">
+    <form onSubmit={handleSave} className="space-y-6 font-sans w-full pb-16">
       {/* Top Header Card */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-xs">
         <div className="space-y-1">

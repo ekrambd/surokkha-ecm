@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { checkoutRateLimiter } from '../middleware/rateLimiter';
-import { storeOrders, storeProducts } from '../data/store';
+import { storeOrders, storeProducts, saveOrdersToDisk } from '../data/store';
 import { BookOrder } from '../../types';
 import { cacheResponse } from '../middleware/cacheMiddleware';
 import { globalCache } from '../services/cacheEngine';
@@ -9,6 +9,54 @@ import { redundancyService } from '../services/redundancyService';
 import { prisma } from '../db';
 
 export const orderRouter = Router();
+
+// Live SSE Clients for instantaneous real-time order stream
+const liveClients = new Set<(order: BookOrder) => void>();
+
+export function broadcastNewOrder(order: BookOrder) {
+  liveClients.forEach(callback => {
+    try {
+      callback(order);
+    } catch {
+      liveClients.delete(callback);
+    }
+  });
+}
+
+// GET /api/orders/live - Server-Sent Events (SSE) for Real-Time Order Stream
+orderRouter.get('/live', (req, res) => {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache, no-transform',
+    'Connection': 'keep-alive',
+    'X-Accel-Buffering': 'no'
+  });
+  res.write('\n');
+
+  const onNewOrder = (order: BookOrder) => {
+    try {
+      res.write(`data: ${JSON.stringify({ type: 'NEW_ORDER', order })}\n\n`);
+    } catch {
+      liveClients.delete(onNewOrder);
+    }
+  };
+
+  liveClients.add(onNewOrder);
+
+  const heartbeat = setInterval(() => {
+    try {
+      res.write(': keepalive\n\n');
+    } catch {
+      clearInterval(heartbeat);
+      liveClients.delete(onNewOrder);
+    }
+  }, 15000);
+
+  req.on('close', () => {
+    clearInterval(heartbeat);
+    liveClients.delete(onNewOrder);
+  });
+});
 
 // GET All Orders with cache & Eager Loading (Zero N+1 queries)
 orderRouter.get('/', cacheResponse({ ttlSeconds: 15, staleWhileRevalidateSeconds: 30, tag: 'orders' }), async (req, res) => {
@@ -140,10 +188,22 @@ orderRouter.post('/checkout', checkoutRateLimiter, async (req, res) => {
     let couponDiscount = 0;
     if (couponCode && typeof couponCode === 'string') {
       const cleanCoupon = couponCode.trim().toUpperCase();
-      if (cleanCoupon === 'WELCOME10' || cleanCoupon === 'FANTINE10') {
-        couponDiscount = Math.round(calculatedSubtotal * 0.10);
-      } else if (cleanCoupon === 'FLAT50') {
-        couponDiscount = 50;
+      try {
+        const foundCoupon = await prisma.coupon.findFirst({
+          where: { code: cleanCoupon, status: 'Active' }
+        });
+        if (foundCoupon) {
+          if (foundCoupon.type === 'percentage') {
+            couponDiscount = Math.round(calculatedSubtotal * (foundCoupon.discount / 100));
+            if (foundCoupon.maxDiscount && foundCoupon.maxDiscount > 0) {
+              couponDiscount = Math.min(couponDiscount, foundCoupon.maxDiscount);
+            }
+          } else {
+            couponDiscount = Math.min(calculatedSubtotal, foundCoupon.discount);
+          }
+        }
+      } catch (err) {
+        console.warn('Coupon DB lookup failed:', err);
       }
     }
 
@@ -185,6 +245,9 @@ orderRouter.post('/checkout', checkoutRateLimiter, async (req, res) => {
 
     // Save order
     storeOrders.unshift(confirmedOrder);
+    saveOrdersToDisk(storeOrders);
+    broadcastNewOrder(confirmedOrder);
+
     shardService.incrementCounter('orders_total', 1);
     globalCache.invalidateTag('orders');
     globalCache.invalidateTag('products');
@@ -218,6 +281,8 @@ orderRouter.post('/', checkoutRateLimiter, (req, res) => {
   };
 
   storeOrders.unshift(newOrder);
+  saveOrdersToDisk(storeOrders);
+  broadcastNewOrder(newOrder);
 
   // Increment distributed sharded order counter
   shardService.incrementCounter('orders_total', 1);
@@ -237,6 +302,7 @@ orderRouter.put('/:id', (req, res) => {
   const index = storeOrders.findIndex(o => o.id === id);
   if (index !== -1) {
     storeOrders[index] = { ...storeOrders[index], ...req.body };
+    saveOrdersToDisk(storeOrders);
 
     // Invalidate order caches
     globalCache.invalidateTag('orders');

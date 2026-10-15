@@ -3,6 +3,7 @@ import { ArrowLeft, CheckCircle, Package, RefreshCw, ShoppingBag, Truck, Calenda
 import { BookOrder } from '../types';
 import { InvoicePreview } from './InvoicePreview';
 import { motion } from 'motion/react';
+import { isOrderCod, isOrderPaid } from '../lib/orderPaymentUtils';
 
 interface Props {
   order: BookOrder;
@@ -118,13 +119,16 @@ export function OrderDetailsView({ order, onClose, onUpdateStatus, onEditOrder }
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
-                  <span className="text-slate-500 font-semibold">Payment Status :</span>
-                  <span className={`px-3 py-1 font-bold rounded-md ${
-                    order.paymentMethod && order.paymentMethod !== 'COD' 
+                  <span className="text-slate-500 font-semibold">Payment :</span>
+                  <span className="font-semibold text-slate-800">
+                    {order.paymentMethod || 'Cash on Delivery'}
+                  </span>
+                  <span className={`px-2.5 py-0.5 font-bold text-xs rounded-md ${
+                    isOrderPaid(order)
                       ? 'bg-emerald-100 text-emerald-700'
                       : 'bg-amber-100 text-amber-700'
                   }`}>
-                    {order.paymentMethod || 'Cash On Delivery'}
+                    {isOrderPaid(order) ? 'PAID' : 'UNPAID'}
                   </span>
                 </div>
               </div>

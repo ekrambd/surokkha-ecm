@@ -55,8 +55,10 @@ export class SteadfastCourierService {
     if (order.steadfastTrackingCode) throw new Error('This order already has a Steadfast tracking code');
 
     try {
-      const isPrepaid = order.paymentMethod && order.paymentMethod !== 'COD';
-      const codAmount = isPrepaid ? 0 : order.totalPrice;
+      const pm = (order.paymentMethod || '').trim().toLowerCase();
+      const isCod = !pm || pm === 'cod' || pm.includes('cash');
+      const isPrepaid = !isCod;
+      const codAmount = isPrepaid ? 0 : Number(order.totalPrice || 0);
 
       const resData = await this.request('/create_order', {
         method: "POST",
@@ -66,7 +68,7 @@ export class SteadfastCourierService {
           recipient_phone: order.phone,
           recipient_address: `${order.address}${order.district ? `, ${order.district}` : ''}`,
           cod_amount: codAmount,
-          note: order.productTitle || 'noর সার্ভে ইকমার্স পার্সেল'
+          note: order.productTitle || 'Ecommerce Parcel'
         })
       });
 

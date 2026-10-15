@@ -16,9 +16,10 @@ import {
   CheckCircle2,
   MessageCircle
 } from 'lucide-react';
-import { Product, BookOrder, EcomSettings, DeliveryMethodItem, PaymentGatewayItem, Coupon } from '../types';
+import { Product, ProductVariant, BookOrder, EcomSettings, DeliveryMethodItem, PaymentGatewayItem, Coupon } from '../types';
 import { dbService } from '../lib/dbService';
 import { DEFAULT_DELIVERY_METHODS, DEFAULT_PAYMENT_GATEWAYS } from '../lib/constants';
+import { playOrderSuccessVibe } from '../lib/soundUtils';
 
 const BD_DISTRICTS = [
   'Dhaka',
@@ -93,6 +94,7 @@ interface CartItem {
   selectedColor?: string;
   selectedSize?: string;
   selectedVariant?: string;
+  variant?: ProductVariant;
 }
 
 interface CheckoutPageProps {
@@ -133,7 +135,7 @@ export default function CheckoutPage({
     const isDhaka = district.toLowerCase().includes('dhaka');
 
     const subTotal = cart.reduce((total, item) => {
-      const price = item.product.price || item.product.regularPrice || 0;
+      const price = item.variant?.price ?? (item.product.price || item.product.regularPrice || 0);
       return total + (price * item.quantity);
     }, 0);
 
@@ -264,7 +266,7 @@ export default function CheckoutPage({
 
   // Cart Calculations
   const cartSubtotal = useMemo(() => {
-    return cart.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);
+    return cart.reduce((acc, item) => acc + ((item.variant?.price ?? item.product.price) * item.quantity), 0);
   }, [cart]);
 
   const totalItemCount = useMemo(() => {
@@ -384,11 +386,11 @@ export default function CheckoutPage({
         deliveryZone: selectedDeliveryMethod?.title || 'Inside Dhaka',
         deliveryCharge: deliveryCost,
         price: cartSubtotal,
-        unitPrice: cart.length === 1 ? cart[0].product.price : cartSubtotal,
+        unitPrice: cart.length === 1 ? (cart[0].variant?.price ?? cart[0].product.price) : cartSubtotal,
         totalAmount: grandTotal,
         totalPrice: grandTotal,
-        productName: cart.map(i => `${i.product.title} (x${i.quantity})`).join(', ') + (bogoEligible && cart.length > 0 ? `, [FREE] ${cart[0].product.title} (x1)` : ''),
-        productTitle: cart.map(i => `${i.product.title} (x${i.quantity})`).join(', ') + (bogoEligible && cart.length > 0 ? `, [FREE] ${cart[0].product.title} (x1)` : ''),
+        productName: cart.map(i => `${i.product.title}${i.variant?.name ? ` (${i.variant.name})` : ''} (x${i.quantity})`).join(', ') + (bogoEligible && cart.length > 0 ? `, [FREE] ${cart[0].product.title} (x1)` : ''),
+        productTitle: cart.map(i => `${i.product.title}${i.variant?.name ? ` (${i.variant.name})` : ''} (x${i.quantity})`).join(', ') + (bogoEligible && cart.length > 0 ? `, [FREE] ${cart[0].product.title} (x1)` : ''),
         status: 'Pending',
         orderType: 'storefront',
         paymentMethod: selectedPaymentGateway?.title || 'Cash on Delivery',
@@ -404,15 +406,16 @@ export default function CheckoutPage({
           const baseItems = cart.map(i => ({
             product: {
               id: i.product.id,
-              title: i.product.title,
-              price: i.product.price,
-              regularPrice: i.product.regularPrice,
-              image: i.product.coverImage,
+              title: i.variant?.name ? `${i.product.title} - ${i.variant.name}` : i.product.title,
+              price: i.variant?.price ?? i.product.price,
+              regularPrice: i.variant?.regularPrice ?? i.product.regularPrice,
+              image: i.variant?.image || i.product.coverImage,
               category: i.product.category,
               stock: i.product.stock || 100,
               isAvailable: true
             },
-            quantity: i.quantity
+            quantity: i.quantity,
+            variant: i.variant
           }));
           
           if (bogoEligible && baseItems.length > 0) {
@@ -451,9 +454,9 @@ export default function CheckoutPage({
               const baseApiItems = cart.map(i => ({
                 productId: i.product.id,
                 quantity: i.quantity,
-                price: i.product.price,
-                regularPrice: i.product.regularPrice,
-                title: i.product.title
+                price: i.variant?.price ?? i.product.price,
+                regularPrice: i.variant?.regularPrice ?? i.product.regularPrice,
+                title: i.variant?.name ? `${i.product.title} - ${i.variant.name}` : i.product.title
               }));
               if (bogoEligible && baseApiItems.length > 0) {
                 baseApiItems.push({
@@ -505,6 +508,7 @@ export default function CheckoutPage({
         }))
       }, purchaseEventId);
 
+      playOrderSuccessVibe();
       setOrderSuccess(confirmedOrder);
       onClearCart();
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -667,6 +671,11 @@ export default function CheckoutPage({
                           <div className="min-w-0 space-y-1">
                             <h3 className="text-xs sm:text-sm font-semibold text-slate-900 truncate">
                               {item.product.title}
+                              {item.variant?.name && (
+                                <span className="ml-1.5 text-xs text-emerald-800 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                                  ({item.variant.name})
+                                </span>
+                              )}
                             </h3>
                             
                             <div className="flex items-center gap-2">
@@ -704,7 +713,7 @@ export default function CheckoutPage({
 
                         <div className="flex items-center gap-4 shrink-0">
                           <span className="font-semibold text-xs sm:text-sm text-slate-900">
-                            Tk.{(item.product.price * item.quantity).toLocaleString()}
+                            Tk.{(((item.variant?.price ?? item.product.price)) * item.quantity).toLocaleString()}
                           </span>
                           <button
                             type="button"

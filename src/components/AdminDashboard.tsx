@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { 
-  Users, LogOut, Menu, X, Check, ShoppingBag, ShoppingCart, ClipboardList, Package, LayoutDashboard, User, Code, Truck, CreditCard, Tag, Boxes, Store, Globe, Layout, Layers, Bell, Coins, Send, Sparkles, Eye, Bookmark, Camera, HeartHandshake, Zap, Mail
+  Users, LogOut, Menu, X, Check, ShoppingBag, ShoppingCart, ClipboardList, Package, LayoutDashboard, User, Code, Truck, CreditCard, Tag, Boxes, Store, Globe, Layout, Layers, Bell, Coins, Send, Sparkles, Eye, Bookmark, Camera, HeartHandshake, Zap
 } from 'lucide-react';
 import { dbService, subscribeToOrders } from '../lib/dbService';
+import { playCuteAdminOrderTone } from '../lib/soundUtils';
 import { ApiClient } from '../services/apiClient';
 import { BookOrder, ActiveTab, Product, Customer } from '../types';
 import DashboardOverview from './DashboardOverview';
@@ -12,7 +13,6 @@ const OrderManager = lazy(() => import('./OrderManager'));
 const ProductManager = lazy(() => import('./ProductManager'));
 const CustomerManager = lazy(() => import('./CustomerManager'));
 const CouponManager = lazy(() => import('./CouponManager'));
-const ContactMessagesManager = lazy(() => import('./ContactMessagesManager'));
 const StockInventoryManager = lazy(() => import('./StockInventoryManager'));
 const CategoryManager = lazy(() => import('./CategoryManager'));
 const BrandManager = lazy(() => import('./BrandManager'));
@@ -23,7 +23,6 @@ const PaymentSettingsManager = lazy(() => import('./PaymentSettingsManager'));
 const DeliverySettingsManager = lazy(() => import('./DeliverySettingsManager'));
 const AboutUsManager = lazy(() => import('./AboutUsManager'));
 const FlashSaleManager = lazy(() => import('./FlashSaleManager'));
-const HighlightSpotlightManager = lazy(() => import('./HighlightSpotlightManager'));
 import { TabContentSkeleton } from './LoadingSkeleton';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -49,25 +48,9 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
   const isFirstLoad = useRef(true);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Play notification sound
+  // Play cute notification tone
   const playNotificationSound = useCallback(() => {
-    try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const oscillator = ctx.createOscillator();
-      const gainNode = ctx.createGain();
-      oscillator.connect(gainNode);
-      gainNode.connect(ctx.destination);
-      oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(880, ctx.currentTime);
-      oscillator.frequency.setValueAtTime(1100, ctx.currentTime + 0.1);
-      oscillator.frequency.setValueAtTime(880, ctx.currentTime + 0.2);
-      gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-      oscillator.start(ctx.currentTime);
-      oscillator.stop(ctx.currentTime + 0.4);
-    } catch (e) {
-      // Audio not available
-    }
+    playCuteAdminOrderTone();
   }, []);
 
   // Load initial data then subscribe to real-time orders
@@ -296,11 +279,9 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
     { id: 'products' as const, label: 'Products', icon: Package },
     { id: 'orders' as const, label: 'Orders', icon: ShoppingBag },
     { id: 'customers' as const, label: 'Customers', icon: Users },
-    { id: 'contact_messages' as const, label: 'Messages', icon: Mail },
     { id: 'coupons' as const, label: 'Coupons', icon: Tag },
     { id: 'header_store' as any, isHeader: true, label: 'Store Setup' },
     { id: 'flash_sale' as const, label: 'Flash Sale', icon: Zap },
-    { id: 'highlight_spotlight' as const, label: 'Highlights', icon: Sparkles },
     { id: 'about_settings' as const, label: 'About Us', icon: HeartHandshake },
     { id: 'category_management' as const, label: 'Categories', icon: Layers },
     { id: 'brand_management' as const, label: 'Brands', icon: Bookmark },
@@ -313,7 +294,7 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 flex font-sans text-slate-800">
+    <div className="admin-panel min-h-screen bg-slate-50 flex font-sans text-slate-800 text-[16px]">
 
       {/* ===== New Order Toast Notification ===== */}
       <AnimatePresence>
@@ -333,18 +314,24 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
               transition={{ duration: 6, ease: 'linear' }}
             />
             <div className="p-4 flex items-start gap-3">
-              <div className="p-2 bg-teal-500/20 rounded-xl shrink-0 mt-0.5">
-                <Bell className="h-5 w-5 text-teal-400" />
+              <div className="p-2.5 bg-emerald-500/20 text-emerald-400 rounded-xl shrink-0 mt-0.5 animate-bounce">
+                <Bell className="h-5 w-5" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-teal-400 mb-0.5">🎉 New Order Received!</p>
-                <p className="text-sm font-bold text-white truncate">{newOrderToast.customerName || 'Unknown Customer'}</p>
-                <p className="text-[11px] text-slate-400 mt-0.5 truncate">{newOrderToast.id} · Tk.{(newOrderToast.total ?? 0).toLocaleString()}</p>
+                <p className="text-xs font-bold text-emerald-400 mb-0.5">🎉 New Order Received!</p>
+                <p className="text-sm font-bold text-white truncate">{newOrderToast.customerName || 'Customer'}</p>
+                <p className="text-xs text-amber-300 font-semibold mt-0.5 truncate">
+                  {newOrderToast.id} · Tk. {(newOrderToast.totalAmount ?? newOrderToast.totalPrice ?? newOrderToast.total ?? 0).toLocaleString()}
+                </p>
+                {newOrderToast.phone && (
+                  <p className="text-[11px] text-slate-400 truncate">{newOrderToast.phone}</p>
+                )}
                 <button
                   onClick={() => { setActiveTab('orders'); setNewOrderToast(null); }}
-                  className="mt-2 text-[11px] font-bold text-teal-400 hover:text-teal-300 cursor-pointer"
+                  className="mt-2 text-[11px] font-bold text-emerald-400 hover:text-emerald-300 cursor-pointer inline-flex items-center gap-1"
                 >
-                  View Order →
+                  <span>View Order</span>
+                  <span>→</span>
                 </button>
               </div>
               <button
@@ -358,15 +345,15 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
         )}
       </AnimatePresence>
 
-      <aside className="hidden lg:flex lg:flex-col lg:w-48 bg-slate-900 text-slate-400 border-r border-slate-800 shrink-0 sticky top-0 h-screen">
+      <aside className="hidden lg:flex lg:flex-col lg:w-60 bg-slate-900 text-slate-400 border-r border-slate-800 shrink-0 sticky top-0 h-screen">
         {/* Title / Header */}
         <div className="h-16 flex items-center px-4 border-b border-slate-800 space-x-2.5 text-white">
           <div className="h-8 w-8 rounded-lg bg-teal-500/20 text-teal-400 border border-teal-500/30 flex items-center justify-center font-bold shrink-0">
             <ShoppingBag className="h-4.5 w-4.5" />
           </div>
           <div className="min-w-0">
-            <h1 className="text-xs font-bold leading-tight text-white truncate">E-commerce Admin</h1>
-            <span className="text-[10px] text-teal-400 block font-medium truncate">Control Panel</span>
+            <h1 className="text-sm font-bold leading-tight text-white truncate">E-commerce Admin</h1>
+            <span className="text-xs text-teal-400 block font-medium truncate">Control Panel</span>
           </div>
         </div>
 
@@ -376,7 +363,7 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
             if (item.isHeader) {
               return (
                 <div key={item.id} className="pt-4 pb-1 px-3">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                     {item.label}
                   </span>
                 </div>
@@ -390,9 +377,9 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`w-full inline-flex items-center px-3 py-2 rounded-xl text-xs font-semibold cursor-pointer transition-all ${
+                className={`w-full inline-flex items-center px-3 py-2.5 rounded-xl text-sm font-medium cursor-pointer transition-all ${
                   isActive 
-                    ? 'bg-teal-600 text-white shadow-md shadow-teal-900/30 font-bold' 
+                    ? 'bg-teal-600 text-white shadow-md shadow-teal-900/30 font-semibold' 
                     : 'hover:bg-slate-800 hover:text-slate-200'
                 }`}
               >
@@ -431,7 +418,7 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
-              className="relative flex flex-col w-52 bg-slate-900 text-slate-400 border-r border-slate-800 h-full"
+              className="relative flex flex-col w-64 bg-slate-900 text-slate-400 border-r border-slate-800 h-full"
             >
               <div className="absolute top-3.5 right-3">
                 <button onClick={() => setSidebarOpen(false)} className="text-slate-400 hover:text-white p-1">
@@ -520,7 +507,7 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
         </header>
 
         {/* Content canvas */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto w-full max-w-full">
+        <main className="flex-1 p-4 sm:p-6 lg:p-6 overflow-y-auto w-full max-w-full">
           {loading ? (
             <TabContentSkeleton />
           ) : (
@@ -561,9 +548,6 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
                 {activeTab === 'coupons' && (
                   <CouponManager />
                 )}
-                {activeTab === 'contact_messages' && (
-                  <ContactMessagesManager />
-                )}
                 {activeTab === 'category_management' && (
                   <CategoryManager />
                 )}
@@ -572,11 +556,6 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
                 )}
                 {activeTab === 'flash_sale' && (
                   <FlashSaleManager 
-                    products={products}
-                  />
-                )}
-                {activeTab === 'highlight_spotlight' && (
-                  <HighlightSpotlightManager 
                     products={products}
                   />
                 )}

@@ -213,11 +213,8 @@ export default function ContactMessagesManager() {
         <div>
           <h2 className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
             <Mail className="h-6 w-6 text-teal-600" />
-            <span>Customer message</span>
+            <span>Customer Messages</span>
           </h2>
-          <p className="text-slate-500 text-xs mt-0.5">
-            of the website 'Contact Us' form from All sent Customer messagelist of
-          </p>
         </div>
 
         <button
@@ -367,9 +364,9 @@ export default function ContactMessagesManager() {
               onChange={e => setItemsPerPage(Number(e.target.value))}
               className="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none"
             >
-              <option value={10}>10 t</option>
-              <option value={20}>20 t</option>
-              <option value={50}>50 t</option>
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
             </select>
           </div>
 

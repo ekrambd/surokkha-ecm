@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import ResponsiveImage from './ResponsiveImage';
 
 import { ConfirmDialog } from './ui/ConfirmDialog';
+import { isOrderCod, isOrderPaid } from '../lib/orderPaymentUtils';
 
 interface OrderManagerProps {
   orders: BookOrder[];
@@ -224,11 +225,11 @@ export default function OrderManager({
   const [deleteConfirmOrder, setDeleteConfirmOrder] = useState<BookOrder | null>(null);
   const [bulkStatusConfirm, setBulkStatusConfirm] = useState<{ newStatus: string; count: number } | null>(null);
   const [invoiceBrand, setInvoiceBrand] = useState({
-    name: 'Your Store Name',
-    tagline: 'Your Store Description',
-    phone: '01329458568',
-    email: 'support@nursurveysolution.com',
-    website: 'www.nursurveysolution.com',
+    name: 'SHOSTIR BAZAR',
+    tagline: '',
+    phone: '',
+    email: '',
+    website: '',
     logo: ''
   });
 
@@ -269,17 +270,15 @@ export default function OrderManager({
     count: 0
   });
 
-
-
   // Add Physical Order Modal
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     customerName: '',
     phone: '',
     address: '',
-    productTitle: 'Smart land surveying and management',
-    price: 490,
-    deliveryCharge: 90,
+    productTitle: '',
+    price: 0,
+    deliveryCharge: 0,
     quantity: 1,
     orderType: 'physical' as 'physical' | 'landing' | 'store',
     status: 'Confirmed' as BookOrder['status'],
@@ -329,13 +328,16 @@ export default function OrderManager({
 
         if (!mounted) return;
 
+        const rawDomain = ecomSettings?.storeDomain || instituteInfo?.website || '';
+        const cleanWebsite = rawDomain ? rawDomain.replace(/^https?:\/\//i, '').replace(/\/$/, '') : '';
+
         setInvoiceBrand({
-          name: ecomSettings.storeName || instituteInfo?.name || 'Your Store Name',
-          tagline: ecomSettings.storeTagline || instituteInfo?.description || 'Your Store Description',
-          phone: instituteInfo?.phone || '01329458568',
-          email: instituteInfo?.email || 'support@nursurveysolution.com',
-          website: 'www.nursurveysolution.com',
-          logo: ecomSettings.storeLogo || ''
+          name: ecomSettings?.storeName || instituteInfo?.name || 'SHOSTIR BAZAR',
+          tagline: ecomSettings?.storeTagline || instituteInfo?.description || '',
+          phone: instituteInfo?.phone || ecomSettings?.supportPhone || '',
+          email: instituteInfo?.email || ecomSettings?.supportEmail || '',
+          website: cleanWebsite,
+          logo: ecomSettings?.storeLogo || instituteInfo?.logo || ''
         });
       } catch (err) {
         console.warn('Failed to load invoice brand data:', err);
@@ -781,8 +783,8 @@ export default function OrderManager({
           case 'total': val = String(o.totalPrice); break;
           case 'rEarn': val = '0'; break;
           case 'resell': val = 'No'; break;
-          case 'paid': val = o.paymentMethod !== 'COD' ? String(o.totalPrice) : '0'; break;
-          case 'due': val = o.paymentMethod === 'COD' ? String(o.totalPrice) : '0'; break;
+          case 'paid': val = isOrderPaid(o) ? String(o.totalPrice || 0) : '0'; break;
+          case 'due': val = !isOrderPaid(o) ? String(o.totalPrice || 0) : '0'; break;
           case 'rDue': val = '0'; break;
           case 'profit': val = String(Math.round(o.totalPrice * 0.4)); break;
           case 'created': val = new Date(o.createdAt).toLocaleDateString('en-US'); break;
@@ -858,9 +860,9 @@ export default function OrderManager({
         customerName: '',
         phone: '',
         address: '',
-        productTitle: 'Smart land surveying and management',
-        price: 490,
-        deliveryCharge: 90,
+        productTitle: '',
+        price: 0,
+        deliveryCharge: 0,
         quantity: 1,
         orderType: 'physical',
         status: 'Confirmed',
@@ -982,13 +984,15 @@ export default function OrderManager({
               const orderDate = new Date(ord.createdAt);
               const formattedDate = orderDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
               const formattedTime = orderDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-              const isPaid = ord.paymentMethod !== 'COD';
+              const isPaid = isOrderPaid(ord);
               
               const price = ord.price || 0;
               const qty = ord.quantity || 1;
               const delivery = ord.deliveryCharge || 0;
-              const subtotal = price * qty;
-              const grandTotal = ord.totalPrice || (subtotal + delivery);
+              const subtotal = ord.items && ord.items.length > 0
+                ? ord.items.reduce((sum: number, it: any) => sum + ((it.variant?.price || it.product?.price || it.price || 0) * (it.quantity || 1)), 0)
+                : (price * qty);
+              const grandTotal = ord.totalPrice || ord.totalAmount || (subtotal + delivery);
               const paidAmount = isPaid ? grandTotal : 0;
               const dueAmount = isPaid ? 0 : grandTotal;
 
@@ -1020,7 +1024,7 @@ export default function OrderManager({
                           <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase">
                             {invoiceBrand.name}
                           </h2>
-                          <p className="text-sm font-medium text-slate-500 mt-1">{invoiceBrand.tagline}</p>
+                          {invoiceBrand.tagline && <p className="text-sm font-medium text-slate-500 mt-1">{invoiceBrand.tagline}</p>}
                           <div className="mt-3 text-xs text-slate-500 space-y-0.5">
                             {invoiceBrand.website && <p>{invoiceBrand.website}</p>}
                             {invoiceBrand.phone && <p>{invoiceBrand.phone}</p>}
@@ -1043,7 +1047,7 @@ export default function OrderManager({
                           </div>
                           <div className="flex justify-between md:w-48">
                             <span className="font-semibold text-slate-400">Payment:</span>
-                            <span className="font-medium text-slate-800">{ord.paymentMethod || 'Cash'}</span>
+                            <span className="font-medium text-slate-800">{ord.paymentMethod || 'Cash on Delivery'}</span>
                           </div>
                           <div className="flex justify-between md:w-48">
                             <span className="font-semibold text-slate-400">Status:</span>
@@ -1073,7 +1077,7 @@ export default function OrderManager({
                           </div>
                           <div className="flex justify-between">
                             <span className="text-slate-500">Tracking:</span>
-                            <span className="font-mono font-medium text-slate-800">{ord.steadfastTrackingCode || 'Pending'}</span>
+                            <span className="font-mono font-medium text-slate-800">{ord.steadfastTrackingCode || ord.pathaoTrackingCode || 'Pending'}</span>
                           </div>
                         </div>
                       </div>
@@ -1103,15 +1107,35 @@ export default function OrderManager({
                           </tr>
                         </thead>
                         <tbody className="text-sm">
-                          <tr className="border-b border-slate-100">
-                            <td className="py-4 px-4">
-                              <p className="font-semibold text-slate-900">{ord.productTitle || 'Product'}</p>
-                              <p className="text-xs text-slate-500 font-mono mt-1">SKU: {ord.id.split('-').pop()}</p>
-                            </td>
-                            <td className="py-4 px-4 text-center text-slate-700">{qty}</td>
-                            <td className="py-4 px-4 text-right text-slate-700">Tk {price.toFixed(2)}</td>
-                            <td className="py-4 px-4 text-right font-semibold text-slate-900">Tk {subtotal.toFixed(2)}</td>
-                          </tr>
+                          {ord.items && ord.items.length > 0 ? (
+                            ord.items.map((it: any, idx: number) => {
+                              const itPrice = it.variant?.price || it.product?.price || it.price || 0;
+                              const itQty = it.quantity || 1;
+                              return (
+                                <tr key={idx} className="border-b border-slate-100">
+                                  <td className="py-4 px-4">
+                                    <p className="font-semibold text-slate-900">{it.product?.title || it.title || it.name || 'Product'}</p>
+                                    <p className="text-xs text-slate-500 font-mono mt-1">
+                                      {it.variant?.name ? `Variant: ${it.variant.name}` : `SKU: ${it.sku || ord.id.split('-').pop()}`}
+                                    </p>
+                                  </td>
+                                  <td className="py-4 px-4 text-center text-slate-700">{itQty}</td>
+                                  <td className="py-4 px-4 text-right text-slate-700">Tk {itPrice.toFixed(2)}</td>
+                                  <td className="py-4 px-4 text-right font-semibold text-slate-900">Tk {(itPrice * itQty).toFixed(2)}</td>
+                                </tr>
+                              );
+                            })
+                          ) : (
+                            <tr className="border-b border-slate-100">
+                              <td className="py-4 px-4">
+                                <p className="font-semibold text-slate-900">{ord.productTitle || 'Product'}</p>
+                                <p className="text-xs text-slate-500 font-mono mt-1">SKU: {ord.id.split('-').pop()}</p>
+                              </td>
+                              <td className="py-4 px-4 text-center text-slate-700">{qty}</td>
+                              <td className="py-4 px-4 text-right text-slate-700">Tk {price.toFixed(2)}</td>
+                              <td className="py-4 px-4 text-right font-semibold text-slate-900">Tk {subtotal.toFixed(2)}</td>
+                            </tr>
+                          )}
                         </tbody>
                       </table>
                     </div>
@@ -1209,11 +1233,15 @@ export default function OrderManager({
                     <div className="grid grid-cols-2 gap-2 border-b border-slate-200 pb-3 text-xs">
                       <div>
                         <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider block">COURIER / TRACKING</span>
-                        <span className="font-bold text-slate-900">{ord.steadfastTrackingCode || 'Courier'}</span>
+                        <span className="font-bold text-slate-900">{ord.steadfastTrackingCode || ord.pathaoTrackingCode || 'Courier'}</span>
                       </div>
                       <div className="text-right">
-                        <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider block">COD PAYABLE</span>
-                        <span className="text-base font-black text-amber-600">Tk. {(ord.totalPrice || 580).toFixed(2)}</span>
+                        <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider block">
+                          {isOrderPaid(ord) ? 'PAID' : 'COD PAYABLE'}
+                        </span>
+                        <span className={`text-base font-black ${isOrderPaid(ord) ? 'text-emerald-600' : 'text-amber-600'}`}>
+                          Tk. {(isOrderPaid(ord) ? 0 : (ord.totalPrice || ord.totalAmount || 0)).toFixed(2)}
+                        </span>
                       </div>
                     </div>
 
@@ -1241,8 +1269,9 @@ export default function OrderManager({
                 <div className="space-y-1">
                   <p><strong>Customer:</strong> {ord.customerName}</p>
                   <p><strong>Address:</strong> {ord.address}</p>
-                  <p><strong>Product:</strong> {ord.productTitle} × {ord.quantity}</p>
-                  <p><strong>Total (COD):</strong> Tk. {ord.totalPrice}</p>
+                  <p><strong>Product:</strong> {ord.productTitle || (ord.items?.[0]?.product?.title) || 'Product'} × {ord.quantity || 1}</p>
+                  <p><strong>Payment Status:</strong> {isOrderPaid(ord) ? 'PAID' : `UNPAID (${ord.paymentMethod || 'COD'})`}</p>
+                  <p><strong>Total:</strong> Tk. {ord.totalPrice || ord.totalAmount || 0}</p>
                 </div>
               </div>
             ))}
@@ -1275,10 +1304,10 @@ export default function OrderManager({
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-slate-900 flex items-center space-x-2">
             <ShoppingBag className="h-6 w-6 text-teal-600" />
-            <span>Landing and feeGical</span>
+            <span>Orders</span>
           </h2>
           <p className="text-xs text-slate-500 font-medium mt-1">
-            Landing page And All in the showroom bookManage orders, courier bookings and print invoices।
+            Manage orders, courier bookings, and print invoices.
           </p>
         </div>
 
@@ -1399,7 +1428,7 @@ export default function OrderManager({
                 typeFilter === 'physical' ? 'bg-teal-600 text-white shadow-2xs' : 'text-slate-500 hover:text-slate-900'
               }`}
             >
-              feeGical ({physicalCount})
+              Store ({physicalCount})
             </button>
           </div>
 
@@ -1742,7 +1771,7 @@ export default function OrderManager({
                           </span>
                         ) : (
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-50 text-teal-700 border border-teal-200">
-                            feeGical
+                            Store
                           </span>
                         )}
                       </td>
@@ -2315,7 +2344,7 @@ export default function OrderManager({
             <div className="flex justify-between items-center border-b pb-3">
               <div className="flex items-center space-x-2">
                 <MessageSquare className="h-5 w-5 text-teal-600" />
-                <h3 className="font-bold text-slate-900 text-sm">the bulk SMS{selectedOrderIds.length} John</h3>
+                <h3 className="font-bold text-slate-900 text-sm">Send Bulk SMS ({selectedOrderIds.length})</h3>
               </div>
               <button onClick={() => setIsBulkSmsModalOpen(false)} className="text-slate-400 hover:text-slate-600">
                 <XCircle className="h-5 w-5" />

@@ -480,8 +480,8 @@ export default function CouponManager() {
                 </tr>
               ) : filteredCoupons.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400">
-                    No coupons found।
+                  <td colSpan={7} className="py-12 text-center text-slate-400 font-medium">
+                    No data setup now
                   </td>
                 </tr>
               ) : (

@@ -259,7 +259,7 @@ export default function BrandManager() {
         <div className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 flex items-center justify-between text-xs shadow-2xs">
           <span className="text-slate-500 font-medium">Total Brands:</span>
           <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-900">{brands.length} t</span>
+            <span className="font-bold text-slate-900">{brands.length}</span>
             <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
               {brands.filter(b => b.isActive !== false).length} active
             </span>
@@ -280,7 +280,7 @@ export default function BrandManager() {
             <div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center mx-auto">
               <Bookmark className="h-6 w-6" />
             </div>
-            <p className="text-xs font-bold text-slate-600">No brand found</p>
+            <p className="text-xs font-bold text-slate-600">No data setup now</p>
             <p className="text-[11px] text-slate-400 max-w-xs mx-auto">
               {searchTerm ? 'Search did not match any brands.' : 'Click the button above to add a new brand.'}
             </p>

@@ -1,15 +1,27 @@
+@import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
+
+@theme {
+  --font-sans: 'Hind Siliguri', 'Plus Jakarta Sans', 'Inter', 'Noto Sans Bengali', system-ui, -apple-system, sans-serif;
+  --font-serif: 'Hind Siliguri', 'Plus Jakarta Sans', 'Noto Sans Bengali', sans-serif;
+}
 
 @layer base {
   body {
-    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
-    background-color: #faf9f6;
+    font-family: 'Hind Siliguri', 'Plus Jakarta Sans', 'Inter', 'Noto Sans Bengali', system-ui, -apple-system, sans-serif;
+    background-color: #ffffff;
     color: #1a1a1a;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  h1, h2, h3, .font-luxury {
-    font-family: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
-    letter-spacing: -0.02em;
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Hind Siliguri', 'Plus Jakarta Sans', 'Inter', 'Noto Sans Bengali', sans-serif;
+    letter-spacing: -0.01em;
+  }
+
+  .font-luxury {
+    font-family: 'Playfair Display', Georgia, serif;
   }
 }
 
@@ -148,3 +160,80 @@ video.hero-bg-video::-webkit-media-controls-start-playback-button {
     transform: translateY(0);
   }
 }
+
+/* ============================================================
+   ADMIN PANEL TYPOGRAPHY & READABILITY ENHANCEMENT
+   Same font as website ('Hind Siliguri', 'Noto Sans Bengali', 
+   'Plus Jakarta Sans'), regular weight, enhanced size (16px-18px).
+   ============================================================ */
+.admin-panel {
+  font-family: 'Hind Siliguri', 'Noto Sans Bengali', 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif !important;
+  font-size: 16px;
+  line-height: 1.6;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.admin-panel :is(input, select, textarea, button, table, th, td, label, p, span, h1, h2, h3, h4, h5, h6, a) {
+  font-family: 'Hind Siliguri', 'Noto Sans Bengali', 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* Ensure comfortable regular font-weight for general elements */
+.admin-panel p,
+.admin-panel label,
+.admin-panel td,
+.admin-panel input,
+.admin-panel select,
+.admin-panel textarea {
+  font-weight: 400;
+}
+
+/* Enhanced font scaling inside admin panel (16px-18px base comfort) */
+.admin-panel .text-\[10px\] {
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+}
+
+.admin-panel .text-\[11px\] {
+  font-size: 14px !important;
+  line-height: 1.45 !important;
+}
+
+.admin-panel .text-xs {
+  font-size: 15px !important;
+  line-height: 1.5 !important;
+}
+
+.admin-panel .text-sm {
+  font-size: 16px !important;
+  line-height: 1.55 !important;
+}
+
+.admin-panel .text-base {
+  font-size: 17px !important;
+  line-height: 1.6 !important;
+}
+
+.admin-panel .text-lg {
+  font-size: 19px !important;
+  line-height: 1.45 !important;
+}
+
+.admin-panel .text-xl {
+  font-size: 22px !important;
+  line-height: 1.35 !important;
+}
+
+.admin-panel .text-2xl {
+  font-size: 26px !important;
+  line-height: 1.3 !important;
+}
+
+/* Inputs, selects, and textareas in Admin Panel */
+.admin-panel input,
+.admin-panel select,
+.admin-panel textarea {
+  font-size: 16px !important;
+}
+

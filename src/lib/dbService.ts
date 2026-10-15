@@ -131,9 +131,9 @@ export const DEFAULT_LANDING_PAGE_SETTINGS: LandingPageData = {
   bookSubtitle: 'CASIO AE-1200 Watch',
   authorName: 'CASIO AE-1200 Watch',
   authorDesignation: '10০% অরিজিনাল ও প্রিমিয়াম কোয়ালিT',
-  authorPhoto: '/watch.jpg',
-  mainBookImage: '/watch.jpg',
-  heroBookImage: '/watch.jpg',
+  authorPhoto: '/placeholder-image.svg',
+  mainBookImage: '/placeholder-image.svg',
+  heroBookImage: '/placeholder-image.svg',
   logoUrl: '',
   pageCount: '10 Year Battery',
   paperQuality: '100M Water Resist',
@@ -160,7 +160,7 @@ export const DEFAULT_LANDING_PAGE_SETTINGS: LandingPageData = {
     {
       id: 'var-silver',
       name: 'CASIO AE-1200WHL — সিলভার',
-      image: '/watch.jpg',
+      image: '/placeholder-image.svg',
       price: 950,
       regularPrice: 2500,
       tag: 'Best seller'
@@ -168,7 +168,7 @@ export const DEFAULT_LANDING_PAGE_SETTINGS: LandingPageData = {
     {
       id: 'var-black',
       name: 'CASIO AE-1200WHL — ব্ল্যাক',
-      image: '/watch.jpg',
+      image: '/placeholder-image.svg',
       price: 950,
       regularPrice: 2500,
       tag: 'popular'
@@ -176,7 +176,7 @@ export const DEFAULT_LANDING_PAGE_SETTINGS: LandingPageData = {
     {
       id: 'var-gold',
       name: 'CASIO AE-1200WHL — ভিন্টেজ গোল্ড',
-      image: '/watch.jpg',
+      image: '/placeholder-image.svg',
       price: 950,
       regularPrice: 2500,
       tag: 'এক্সক্লুসিভ'
@@ -614,8 +614,31 @@ export const dbService = {
   _ordersCache: null as { data: BookOrder[]; timestamp: number } | null,
   
   async getBookOrders(forceRefresh = false): Promise<BookOrder[]> {
-    if (!forceRefresh && this._ordersCache && (Date.now() - this._ordersCache.timestamp < 10000)) {
+    if (!forceRefresh && this._ordersCache && (Date.now() - this._ordersCache.timestamp < 3000)) {
       return this._ordersCache.data;
+    }
+
+    try {
+      // 1. Authoritative fetch from server API
+      const serverOrders = await ApiClient.getOrders();
+      if (Array.isArray(serverOrders)) {
+        const localOrders = getLocalData<BookOrder[]>('noor_book_orders', []);
+        const orderMap = new Map<string, BookOrder>();
+        
+        // Merge both, prioritizing the server record
+        localOrders.forEach(o => { if (o && o.id) orderMap.set(o.id, o); });
+        serverOrders.forEach(o => { if (o && o.id) orderMap.set(o.id, o); });
+
+        const merged = Array.from(orderMap.values())
+          .filter(o => o.id !== 'ORD-2026-001')
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+        setLocalData('noor_book_orders', merged);
+        this._ordersCache = { data: merged, timestamp: Date.now() };
+        return merged;
+      }
+    } catch {
+      // Server fetch failed, fall through to Firestore / localStorage
     }
 
     if (isFirebaseEnabled && db) {
@@ -637,15 +660,16 @@ export const dbService = {
       }
     }
     const orders = getLocalData<BookOrder[]>('noor_book_orders', []).filter(o => o.id !== 'ORD-2026-001');
-    return orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const sorted = orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    this._ordersCache = { data: sorted, timestamp: Date.now() };
+    return sorted;
   },
 
   async addBookOrder(order: BookOrder): Promise<BookOrder> {
-    const orders = await this.getBookOrders();
     this._ordersCache = null; // invalidate cache
     if (!order.id) {
       const year = new Date().getFullYear();
-      const num = orders.length + 1001;
+      const num = Math.floor(1000 + Math.random() * 9000);
       order.id = `ORD-${year}-${num}`;
     }
     if (!order.createdAt) {
@@ -661,9 +685,20 @@ export const dbService = {
       }
     }
 
-    const updated = [order, ...orders.filter(o => o.id !== order.id)];
+    const localList = getLocalData<BookOrder[]>('noor_book_orders', []);
+    const updated = [order, ...localList.filter(o => o.id !== order.id)];
     setLocalData('noor_book_orders', updated);
-    window.dispatchEvent(new Event('book-orders-updated'));
+    this._ordersCache = { data: updated, timestamp: Date.now() };
+
+    // Real-time events: In-window, cross-tab BroadcastChannel & Storage Event
+    window.dispatchEvent(new CustomEvent('book-orders-updated', { detail: order }));
+    try {
+      const bc = new BroadcastChannel('ecom_orders_channel');
+      bc.postMessage({ type: 'NEW_ORDER', order });
+      bc.close();
+    } catch {}
+    localStorage.setItem('ecom_new_order_event', String(Date.now()));
+
     return order;
   },
 
@@ -672,6 +707,11 @@ export const dbService = {
   },
 
   async updateBookOrder(order: BookOrder): Promise<BookOrder> {
+    this._ordersCache = null; // invalidate cache
+    try {
+      await ApiClient.updateOrder(order);
+    } catch {}
+
     if (isFirebaseEnabled && db) {
       try {
         const sanitized = sanitizeForFirestore(order);
@@ -681,11 +721,19 @@ export const dbService = {
       }
     }
 
-    const orders = await this.getBookOrders();
-    this._ordersCache = null; // invalidate cache
-    const updated = orders.map(o => o.id === order.id ? order : o);
+    const localOrders = getLocalData<BookOrder[]>('noor_book_orders', []);
+    const updated = localOrders.map(o => o.id === order.id ? order : o);
     setLocalData('noor_book_orders', updated);
-    window.dispatchEvent(new Event('book-orders-updated'));
+    this._ordersCache = { data: updated, timestamp: Date.now() };
+
+    window.dispatchEvent(new CustomEvent('book-orders-updated', { detail: order }));
+    try {
+      const bc = new BroadcastChannel('ecom_orders_channel');
+      bc.postMessage({ type: 'ORDER_UPDATED', order });
+      bc.close();
+    } catch {}
+    localStorage.setItem('ecom_new_order_event', String(Date.now()));
+
     return order;
   },
 
@@ -1171,15 +1219,36 @@ export const dbService = {
       }
     }
 
-    const local = getLocalData<Coupon[]>('noor_coupons', []);
-    if (local && local.length > 0) return local;
+    try {
+      const res = await fetch('/api/coupons');
+      if (res.ok) {
+        const serverCoupons = await res.json();
+        if (Array.isArray(serverCoupons)) {
+          setLocalData('noor_coupons', serverCoupons);
+          return serverCoupons;
+        }
+      }
+    } catch {
+      // offline / fallback
+    }
 
-    return DEFAULT_COUPONS;
+    const local = getLocalData<Coupon[]>('noor_coupons', []);
+    return local || [];
   },
 
   async addCoupon(couponData: Omit<Coupon, 'id'> & { id?: string }): Promise<Coupon> {
     const id = couponData.id || `cpn_${Date.now()}`;
     const newCoupon: Coupon = { ...couponData, id };
+
+    try {
+      await fetch('/api/coupons', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newCoupon)
+      });
+    } catch (e) {
+      console.warn('Failed saving coupon to server API:', e);
+    }
 
     if (isFirebaseEnabled && db) {
       try {
@@ -1196,6 +1265,16 @@ export const dbService = {
   },
 
   async updateCoupon(coupon: Coupon): Promise<Coupon> {
+    try {
+      await fetch(`/api/coupons/${encodeURIComponent(coupon.id)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(coupon)
+      });
+    } catch (e) {
+      console.warn('Failed updating coupon on server API:', e);
+    }
+
     if (isFirebaseEnabled && db) {
       try {
         await setDoc(doc(db, 'coupons', coupon.id), coupon, { merge: true });
@@ -1211,6 +1290,14 @@ export const dbService = {
   },
 
   async deleteCoupon(id: string): Promise<boolean> {
+    try {
+      await fetch(`/api/coupons/${encodeURIComponent(id)}`, {
+        method: 'DELETE'
+      });
+    } catch (e) {
+      console.warn('Failed deleting coupon on server API:', e);
+    }
+
     if (isFirebaseEnabled && db) {
       try {
         await deleteDoc(doc(db, 'coupons', id));
@@ -1353,6 +1440,17 @@ export const dbService = {
       }
     }
 
+    try {
+      const res = await fetch('/api/brands');
+      if (res.ok) {
+        const serverBrands = await res.json();
+        if (Array.isArray(serverBrands)) {
+          setLocalData('noor_brands', serverBrands);
+          return serverBrands;
+        }
+      }
+    } catch {}
+
     const list = getLocalData<Brand[]>('noor_brands', []);
     return list || [];
   },
@@ -1364,6 +1462,16 @@ export const dbService = {
       createdAt: brand.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
+
+    try {
+      await fetch('/api/brands', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(finalBrand)
+      });
+    } catch (e) {
+      console.warn('Failed saving brand to server API:', e);
+    }
 
     if (isFirebaseEnabled && db) {
       try {
@@ -1390,6 +1498,14 @@ export const dbService = {
   },
 
   async deleteBrand(id: string): Promise<void> {
+    try {
+      await fetch(`/api/brands/${encodeURIComponent(id)}`, {
+        method: 'DELETE'
+      });
+    } catch (e) {
+      console.warn('Failed deleting brand on server API:', e);
+    }
+
     if (isFirebaseEnabled && db) {
       try {
         await deleteDoc(doc(db, 'brands', id));
@@ -1502,23 +1618,90 @@ export const dbService = {
   }
 };
 
-// Real-time Firestore listener for book_orders
-// Returns an unsubscribe function. Falls back gracefully if Firebase not enabled.
+// Real-time listener for orders across tabs, SSE stream & fast polling
+// Returns an unsubscribe function. Instantly receives orders without reload!
 export function subscribeToOrders(
   onData: (orders: BookOrder[]) => void
 ): () => void {
-  if (!isFirebaseEnabled || !db) {
-    return () => {};
+  let isSubscribed = true;
+
+  // 1. Cross-tab real-time sync via BroadcastChannel
+  let channel: BroadcastChannel | null = null;
+  try {
+    channel = new BroadcastChannel('ecom_orders_channel');
+    channel.onmessage = (event) => {
+      if (event.data?.type === 'NEW_ORDER' || event.data?.type === 'ORDER_UPDATED') {
+        dbService._ordersCache = null;
+        dbService.getBookOrders(true).then(orders => {
+          if (isSubscribed) onData(orders);
+        }).catch(() => {});
+      }
+    };
+  } catch {}
+
+  // 2. Cross-tab fallback via storage event & local window event
+  const handleOrderNotification = () => {
+    dbService._ordersCache = null;
+    dbService.getBookOrders(true).then(orders => {
+      if (isSubscribed) onData(orders);
+    }).catch(() => {});
+  };
+
+  window.addEventListener('book-orders-updated', handleOrderNotification);
+  const handleStorage = (e: StorageEvent) => {
+    if (e.key === 'noor_book_orders' || e.key === 'ecom_new_order_event') {
+      handleOrderNotification();
+    }
+  };
+  window.addEventListener('storage', handleStorage);
+
+  // 3. Server-Sent Events (SSE) from /api/orders/live for cross-device instantaneous push
+  let eventSource: EventSource | null = null;
+  try {
+    eventSource = new EventSource('/api/orders/live');
+    eventSource.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        if (payload?.type === 'NEW_ORDER') {
+          dbService._ordersCache = null;
+          dbService.getBookOrders(true).then(orders => {
+            if (isSubscribed) onData(orders);
+          }).catch(() => {});
+        }
+      } catch {}
+    };
+  } catch {}
+
+  // 4. Bulletproof high-frequency polling fallback (every 3 seconds)
+  const pollInterval = setInterval(() => {
+    if (!isSubscribed) return;
+    dbService.getBookOrders(true).then(orders => {
+      if (isSubscribed) onData(orders);
+    }).catch(() => {});
+  }, 3000);
+
+  // 5. Firebase fallback if enabled
+  let firebaseUnsub: (() => void) | null = null;
+  if (isFirebaseEnabled && db) {
+    try {
+      const q = query(collection(db, 'book_orders'), orderBy('createdAt', 'desc'));
+      firebaseUnsub = onSnapshot(q, (snapshot) => {
+        const orders: BookOrder[] = [];
+        snapshot.forEach((docSnap) => {
+          orders.push({ ...(docSnap.data() as BookOrder), id: docSnap.id });
+        });
+        if (isSubscribed) onData(orders);
+      }, () => {});
+    } catch {}
   }
-  const q = query(collection(db, 'book_orders'), orderBy('createdAt', 'desc'));
-  const unsub = onSnapshot(q, (snapshot) => {
-    const orders: BookOrder[] = [];
-    snapshot.forEach((docSnap) => {
-      orders.push({ ...(docSnap.data() as BookOrder), id: docSnap.id });
-    });
-    onData(orders);
-  }, (err) => {
-    console.warn('subscribeToOrders error:', err);
-  });
-  return unsub;
+
+  return () => {
+    isSubscribed = false;
+    clearInterval(pollInterval);
+    if (channel) channel.close();
+    if (eventSource) eventSource.close();
+    if (firebaseUnsub) firebaseUnsub();
+    window.removeEventListener('book-orders-updated', handleOrderNotification);
+    window.removeEventListener('storage', handleStorage);
+  };
 }

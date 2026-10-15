@@ -162,13 +162,13 @@ export default function FlashSaleManager({ products, onSettingsUpdated }: FlashS
           </div>
           <div>
             <h1 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-              Flash Cell PRoDuct Management
+              Flash Sale Product Management
               <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 uppercase tracking-wider">
                 1 Target Product
               </span>
             </h1>
             <p className="text-xs text-slate-500 mt-0.5">
-              Single target p on home pageRoInteresting live countdown for Duct and discount Section Confeegar
+              Select a product and countdown end time for the storefront flash sale section.
             </p>
           </div>
         </div>
@@ -216,13 +216,13 @@ export default function FlashSaleManager({ products, onSettingsUpdated }: FlashS
           <div className="flex items-center justify-between border-b border-slate-100 pb-4">
             <div className="flex items-center gap-2">
               <Package className="w-5 h-5 text-orange-500" />
-              <h2 className="text-sm font-bold text-slate-900">Only 1 Product</h2>
+              <h2 className="text-sm font-bold text-slate-900">Select Product</h2>
             </div>
             <button
               type="button"
               onClick={handleAutoFillFromProduct}
               className="text-xs font-bold text-orange-600 hover:text-orange-700 inline-flex items-center gap-1 cursor-pointer"
-              title="Fill in the title, price and description from the product"
+              title="Fill in the title and price from the product"
             >
               <Sparkles className="w-3.5 h-3.5" />
               Auto-fill Details
@@ -231,7 +231,7 @@ export default function FlashSaleManager({ products, onSettingsUpdated }: FlashS
 
           <div className="space-y-3">
             <label className="block text-xs font-bold text-slate-700">
-              PRoSelect the duct:
+              Target Product:
             </label>
             <select
               value={flashSale.productId || ''}
@@ -253,7 +253,7 @@ export default function FlashSaleManager({ products, onSettingsUpdated }: FlashS
               ) : (
                 products.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.title} (price: Tk.{p.price.toLocaleString()})
+                    {p.title} (Price: ৳{p.price.toLocaleString()})
                   </option>
                 ))
               )}
@@ -265,16 +265,16 @@ export default function FlashSaleManager({ products, onSettingsUpdated }: FlashS
         <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-2xs space-y-5">
           <div className="flex items-center gap-2 border-b border-slate-100 pb-4">
             <Clock className="w-5 h-5 text-orange-500" />
-            <h2 className="text-sm font-bold text-slate-900">Pricing and countdown timer</h2>
+            <h2 className="text-sm font-bold text-slate-900">Pricing & Countdown Timer</h2>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-slate-700">
-                Flash sale offer price (Tk.) *
+                Flash sale price (৳) *
               </label>
               <div className="relative">
-                <span className="absolute left-3.5 top-3 text-slate-400 text-xs font-bold">Tk.</span>
+                <span className="absolute left-3.5 top-3 text-slate-400 text-xs font-bold">৳</span>
                 <input
                   type="number"
                   min="0"
@@ -288,10 +288,10 @@ export default function FlashSaleManager({ products, onSettingsUpdated }: FlashS
 
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-slate-700">
-                original / Regular price (Tk.)
+                Original / Regular price (৳)
               </label>
               <div className="relative">
-                <span className="absolute left-3.5 top-3 text-slate-400 text-xs font-bold">Tk.</span>
+                <span className="absolute left-3.5 top-3 text-slate-400 text-xs font-bold">৳</span>
                 <input
                   type="number"
                   min="0"
@@ -316,7 +316,7 @@ export default function FlashSaleManager({ products, onSettingsUpdated }: FlashS
           <div className="space-y-1.5 pt-2 border-t border-slate-100">
             <label className="block text-xs font-bold text-slate-700 flex items-center gap-1.5">
               <Calendar className="w-4 h-4 text-orange-500" />
-              Flash sale ends Date and time (Countdown Expiry):
+              Flash sale end date & time:
             </label>
             <input
               type="datetime-local"
@@ -325,100 +325,8 @@ export default function FlashSaleManager({ products, onSettingsUpdated }: FlashS
               className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 font-mono focus:border-orange-500 focus:outline-none cursor-pointer"
             />
             <p className="text-[11px] text-slate-400">
-              A live countdown timer will continue on the store's home page until this specified time।
+              A live countdown timer will run on the storefront until this time.
             </p>
-          </div>
-        </div>
-
-        {/* Card 3: Custom Text */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-2xs space-y-4">
-          <div className="flex items-center gap-2 border-b border-slate-100 pb-4">
-            <Sparkles className="w-5 h-5 text-orange-500" />
-            <h2 className="text-sm font-bold text-slate-900">Title and presentation text</h2>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-slate-700">Header Badge Tag:</label>
-            <input
-              type="text"
-              value={flashSale.badgeTag || ''}
-              onChange={(e) => setFlashSale(prev => ({ ...prev, badgeTag: e.target.value }))}
-              placeholder="e.g. BRIGHTENING AND WHITENING SERIES"
-              className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:border-orange-500 focus:outline-none"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-slate-700">Section Title:</label>
-            <input
-              type="text"
-              value={flashSale.title || ''}
-              onChange={(e) => setFlashSale(prev => ({ ...prev, title: e.target.value }))}
-              placeholder="e.g. FANTINE Whitening and Brightening Series"
-              className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:border-orange-500 focus:outline-none"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-slate-700">Description:</label>
-            <textarea
-              rows={3}
-              value={flashSale.subtitle || ''}
-              onChange={(e) => setFlashSale(prev => ({ ...prev, subtitle: e.target.value }))}
-              placeholder="e.g. Instantly brightens and revitalizes the skin with just one application..."
-              className="w-full p-3.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:border-orange-500 focus:outline-none resize-none"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-slate-700">Button Label:</label>
-            <input
-              type="text"
-              value={flashSale.buttonText || 'SHOP NOW'}
-              onChange={(e) => setFlashSale(prev => ({ ...prev, buttonText: e.target.value }))}
-              placeholder="SHOP NOW"
-              className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:border-orange-500 focus:outline-none uppercase"
-            />
-          </div>
-
-          {/* Clinical Video Showcase Settings */}
-          <div className="pt-4 border-t border-slate-200/80 space-y-3">
-            <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-              <span>🎥 Clinical video demonstration settings</span>
-            </h4>
-
-            <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-slate-700">Video Title:</label>
-              <input
-                type="text"
-                value={flashSale.videoTitle || ''}
-                onChange={(e) => setFlashSale(prev => ({ ...prev, videoTitle: e.target.value }))}
-                placeholder="Clinical Hanbang Formulation & Daily Application Ritual"
-                className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:border-orange-500 focus:outline-none"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-slate-700">Video Subtitle:</label>
-              <input
-                type="text"
-                value={flashSale.videoSubtitle || ''}
-                onChange={(e) => setFlashSale(prev => ({ ...prev, videoSubtitle: e.target.value }))}
-                placeholder="Watch how our Korean active formula penetrates deeply..."
-                className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:border-orange-500 focus:outline-none"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-slate-700">Video link or URLDirect MP4 URL:</label>
-              <input
-                type="text"
-                value={flashSale.videoUrl || ''}
-                onChange={(e) => setFlashSale(prev => ({ ...prev, videoUrl: e.target.value }))}
-                placeholder="https://assets.mixkit.co/videos/.../video.mp4"
-                className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:border-orange-500 focus:outline-none font-mono text-xs"
-              />
-            </div>
           </div>
         </div>
 

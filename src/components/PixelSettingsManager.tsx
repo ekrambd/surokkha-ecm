@@ -68,7 +68,7 @@ export default function PixelSettingsManager() {
             </h2>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Google AnalyticsTXx and ad tracking confeeGarration
+            Google Analytics and ad tracking configuration
           </p>
         </div>
 

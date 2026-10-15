@@ -39,9 +39,9 @@ export default function CustomerManager({ customers }: CustomerManagerProps) {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
           <div>
-            <p className="text-xs text-slate-500 font-medium">Total customers</p>
+            <p className="text-xs text-slate-500 font-medium">Total Customers</p>
             <h3 className="text-2xl font-extrabold text-slate-900 mt-1">
-              {customers.length.toLocaleString('bn-BD')} John
+              {customers.length.toLocaleString()}
             </h3>
           </div>
           <div className="p-3 bg-teal-50 rounded-2xl text-teal-600">
@@ -51,9 +51,9 @@ export default function CustomerManager({ customers }: CustomerManagerProps) {
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
           <div>
-            <p className="text-xs text-slate-500 font-medium">Total sales revenue</p>
+            <p className="text-xs text-slate-500 font-medium">Total Sales Revenue</p>
             <h3 className="text-2xl font-extrabold text-teal-700 mt-1">
-              Tk.{totalSpentAll.toLocaleString('bn-BD')}
+              ৳{totalSpentAll.toLocaleString()}
             </h3>
           </div>
           <div className="p-3 bg-emerald-50 rounded-2xl text-emerald-600">
@@ -63,9 +63,9 @@ export default function CustomerManager({ customers }: CustomerManagerProps) {
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
           <div>
-            <p className="text-xs text-slate-500 font-medium">Average</p>
+            <p className="text-xs text-slate-500 font-medium">Average Order Value</p>
             <h3 className="text-2xl font-extrabold text-blue-700 mt-1">
-              Tk.{(customers.length ? Math.round(totalSpentAll / customers.length) : 0).toLocaleString('bn-BD')}
+              ৳{(customers.length ? Math.round(totalSpentAll / customers.length) : 0).toLocaleString()}
             </h3>
           </div>
           <div className="p-3 bg-blue-50 rounded-2xl text-blue-600">
