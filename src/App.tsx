@@ -41,8 +41,8 @@ function AppRoutes() {
   
   useEffect(() => {
     // Globally initialize the Meta Pixel as soon as settings load
-    const pixelId = ecomSettings?.pixelId || import.meta.env.VITE_META_PIXEL_ID || '1111677938108529';
-    const gtmId = ecomSettings?.gtmId || import.meta.env.VITE_GTM_ID;
+    const pixelId = (ecomSettings?.pixelId || import.meta.env.VITE_META_PIXEL_ID || '').trim();
+    const gtmId = (ecomSettings?.gtmId || import.meta.env.VITE_GTM_ID || '').trim();
     if (pixelId || gtmId) {
       initPixelAndGtm(pixelId, gtmId);
     }
