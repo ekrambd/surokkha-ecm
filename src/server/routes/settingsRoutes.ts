@@ -12,8 +12,11 @@ export const settingsRouter = Router();
 export const courierRouter = Router();
 export const facebookRouter = Router();
 
-// Settings Routes - Cached with ETag (supports both / and /ecom for compatibility)
+// Settings Routes - Instant Fresh Data with no-cache
 const handleGetSettings = (_req: any, res: any) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   const { 
     pixelId: _pixelId, 
     metaApiToken: _metaApiToken, 
@@ -51,8 +54,8 @@ const handlePostSettings = (req: any, res: any) => {
   res.json({ success: true, settings: cleanUpdated });
 };
 
-settingsRouter.get('/', cacheResponse({ ttlSeconds: 300, staleWhileRevalidateSeconds: 600, tag: 'settings' }), handleGetSettings);
-settingsRouter.get('/ecom', cacheResponse({ ttlSeconds: 300, staleWhileRevalidateSeconds: 600, tag: 'settings' }), handleGetSettings);
+settingsRouter.get('/', handleGetSettings);
+settingsRouter.get('/ecom', handleGetSettings);
 settingsRouter.post('/', requireAdmin, handlePostSettings);
 settingsRouter.post('/ecom', requireAdmin, handlePostSettings);
 

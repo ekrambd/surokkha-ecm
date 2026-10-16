@@ -81,6 +81,12 @@ export class ApiClient {
     });
   }
 
+  static deleteOrder(id: string): Promise<{ success: boolean; id: string }> {
+    return this.request<{ success: boolean; id: string }>(`/orders/${id}`, {
+      method: 'DELETE'
+    });
+  }
+
   // E-commerce Settings Endpoints
   static getSettings(): Promise<EcomSettings> {
     return this.request<EcomSettings>('/settings/ecom');

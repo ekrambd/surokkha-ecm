@@ -3,6 +3,7 @@ import { checkoutRateLimiter } from '../middleware/rateLimiter';
 import { storeOrders, storeProducts, saveOrdersToDisk } from '../data/store';
 import { BookOrder } from '../../types';
 import { cacheResponse } from '../middleware/cacheMiddleware';
+import { requireAdmin } from '../middleware/adminAuth';
 import { globalCache } from '../services/cacheEngine';
 import { shardService } from '../services/shardService';
 import { redundancyService } from '../services/redundancyService';
@@ -297,7 +298,7 @@ orderRouter.post('/', checkoutRateLimiter, (req, res) => {
 });
 
 // PUT Update Order
-orderRouter.put('/:id', (req, res) => {
+orderRouter.put('/:id', requireAdmin, (req, res) => {
   const { id } = req.params;
   const index = storeOrders.findIndex(o => o.id === id);
   if (index !== -1) {
@@ -308,6 +309,23 @@ orderRouter.put('/:id', (req, res) => {
     globalCache.invalidateTag('orders');
 
     res.json(storeOrders[index]);
+  } else {
+    res.status(404).json({ error: "Order not found" });
+  }
+});
+
+// DELETE Order
+orderRouter.delete('/:id', requireAdmin, (req, res) => {
+  const { id } = req.params;
+  const index = storeOrders.findIndex(o => o.id === id);
+  if (index !== -1) {
+    storeOrders.splice(index, 1);
+    saveOrdersToDisk(storeOrders);
+
+    // Invalidate order caches
+    globalCache.invalidateTag('orders');
+
+    res.json({ success: true, id });
   } else {
     res.status(404).json({ error: "Order not found" });
   }

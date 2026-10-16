@@ -122,10 +122,38 @@ export function saveSettingsToDisk(settings: EcomSettings): void {
   }
 }
 
+export function deepMerge<T extends Record<string, any>>(target: T, source: Partial<T>): T {
+  const output = { ...target };
+  if (!source || typeof source !== 'object') return output;
+
+  for (const key of Object.keys(source)) {
+    const sourceVal = source[key];
+    const targetVal = target[key];
+
+    if (sourceVal === undefined) continue;
+
+    if (Array.isArray(sourceVal)) {
+      output[key as keyof T] = sourceVal as any;
+    } else if (
+      sourceVal !== null &&
+      typeof sourceVal === 'object' &&
+      targetVal !== null &&
+      typeof targetVal === 'object' &&
+      !Array.isArray(targetVal)
+    ) {
+      output[key as keyof T] = deepMerge(targetVal, sourceVal);
+    } else {
+      output[key as keyof T] = sourceVal;
+    }
+  }
+
+  return output;
+}
+
 export let storeSettings: EcomSettings = loadSettingsFromDisk();
 
 export const updateStoreSettings = (newSettings: Partial<EcomSettings>) => {
-  storeSettings = { ...storeSettings, ...newSettings };
+  storeSettings = deepMerge(storeSettings, newSettings);
   saveSettingsToDisk(storeSettings);
   return storeSettings;
 };
