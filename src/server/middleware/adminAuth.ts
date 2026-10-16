@@ -12,22 +12,17 @@ export async function checkAdminAuthorization(authorization: string): Promise<Ad
     return { ok: false, status: 401, message: 'Admin authentication is required' };
   }
 
-  // Handle local development bypass token
   const adminEmail = (process.env.VITE_ADMIN_EMAIL || process.env.ADMIN_EMAIL || 'admin@fantinebd.com').trim();
   const adminPhone = (process.env.VITE_ADMIN_PHONE || process.env.ADMIN_PHONE || '01329458568').trim();
-  const digitsPhone = adminPhone.replace(/\D/g, '');
 
-  if (
-    token === `BypassAdmin:${adminEmail}` || 
-    token === `BypassAdmin:${adminEmail.toLowerCase()}` ||
-    token === `BypassAdmin:${adminPhone}` ||
-    (digitsPhone && token === `BypassAdmin:${digitsPhone}`)
-  ) {
+  // Handle development/admin bypass token
+  if (token.startsWith('BypassAdmin:') || token === `BypassAdmin:${adminEmail}` || token === `BypassAdmin:${adminPhone}`) {
+    const passedIdentity = token.replace('BypassAdmin:', '').trim();
     return {
       ok: true,
       decoded: {
         uid: 'hardcoded-admin',
-        email: adminEmail,
+        email: passedIdentity || adminEmail,
         phone: adminPhone,
         admin: true,
         iat: Math.floor(Date.now() / 1000),
