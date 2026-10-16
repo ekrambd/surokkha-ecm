@@ -94,6 +94,18 @@ export class ApiClient {
     });
   }
 
+  // Institute / Brand Info Endpoints
+  static getInstituteInfo(): Promise<any> {
+    return this.request<any>('/institute');
+  }
+
+  static saveInstituteInfo(info: any): Promise<any> {
+    return this.request<any>('/institute', {
+      method: 'POST',
+      body: JSON.stringify(info)
+    });
+  }
+
   // Steadfast Courier Dispatch
   static dispatchSteadfast(order: BookOrder): Promise<{ success: boolean; trackingCode?: string; message?: string }> {
     return this.request<{ success: boolean; trackingCode?: string; message?: string }>('/courier/steadfast/dispatch', {

@@ -537,6 +537,18 @@ export const dbService = {
   },
 
   async getInstituteInfo(): Promise<InstituteInfo> {
+    // 1. Fetch from server API
+    try {
+      const serverInfo = await ApiClient.getInstituteInfo();
+      if (serverInfo && (serverInfo.name || serverInfo.phone || serverInfo.email || serverInfo.address)) {
+        const info = migrateBusinessPhone(serverInfo as InstituteInfo);
+        setLocalData('noor_institute_info', info);
+        return info;
+      }
+    } catch {
+      // offline / fallback
+    }
+
     if (isFirebaseEnabled && db) {
       try {
         const docRef = doc(db, 'settings', 'institute_info');
@@ -597,6 +609,13 @@ export const dbService = {
     if (sanitizedInfo.industry) localStorage.setItem('noor_industry', sanitizedInfo.industry);
     if (sanitizedInfo.bearingRollLocation) {
       localStorage.setItem('noor_bearing_roll_location', sanitizedInfo.bearingRollLocation);
+    }
+
+    // Save to VPS SQLite database
+    try {
+      await ApiClient.saveInstituteInfo(sanitizedInfo);
+    } catch (e) {
+      console.warn('Could not save institute info to server API:', e);
     }
 
     if (isFirebaseEnabled && db) {
@@ -917,10 +936,43 @@ export const dbService = {
     };
   },
 
-  // --- E-Commerce Settings (Pixel, GTM, Steadfast) ---
+  // --- E-Commerce Settings (Pixel, GTM, Steadfast, Store Profile, Logo, Banners) ---
   async getEcomSettings(): Promise<EcomSettings> {
     let result = DEFAULT_ECOM_SETTINGS;
     const localSaved = getLocalData<EcomSettings | null>('noor_ecom_settings', null);
+
+    // 1. Fetch from server API
+    try {
+      const serverSettings = await ApiClient.getSettings();
+      if (serverSettings && typeof serverSettings === 'object') {
+        const hasServerData = Boolean(
+          serverSettings.storeName ||
+          serverSettings.storeLogo ||
+          (serverSettings.heroBanners && serverSettings.heroBanners.length > 0) ||
+          (serverSettings.categories && serverSettings.categories.length > 0)
+        );
+
+        if (hasServerData) {
+          result = { ...DEFAULT_ECOM_SETTINGS, ...serverSettings };
+          if (localSaved?.categoryItems && (!result.categoryItems || result.categoryItems.length === 0)) {
+            result.categoryItems = localSaved.categoryItems;
+          }
+          setLocalData('noor_ecom_settings', stripIntegrationSecrets(result));
+        } else if (localSaved && (localSaved.storeName || localSaved.storeLogo || (localSaved.heroBanners && localSaved.heroBanners.length > 0))) {
+          // Local has existing customization, but server is fresh/empty -> auto-sync local to server!
+          result = { ...DEFAULT_ECOM_SETTINGS, ...localSaved };
+          ApiClient.saveSettings(stripIntegrationSecrets(result)).catch(() => {});
+        } else {
+          result = { ...DEFAULT_ECOM_SETTINGS, ...serverSettings };
+        }
+      } else if (localSaved) {
+        result = { ...DEFAULT_ECOM_SETTINGS, ...localSaved };
+      }
+    } catch {
+      if (localSaved) {
+        result = { ...DEFAULT_ECOM_SETTINGS, ...localSaved };
+      }
+    }
 
     if (isFirebaseEnabled && db) {
       try {
@@ -928,24 +980,11 @@ export const dbService = {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = docSnap.data() as EcomSettings;
-          result = { ...DEFAULT_ECOM_SETTINGS, ...data };
-          // If Firestore is missing categoryItems with subcategories, but local storage has them, retain local categoryItems
-          if ((!result.categoryItems || result.categoryItems.length === 0) && localSaved?.categoryItems && localSaved.categoryItems.length > 0) {
-            result.categoryItems = localSaved.categoryItems;
-          }
+          result = { ...result, ...data };
           setLocalData('noor_ecom_settings', stripIntegrationSecrets(result));
-        } else if (localSaved) {
-          result = { ...DEFAULT_ECOM_SETTINGS, ...localSaved };
         }
       } catch (e) {
         console.warn('Error reading ecom settings from Firestore:', e);
-        if (localSaved) {
-          result = { ...DEFAULT_ECOM_SETTINGS, ...localSaved };
-        }
-      }
-    } else {
-      if (localSaved) {
-        result = { ...DEFAULT_ECOM_SETTINGS, ...localSaved };
       }
     }
 
@@ -979,6 +1018,13 @@ export const dbService = {
   async saveEcomSettings(settings: EcomSettings): Promise<void> {
     const safeSettings = stripIntegrationSecrets(settings);
     setLocalData('noor_ecom_settings', safeSettings);
+
+    // Save to VPS server disk storage (prisma/settings.json)
+    try {
+      await ApiClient.saveSettings(safeSettings);
+    } catch (e) {
+      console.warn('Could not save ecom settings to server API:', e);
+    }
 
     if (isFirebaseEnabled && db) {
       try {
