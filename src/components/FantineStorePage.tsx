@@ -870,17 +870,15 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
       );
       updateProductSchema(null, window.location.href, displayStoreName);
     } else if (activeNav === 'home') {
-      const homeTitle = ecomSettings?.storeTagline?.trim()
-        ? `${displayStoreName} - ${ecomSettings.storeTagline.trim()}`
-        : `${displayStoreName} - COMFORT TO WELLNESS`;
-      const homeDesc = ecomSettings?.storeTagline?.trim() || aboutSettings?.description || 'SHOSTIR BAZAR - COMFORT TO WELLNESS. Discover premium quality products for your health, comfort, and daily wellness.';
+      const homeTitle = `${displayStoreName} - COMFORT TO WELLNESS | স্বস্তির বাজার Official Store`;
+      const homeDesc = `${displayStoreName} (স্বস্তির বাজার) - COMFORT TO WELLNESS. Discover premium organic dates, fresh dry fruits, raw nuts, seeds, and healthy lifestyle products delivered across Bangladesh.`;
       updateMetaTags(
         homeTitle,
         homeDesc,
         displayStoreLogo,
-        window.location.href
+        window.location.origin
       );
-      updateProductSchema(null, window.location.href, displayStoreName);
+      updateProductSchema(null, window.location.origin, displayStoreName);
     }
   }, [activeNav, activeProductDetail, displayStoreName, displayStoreLogo, ecomSettings?.storeTagline, aboutSettings?.description, aboutSettings?.subtitle]);
 
@@ -2481,6 +2479,10 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
             return (
               <section className="bg-white pt-4 sm:pt-6 pb-2">
                 <div className="max-w-7xl mx-auto px-4 sm:px-8">
+                  {/* Primary SEO Brand Heading for Search Engines */}
+                  <h1 className="sr-only">
+                    {displayStoreName} - COMFORT TO WELLNESS | স্বস্তির বাজার Official Online Store
+                  </h1>
                   
                   {/* DUAL PROMO BANNER GRID (Equal 50% / 50% Adaptive Width, Full Proper Height) */}
                   {hasBanners ? (

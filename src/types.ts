@@ -365,6 +365,8 @@ export interface EcomSettings {
   primaryColor?: string;
   pixelId?: string;
   gtmId?: string;
+  googleSiteVerification?: string;
+  metaKeywords?: string;
   metaApiToken?: string;
   steadfastApiKey?: string;
   steadfastSecretKey?: string;

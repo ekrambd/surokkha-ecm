@@ -141,6 +141,53 @@ export default function PixelSettingsManager() {
             </div>
           </div>
         </div>
+
+        {/* Google Search Console & SEO Verification */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+          <div className="flex items-center space-x-3 pb-3 border-b border-slate-100">
+            <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
+              <ShieldCheck className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-900 text-sm">Google Search Console & SEO Verification</h3>
+              <p className="text-[11px] text-slate-500">Google site verification tag for instant indexing & top search rankings</p>
+            </div>
+          </div>
+
+          <div className="space-y-4 text-xs">
+            <div>
+              <label className="block font-semibold text-slate-700 mb-1">
+                Google Site Verification Tag / Code
+              </label>
+              <input
+                type="text"
+                placeholder='e.g. google-site-verification code or <meta name="google-site-verification" content="..." />'
+                value={settings.googleSiteVerification || ''}
+                onChange={(e) => setSettings({ ...settings, googleSiteVerification: e.target.value })}
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:bg-white focus:outline-none font-mono text-slate-900"
+              />
+              <p className="text-[10px] text-slate-400 mt-1">
+                From Google Search Console (https://search.google.com/search-console). Automatically injected into your site's &lt;head&gt; for 1-click verification.
+              </p>
+            </div>
+
+            <div>
+              <label className="block font-semibold text-slate-700 mb-1">
+                Extra Custom SEO Keywords
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. shostir bazar, স্বস্তির বাজার, ajwa dates, raw almonds, organic honey"
+                value={settings.metaKeywords || ''}
+                onChange={(e) => setSettings({ ...settings, metaKeywords: e.target.value })}
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:bg-white focus:outline-none text-slate-900"
+              />
+              <p className="text-[10px] text-slate-400 mt-1">
+                Comma-separated brand & product keywords to help Google understand your primary search terms.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </form>
   );
