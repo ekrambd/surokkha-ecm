@@ -8,6 +8,7 @@ import { dbService } from '../lib/dbService';
 import { CircularProgress } from './LoadingSkeleton';
 import { compressImage } from '../lib/imageUtils';
 import { uploadDataUrlToStorage } from '../lib/storageService';
+import { FeedbackDialog } from './ui/FeedbackDialog';
 
 interface ProfileSettingsProps {
   adminEmail: string;
@@ -68,6 +69,17 @@ export default function ProfileSettings({ adminEmail }: ProfileSettingsProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [feedback, setFeedback] = useState<{
+    isOpen: boolean;
+    type: 'success' | 'error' | 'info';
+    title: string;
+    message: string;
+  }>({
+    isOpen: false,
+    type: 'success',
+    title: '',
+    message: ''
+  });
 
   // Active Tab state: 'store_info' | 'social_media' | 'banners' | 'security'
   const [activeTab, setActiveTab] = useState<'store_info' | 'social_media' | 'banners' | 'security'>('store_info');
@@ -303,12 +315,25 @@ export default function ProfileSettings({ adminEmail }: ProfileSettingsProps) {
       }
 
       setIsSaving(false);
-      setSuccessMsg('Store settings, NaturoBD banners, hotline & branding updated successfully!');
+      setSuccessMsg('Store profile and information have been saved successfully.');
+      setFeedback({
+        isOpen: true,
+        type: 'success',
+        title: 'Settings Saved',
+        message: 'Store profile, branding, and contact settings have been successfully saved.'
+      });
       setTimeout(() => setSuccessMsg(''), 4000);
     } catch (err: any) {
       console.error('Error saving profile settings:', err);
-      setErrorMsg(err.message || 'Failed to save settings.');
+      const errMsg = err.message || 'Failed to save settings.';
+      setErrorMsg(errMsg);
       setIsSaving(false);
+      setFeedback({
+        isOpen: true,
+        type: 'error',
+        title: 'Save Failed',
+        message: errMsg
+      });
     }
   };
 
@@ -318,12 +343,26 @@ export default function ProfileSettings({ adminEmail }: ProfileSettingsProps) {
     setErrorMsg('');
 
     if (!newPassword || newPassword.length < 6) {
-      setErrorMsg('New password must be at least 6 characters.');
+      const msg = 'New password must be at least 6 characters.';
+      setErrorMsg(msg);
+      setFeedback({
+        isOpen: true,
+        type: 'error',
+        title: 'Password Error',
+        message: msg
+      });
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setErrorMsg('New password and confirmation password do not match.');
+      const msg = 'New password and confirmation password do not match.';
+      setErrorMsg(msg);
+      setFeedback({
+        isOpen: true,
+        type: 'error',
+        title: 'Password Error',
+        message: msg
+      });
       return;
     }
 
@@ -351,11 +390,24 @@ export default function ProfileSettings({ adminEmail }: ProfileSettingsProps) {
       }
 
       setSuccessMsg('Password changed successfully!');
+      setFeedback({
+        isOpen: true,
+        type: 'success',
+        title: 'Password Updated',
+        message: 'Your admin password has been changed successfully.'
+      });
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (err: any) {
-      setErrorMsg('Password change failed: ' + (err.message || 'Please try again.'));
+      const msg = 'Password change failed: ' + (err.message || 'Please try again.');
+      setErrorMsg(msg);
+      setFeedback({
+        isOpen: true,
+        type: 'error',
+        title: 'Password Error',
+        message: msg
+      });
     } finally {
       setIsChangingPass(false);
     }
@@ -374,20 +426,6 @@ export default function ProfileSettings({ adminEmail }: ProfileSettingsProps) {
         <h2 className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight">Admin Profile & Store Settings</h2>
         <p className="text-slate-500 text-xs mt-0.5">Manage your store branding, footer info, contact details and admin info</p>
       </div>
-
-      {successMsg && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-2xl flex items-center gap-2 animate-fadeIn">
-          <CheckCircle className="h-5 w-5 text-emerald-600 shrink-0" />
-          <span>{successMsg}</span>
-        </div>
-      )}
-
-      {errorMsg && (
-        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold rounded-2xl flex items-center gap-2 animate-fadeIn">
-          <X className="h-5 w-5 text-rose-600 shrink-0" />
-          <span>{errorMsg}</span>
-        </div>
-      )}
 
       <div className="w-full space-y-5">
         {/* Modern Tab Navigation Pills */}
@@ -1036,6 +1074,14 @@ export default function ProfileSettings({ adminEmail }: ProfileSettingsProps) {
           </div>
         </form>
       </div>
+
+      <FeedbackDialog
+        isOpen={feedback.isOpen}
+        type={feedback.type}
+        title={feedback.title}
+        message={feedback.message}
+        onClose={() => setFeedback(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 }
