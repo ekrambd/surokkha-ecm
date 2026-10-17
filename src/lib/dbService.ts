@@ -275,7 +275,6 @@ export const DEFAULT_LANDING_PAGE_SETTINGS: LandingPageData = {
 
 export const createDefaultLandingForProduct = (product: Product): LandingPageData => {
   const slug = product.slug || product.id;
-  const isWatch = (product.title || '').toLowerCase().includes('watch') || (product.title || '').includes('watch') || (product.category || '').toLowerCase().includes('watch');
   
   return {
     id: `landing-${product.id}`,
@@ -285,68 +284,54 @@ export const createDefaultLandingForProduct = (product: Product): LandingPageDat
     productIds: [product.id],
     templateTheme: 'luxury_dark',
     relatedProductIds: [],
-    bookTitle: product.title || 'একT watch অর্ডার করলেই Toyota Premio সহ ২T বাইক জেতার সুযোগ',
+    bookTitle: product.title || 'প্রিমিয়াম ফুড প্রোডাক্ট',
     bookSubtitle: product.subtitle || product.shortSummary || product.title,
-    authorName: product.authorName || product.title,
-    authorDesignation: '10০% অরিজিনাল ও প্রিমিয়াম কোয়ালিT',
-    authorPhoto: product.image || '',
-    mainBookImage: product.image || '',
-    heroBookImage: product.image || '',
-    logoUrl: product.image || '',
-    regularPrice: product.regularPrice || Math.round(product.price * 1.5) || 2500,
-    offerPrice: product.price || 950,
-    deliveryCharge: 80,
-    deliveryChargeOutside: 130,
+    authorName: product.authorName || 'SHOSTIR BAZAR',
+    authorDesignation: '১০০% অরিজিনাল ও প্রিমিয়াম কোয়ালিটি',
+    authorPhoto: product.coverImage || product.image || '',
+    mainBookImage: product.coverImage || product.image || '',
+    heroBookImage: product.coverImage || product.image || '',
+    logoUrl: product.coverImage || product.image || '',
+    regularPrice: product.regularPrice || (product.price ? Math.round(product.price * 1.25) : 0),
+    offerPrice: product.price || 0,
+    deliveryCharge: 60,
+    deliveryChargeOutside: 110,
     deliveryAreaInsideText: 'ঢাকার ভিতরে ডেলিভারি',
     deliveryAreaOutsideText: 'ঢাকার বাইরে ডেলিভারি',
-    bannerDeliveryText: 'Lucky coupon to win Yamaha R15 on order.',
-    heroHeadline: product.title || 'একT watch অর্ডার করলেই Yamaha R15 জেতার সুযোগ',
-    heroDescription: product.description || product.shortSummary || 'প্রিমিয়াম কোয়ালিTর ঘড়ি অর্ডার করলেই আপনি পেয়ে যাচ্ছেন আকর্ষণীয় লাকি ড্র-তে অংশগ্রহণের সুযোগ। সাথে প্রতিT পার্সেল থাকছে একT Coupon code।',
+    bannerDeliveryText: 'সরাসরি ক্যাশ অন ডেলিভারিতে সারা বাংলাদেশে হোম ডেলিভারি।',
+    heroHeadline: product.title || 'প্রিমিয়াম কোয়ালিটি ফুড প্রোডাক্ট',
+    heroDescription: product.description || product.shortSummary || '১০০% খাঁটি ও স্বাস্থ্যকর খাদ্যপণ্য। কোনো ক্ষতিকর কেমিক্যাল বা কৃত্রিম উপাদান ছাড়া প্রস্তুত।',
     videoUrl: product.pdfUrl || '',
-    campaignBadgeText: 'Yamaha R15 জিতুন',
-    campaignBannerTitle: 'অর্ডার করলেই আপনি পেয়ে যাবেন একT কুপন কার্ড যার মাধ্যমে আপনিও ক্যাম্পেইনে যুক্ত হয়ে যেতে পারবেন!',
-    campaignCouponNote: 'কুপনT অবশ্যই যত্ন সহকারে সংগ্রহ করে রাখবেন',
-    campaignTickerText: 'Lucky coupon to win Yamaha R15 on order.',
-    prizes: [
-      { rank: '১ম পুরস্কার', title: 'Toyota Premio' },
-      { rank: '২য় পুরস্কার', title: 'Yamaha R15 V4' },
-      { rank: '৩য় পুরস্কার', title: 'Suzuki GSXR' }
-    ],
-    variantSectionTitle: 'একই feeচার, তিনT ভিন্ন লুক',
-    variantSectionSubtitle: 'বেছে নিন যেটা আপনার স্টাইলের সাথে মানায়',
+    campaignBadgeText: '১০০% প্রিমিয়াম ও খাঁটি পণ্য',
+    campaignBannerTitle: 'অর্ডার করতে নিচের বাটনে ক্লিক করুন',
+    campaignCouponNote: 'পণ্য হাতে পেয়ে চেক করে সম্পূর্ণ মূল্য পরিশোধ করুন',
+    campaignTickerText: 'সরাসরি ক্যাশ অন ডেলিভারিতে অর্ডার করুন!',
+    prizes: [],
+    variantSectionTitle: 'পণ্যের ভ্যারিয়েন্ট',
+    variantSectionSubtitle: 'আপনার পছন্দের প্যাকেজ বা সাইজ বেছে নিন',
     customVariants: product.variants && product.variants.length > 0
       ? product.variants.map((v, i) => ({
           id: v.id || `var-${i}`,
           name: v.name,
-          image: product.samplePages?.[i] || product.image || '',
+          image: v.image || product.samplePages?.[i] || product.coverImage || product.image || '',
           price: v.price || product.price,
           regularPrice: v.regularPrice || product.regularPrice,
           tag: i === 0 ? 'Best seller' : 'popular'
         }))
-      : [
-          {
-            id: 'var-1',
-            name: `${product.title} — সিলভার`,
-            image: product.image || '',
-            price: product.price,
-            regularPrice: product.regularPrice || Math.round(product.price * 1.5),
-            tag: 'Best seller'
-          }
-        ],
+      : [],
     features: product.features && product.features.length > 0
       ? product.features
       : [
-          '10০% প্রিমিয়াম ও অরিজিনাল কোয়ালিT',
-          '10 বছরের দীর্ঘস্থায়ী ব্যাটারি লাইফ',
-          '10০ মিটার ওয়াটার রেজিস্ট্যান্স সুরক্ষা',
-          'ওয়ার্ল্ড টাইম ও একাধিক অ্যালার্ম সিস্টেম',
-          'product হাতে পেয়ে চেক করে সম্পূর্ণ price পরিশোধের সুবিধা'
+          '১০০% খাঁটি ও প্রাকৃতিক উপাদান',
+          'স্বাস্থ্যসম্মত প্যাকেজিং ও পুষ্টিগুণ অটুট',
+          'কোনো ধরনের কৃত্রিম উপাদান বা ক্ষতিকর কেমিক্যাল নেই',
+          'ক্যাশ অন ডেলিভারিতে পণ্য দেখে নেওয়ার সুবিধা'
         ],
     reviews: [
-      { name: 'তানভীর আহমেদ', comment: 'watchT হাতে পাওয়ার পর সত্যি মুগ্ধ হয়েছি। কোয়ালিT ও feeনিশিং অgeneral!', rating: 5 },
-      { name: 'রাকিব হাসান', comment: 'সিলভার কালারটা নিয়েছি, দেখতে অনেক প্রিমিয়াম লাগে। সময়মতো ডেলিভারি পেয়েছি।', rating: 5 }
+      { name: 'মোঃ আব্দুল্লাহ', comment: 'পণ্যটির কোয়ালিটি অসাধারণ। যেমন দেখেছি তেমনই পেয়েছি।', rating: 5 },
+      { name: 'ফারহানা ইসলাম', comment: 'প্যাকেজিং খুবই সুন্দর এবং ফ্রেশ। ডেলিভারিও খুব দ্রুত পেয়েছি।', rating: 5 }
     ],
-    galleryImages: product.samplePages || [],
+    galleryImages: [product.coverImage, product.image, ...(product.samplePages || [])].filter(Boolean) as string[],
     paymentMethodDefault: 'COD',
     onlyCashOnDelivery: true
   };
@@ -717,6 +702,16 @@ export const dbService = {
     }
     if (!order.createdAt) {
       order.createdAt = new Date().toISOString();
+    }
+
+    // Persist to server API authoritative store
+    try {
+      const serverRes = await ApiClient.createOrder(order);
+      if (serverRes && serverRes.id) {
+        order = serverRes;
+      }
+    } catch (err) {
+      console.warn('ApiClient.createOrder failed (local fallback):', err);
     }
 
     if (isFirebaseEnabled && db) {
@@ -1713,9 +1708,28 @@ export const dbService = {
 // Real-time listener for orders across tabs, SSE stream & fast polling
 // Returns an unsubscribe function. Instantly receives orders without reload!
 export function subscribeToOrders(
-  onData: (orders: BookOrder[]) => void
+  onData: (orders: BookOrder[], newOrder?: BookOrder) => void
 ): () => void {
   let isSubscribed = true;
+
+  const mergeAndEmitNewOrder = (freshOrder?: BookOrder) => {
+    dbService._ordersCache = null;
+    if (freshOrder && freshOrder.id) {
+      const localList = getLocalData<BookOrder[]>('noor_book_orders', []);
+      const orderMap = new Map<string, BookOrder>();
+      orderMap.set(freshOrder.id, freshOrder);
+      localList.forEach(o => { if (o && o.id && !orderMap.has(o.id)) orderMap.set(o.id, o); });
+      const updated = Array.from(orderMap.values())
+        .filter(o => o.id !== 'ORD-2026-001')
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setLocalData('noor_book_orders', updated);
+      dbService._ordersCache = { data: updated, timestamp: Date.now() };
+      if (isSubscribed) onData(updated, freshOrder);
+    }
+    dbService.getBookOrders(true).then(orders => {
+      if (isSubscribed) onData(orders, freshOrder);
+    }).catch(() => {});
+  };
 
   // 1. Cross-tab real-time sync via BroadcastChannel
   let channel: BroadcastChannel | null = null;
@@ -1723,26 +1737,20 @@ export function subscribeToOrders(
     channel = new BroadcastChannel('ecom_orders_channel');
     channel.onmessage = (event) => {
       if (event.data?.type === 'NEW_ORDER' || event.data?.type === 'ORDER_UPDATED') {
-        dbService._ordersCache = null;
-        dbService.getBookOrders(true).then(orders => {
-          if (isSubscribed) onData(orders);
-        }).catch(() => {});
+        mergeAndEmitNewOrder(event.data?.order);
       }
     };
   } catch {}
 
   // 2. Cross-tab fallback via storage event & local window event
-  const handleOrderNotification = () => {
-    dbService._ordersCache = null;
-    dbService.getBookOrders(true).then(orders => {
-      if (isSubscribed) onData(orders);
-    }).catch(() => {});
+  const handleOrderNotification = (e?: any) => {
+    mergeAndEmitNewOrder(e?.detail);
   };
 
   window.addEventListener('book-orders-updated', handleOrderNotification);
   const handleStorage = (e: StorageEvent) => {
     if (e.key === 'noor_book_orders' || e.key === 'ecom_new_order_event') {
-      handleOrderNotification();
+      mergeAndEmitNewOrder();
     }
   };
   window.addEventListener('storage', handleStorage);
@@ -1755,22 +1763,19 @@ export function subscribeToOrders(
       try {
         const payload = JSON.parse(event.data);
         if (payload?.type === 'NEW_ORDER') {
-          dbService._ordersCache = null;
-          dbService.getBookOrders(true).then(orders => {
-            if (isSubscribed) onData(orders);
-          }).catch(() => {});
+          mergeAndEmitNewOrder(payload.order);
         }
       } catch {}
     };
   } catch {}
 
-  // 4. Bulletproof high-frequency polling fallback (every 3 seconds)
+  // 4. Bulletproof high-frequency polling fallback (every 2.5 seconds)
   const pollInterval = setInterval(() => {
     if (!isSubscribed) return;
     dbService.getBookOrders(true).then(orders => {
       if (isSubscribed) onData(orders);
     }).catch(() => {});
-  }, 3000);
+  }, 2500);
 
   // 5. Firebase fallback if enabled
   let firebaseUnsub: (() => void) | null = null;

@@ -64,7 +64,7 @@ export class ApiClient {
 
   // Order Endpoints
   static getOrders(): Promise<BookOrder[]> {
-    return this.request<BookOrder[]>('/orders');
+    return this.request<BookOrder[]>(`/orders?_t=${Date.now()}`);
   }
 
   static createOrder(order: Partial<BookOrder>): Promise<BookOrder> {

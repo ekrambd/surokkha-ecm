@@ -11,7 +11,24 @@ landingRouter.get('/', cacheResponse({ ttlSeconds: 120, staleWhileRevalidateSeco
 });
 
 landingRouter.get('/:id', cacheResponse({ ttlSeconds: 120, staleWhileRevalidateSeconds: 300, tag: 'landing' }), async (req, res) => {
-  const item = await prisma.landingPage.findUnique({ where: { id: req.params.id } });
+  const rawId = req.params.id;
+  let decoded = rawId;
+  try {
+    decoded = decodeURIComponent(rawId);
+  } catch {}
+
+  const item = await prisma.landingPage.findFirst({
+    where: {
+      OR: [
+        { id: rawId },
+        { id: decoded },
+        { slug: rawId },
+        { slug: decoded },
+        { productId: rawId },
+        { productId: decoded }
+      ]
+    }
+  });
   if (item) res.json(item);
   else res.status(404).json({ error: 'Not found' });
 });

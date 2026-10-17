@@ -6,7 +6,7 @@ import {
   MessageCircle, Settings, Trophy, Wrench, Shirt, ShieldCheck, Package, Copy
 } from 'lucide-react';
 import { publicStoreService, readStorefrontCache, optimizeImageUrl } from '../lib/publicStoreService';
-import { DEFAULT_DELIVERY_METHODS, DEFAULT_LANDING_PAGE_SETTINGS } from '../lib/constants';
+import { DEFAULT_DELIVERY_METHODS, DEFAULT_LANDING_PAGE_SETTINGS, createDefaultLandingForProduct } from '../lib/constants';
 import { Product, EcomSettings, BookOrder, LandingPageData, DeliveryMethodItem, LandingPageVariant, InstituteInfo } from '../types';
 import { initPixelAndGtm, trackEvent, createEventId } from '../lib/pixelGtmService';
 import { getProductSlug } from '../lib/seoUtils';
@@ -28,12 +28,24 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
   
   const initialTargetProduct = useMemo(() => {
     const cachedProds = readStorefrontCache<Product[]>('noor_ecom_products') || [];
-    const normalizedSlug = slug ? slug.trim().toLowerCase() : '';
-    if (normalizedSlug && cachedProds.length > 0) {
+    let decodedSlug = '';
+    try {
+      decodedSlug = slug ? decodeURIComponent(slug).trim().toLowerCase() : '';
+    } catch {
+      decodedSlug = slug ? slug.trim().toLowerCase() : '';
+    }
+    const rawSlug = slug ? slug.trim().toLowerCase() : '';
+
+    if ((decodedSlug || rawSlug) && cachedProds.length > 0) {
       return cachedProds.find(p => {
         const pSlug = (p.slug || '').toLowerCase();
         const genSlug = getProductSlug(p).toLowerCase();
-        return p.id.toLowerCase() === normalizedSlug || pSlug === normalizedSlug || genSlug === normalizedSlug;
+        const pId = p.id.toLowerCase();
+        const pTitle = (p.title || '').toLowerCase();
+        return pId === decodedSlug || pId === rawSlug ||
+               pSlug === decodedSlug || pSlug === rawSlug ||
+               genSlug === decodedSlug || genSlug === rawSlug ||
+               pTitle === decodedSlug;
       }) || cachedProds[0];
     }
     return cachedProds[0] || null;
@@ -42,7 +54,12 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
   const [product, setProduct] = useState<Product | null>(initialTargetProduct);
   const [landingConfig, setLandingConfig] = useState<LandingPageData | null>(() => {
     const key = `noor_lp_${slug || initialTargetProduct?.slug || initialTargetProduct?.id || 'default'}`;
-    return readStorefrontCache<LandingPageData>(key) || DEFAULT_LANDING_PAGE_SETTINGS;
+    const cached = readStorefrontCache<LandingPageData>(key);
+    if (cached) return cached;
+    if (initialTargetProduct) {
+      return createDefaultLandingForProduct(initialTargetProduct);
+    }
+    return DEFAULT_LANDING_PAGE_SETTINGS;
   });
   
   // Never block the user with full-page loading if cache or defaults are present
@@ -101,17 +118,51 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
 
     const loadData = async () => {
       try {
-        const normalizedSlug = slug ? slug.trim().toLowerCase() : '';
+        let decodedSlug = '';
+        try {
+          decodedSlug = slug ? decodeURIComponent(slug).trim().toLowerCase() : '';
+        } catch {
+          decodedSlug = slug ? slug.trim().toLowerCase() : '';
+        }
+        const rawSlug = slug ? slug.trim().toLowerCase() : '';
 
         // Execute ALL public queries simultaneously in parallel to avoid waterfalls
-        const [settings, products, info, lpSettings] = await Promise.all([
+        const [settings, products, info, rawLpSettings] = await Promise.all([
           publicStoreService.getEcomSettings(),
           publicStoreService.getProducts(),
           publicStoreService.getInstituteInfo(),
-          publicStoreService.getLandingPageSettings(normalizedSlug, initialTargetProduct || undefined)
+          publicStoreService.getLandingPageSettings(decodedSlug || rawSlug, initialTargetProduct || undefined)
         ]);
 
         if (isCancelled) return;
+
+        // Find product matching current slug if provided
+        let targetProduct: Product | undefined;
+        if ((decodedSlug || rawSlug) && products && products.length > 0) {
+          targetProduct = products.find(p => {
+            const pSlug = (p.slug || '').toLowerCase();
+            const genSlug = getProductSlug(p).toLowerCase();
+            const pId = p.id.toLowerCase();
+            const pTitle = (p.title || '').toLowerCase();
+            return pId === decodedSlug || pId === rawSlug ||
+                   pSlug === decodedSlug || pSlug === rawSlug ||
+                   genSlug === decodedSlug || genSlug === rawSlug ||
+                   pTitle === decodedSlug;
+          });
+        }
+
+        if (!targetProduct && products && products.length > 0) {
+          targetProduct = products[0];
+        }
+
+        let lpSettings = rawLpSettings;
+        if (targetProduct) {
+          setProduct(targetProduct);
+          // If no specific landing custom settings exist or it's default casio, dynamically generate from targetProduct
+          if (!lpSettings || lpSettings.id === 'landing-default' || !lpSettings.bookTitle || lpSettings.bookTitle.includes('CASIO')) {
+            lpSettings = createDefaultLandingForProduct(targetProduct);
+          }
+        }
 
         setStoreSettings(settings);
         setAllProducts(products || []);
@@ -121,24 +172,6 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
         // Initialize Meta Pixel & GTM if configured
         if (settings?.pixelId || settings?.gtmId) {
           initPixelAndGtm(settings.pixelId, settings.gtmId);
-        }
-
-        // Find product matching current slug if provided
-        let targetProduct: Product | undefined;
-        if (normalizedSlug && products && products.length > 0) {
-          targetProduct = products.find(p => {
-            const pSlug = (p.slug || '').toLowerCase();
-            const genSlug = getProductSlug(p).toLowerCase();
-            return p.id.toLowerCase() === normalizedSlug || pSlug === normalizedSlug || genSlug === normalizedSlug;
-          });
-        }
-
-        if (!targetProduct && products && products.length > 0) {
-          targetProduct = products[0];
-        }
-
-        if (targetProduct) {
-          setProduct(targetProduct);
         }
 
         // Initialize variant if available
@@ -203,23 +236,25 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
   }, [slug, initialTargetProduct]);
 
   const fallbackProduct = {
-    title: 'CASIO ROYALE AE-1200 CHAIN VERSION',
-    subtitle: 'CASIO AE-1200 Watch',
-    price: 999,
-    regularPrice: 1650,
+    title: 'প্রিমিয়াম ন্যাচারাল ফুড প্রোডাক্ট',
+    subtitle: '১০০% খাঁটি ও স্বাস্থ্যকর পুষ্টিকর খাদ্য',
+    price: 0,
+    regularPrice: 0,
     image: '/placeholder-image.svg',
-    description: ''
+    description: '১০০% খাঁটি ও স্বাস্থ্যকর খাদ্যপণ্য। কোনো ক্ষতিকর কেমিক্যাল বা কৃত্রিম উপাদান ছাড়া প্রাকৃতিক উৎস থেকে সংগৃহীত।'
   };
 
-  const displayTitle = landingConfig?.bookTitle || product?.title || fallbackProduct.title;
-  const displaySubtitle = landingConfig?.bookSubtitle || product?.subtitle || landingConfig?.authorName || fallbackProduct.subtitle;
-  const displayDesc = landingConfig?.heroDescription || product?.description || fallbackProduct.description;
-  const displayPrice = selectedVariant?.price || landingConfig?.offerPrice || product?.price || fallbackProduct.price;
-  const regularPrice = selectedVariant?.regularPrice || landingConfig?.regularPrice || product?.regularPrice || fallbackProduct.regularPrice;
-  const displayImage = selectedVariant?.image || landingConfig?.heroBookImage || landingConfig?.mainBookImage || product?.image || fallbackProduct.image || '/placeholder-image.svg';
+  const displayTitle = (landingConfig?.bookTitle && !landingConfig.bookTitle.includes('CASIO'))
+    ? landingConfig.bookTitle 
+    : (product?.title || fallbackProduct.title);
+  const displaySubtitle = product?.subtitle || product?.shortSummary || ((landingConfig?.bookSubtitle && !landingConfig.bookSubtitle.includes('CASIO')) ? landingConfig.bookSubtitle : fallbackProduct.subtitle);
+  const displayDesc = product?.description || product?.shortSummary || ((landingConfig?.heroDescription && !landingConfig.heroDescription.includes('CASIO')) ? landingConfig.heroDescription : fallbackProduct.description);
+  const displayPrice = selectedVariant?.price || product?.price || landingConfig?.offerPrice || fallbackProduct.price;
+  const regularPrice = selectedVariant?.regularPrice || product?.regularPrice || landingConfig?.regularPrice || (displayPrice ? Math.round(displayPrice * 1.25) : fallbackProduct.regularPrice);
+  const displayImage = selectedVariant?.image || product?.coverImage || product?.image || ((landingConfig?.heroBookImage && !landingConfig.heroBookImage.includes('placeholder')) ? landingConfig.heroBookImage : '') || fallbackProduct.image;
   
   // Dedicated Top Hero Banner image (uploaded in Section 2 as 'Landing page hero product image' - Original/HD)
-  const heroTopImage = landingConfig?.heroBookImage || landingConfig?.mainBookImage || landingConfig?.campaignBannerImage || product?.image || fallbackProduct.image || '/placeholder-image.svg';
+  const heroTopImage = product?.coverImage || ((landingConfig?.heroBookImage && !landingConfig.heroBookImage.includes('placeholder')) ? landingConfig.heroBookImage : '') || product?.image || landingConfig?.campaignBannerImage || fallbackProduct.image;
 
   // YouTube Video Embed URL Helper
   const getYouTubeEmbedUrl = (url?: string): string | null => {
@@ -230,53 +265,80 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
     const match = trimmed.match(regExp);
     return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}` : null;
   };
-  const embedVideoUrl = getYouTubeEmbedUrl(landingConfig?.videoUrl);
+  const embedVideoUrl = getYouTubeEmbedUrl(landingConfig?.videoUrl || product?.pdfUrl);
   
-  const campaignBadgeText = landingConfig?.campaignBadgeText || '🏆 Winner will get this bike';
+  const campaignBadgeText = (landingConfig?.campaignBadgeText && !landingConfig.campaignBadgeText.includes('bike') && !landingConfig.campaignBadgeText.includes('R15'))
+    ? landingConfig.campaignBadgeText
+    : '১০০% খাঁটি ও প্রিমিয়াম ফুড';
   const rawTicker = landingConfig?.campaignTickerText || landingConfig?.bannerDeliveryText;
-  const campaignTickerText = (rawTicker && !rawTicker.includes('2 bikes and a car'))
+  const campaignTickerText = (rawTicker && !rawTicker.includes('bike') && !rawTicker.includes('R15') && !rawTicker.includes('car'))
     ? rawTicker
-    : 'Lucky coupon to win Yamaha R15 on order.';
+    : 'সরাসরি ক্যাশ অন ডেলিভারিতে সারা বাংলাদেশে দ্রুত হোম ডেলিভারি।';
 
   // Variants list
   const variants: LandingPageVariant[] = useMemo(() => {
-    if (landingConfig?.customVariants && landingConfig.customVariants.length > 0) {
-      return landingConfig.customVariants;
-    }
     if (product?.variants && product.variants.length > 0) {
       return product.variants.map((v, i) => ({
         id: v.id || `var-${i}`,
         name: v.name,
-        image: v.image || product.samplePages?.[i] || product.image || displayImage,
+        image: v.image || product.samplePages?.[i] || product.coverImage || product.image || displayImage,
         price: v.price || product.price,
         regularPrice: v.regularPrice || product.regularPrice,
         tag: i === 0 ? 'Best seller' : 'popular'
       }));
     }
+    if (landingConfig?.customVariants && landingConfig.customVariants.length > 0 && !landingConfig.customVariants[0].name.includes('CASIO')) {
+      return landingConfig.customVariants;
+    }
     return [
       {
         id: 'var-default',
-        name: displayTitle || 'CASIO AE-1200 Watch',
+        name: displayTitle || 'প্রিমিয়াম কালেকশন',
         image: displayImage,
         price: displayPrice,
         regularPrice: regularPrice,
         tag: 'Original Edition'
       }
     ];
-  }, [landingConfig?.customVariants, product?.variants, product?.samplePages, product?.image, displayImage, displayPrice, regularPrice, displayTitle]);
+  }, [product?.variants, product?.samplePages, product?.coverImage, product?.image, landingConfig?.customVariants, displayImage, displayPrice, regularPrice, displayTitle]);
 
   // Gallery images list for slider
   const galleryImages: string[] = useMemo(() => {
     const list: string[] = [];
-    if (landingConfig?.galleryImages && landingConfig.galleryImages.length > 0) {
-      list.push(...landingConfig.galleryImages.map(img => optimizeImageUrl(img, 800)));
+    if (product?.coverImage) {
+      list.push(optimizeImageUrl(product.coverImage, 800));
+    }
+    if (product?.image) {
+      const opt = optimizeImageUrl(product.image, 800);
+      if (!list.includes(opt)) list.push(opt);
     }
     if (product?.samplePages && product.samplePages.length > 0) {
-      list.push(...product.samplePages.map(img => optimizeImageUrl(img, 800)));
+      product.samplePages.forEach(img => {
+        if (img) {
+          const opt = optimizeImageUrl(img, 800);
+          if (!list.includes(opt)) list.push(opt);
+        }
+      });
+    }
+    if (product?.additionalImages && product.additionalImages.length > 0) {
+      product.additionalImages.forEach(img => {
+        if (img) {
+          const opt = optimizeImageUrl(img, 800);
+          if (!list.includes(opt)) list.push(opt);
+        }
+      });
+    }
+    if (landingConfig?.galleryImages && landingConfig.galleryImages.length > 0) {
+      landingConfig.galleryImages.forEach(img => {
+        if (img && !img.includes('placeholder')) {
+          const opt = optimizeImageUrl(img, 800);
+          if (!list.includes(opt)) list.push(opt);
+        }
+      });
     }
     if (variants && variants.length > 0) {
       variants.forEach(v => {
-        if (v.image) {
+        if (v.image && !v.image.includes('placeholder')) {
           const opt = optimizeImageUrl(v.image, 800);
           if (!list.includes(opt)) {
             list.push(opt);
@@ -284,13 +346,13 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
         }
       });
     }
-    if (displayImage && !list.includes(displayImage)) {
+    if (displayImage && !displayImage.includes('placeholder') && !list.includes(displayImage)) {
       list.unshift(displayImage);
     }
     return list.length > 0 ? list : [displayImage];
-  }, [landingConfig?.galleryImages, product?.samplePages, variants, displayImage]);
+  }, [product?.coverImage, product?.image, product?.samplePages, product?.additionalImages, landingConfig?.galleryImages, variants, displayImage]);
 
-  const storeName = storeSettings?.storeName || instituteInfo?.name || 'Watch Store';
+  const storeName = storeSettings?.storeName || instituteInfo?.name || 'SHOSTIR BAZAR';
 
   // Support & Helpline Phone
   const rawSupportPhone = instituteInfo?.phone || storeSettings?.bkashNumber || storeSettings?.nagadNumber || landingConfig?.whatsAppNumber || '';
@@ -306,68 +368,78 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
   const cleanWhatsAppNumber = whatsAppPhone.replace(/\D/g, '').replace(/^0/, '880');
 
   // Dynamic Vintage / Story Section Data
-  const vintageTag = landingConfig?.vintageTag ?? 'For vintage lovers';
-  const vintageTitle = landingConfig?.vintageTitle ?? 'Whose eyes still get stuck on the clocks of yesteryear';
-  const vintageDescription = landingConfig?.vintageDescription ?? 'A taste of real time lost in the crowd of smartwatches — this classic design is for them.';
+  const vintageTag = (landingConfig?.vintageTag && !landingConfig.vintageTag.includes('vintage')) ? landingConfig.vintageTag : 'খাঁটি ও প্রাকৃতিক খাদ্য';
+  const vintageTitle = (landingConfig?.vintageTitle && !landingConfig.vintageTitle.includes('clocks')) ? landingConfig.vintageTitle : 'সুস্থতা ও দীর্ঘস্থায়ী শক্তির প্রাকৃতিক সমাধান';
+  const vintageDescription = (landingConfig?.vintageDescription && !landingConfig.vintageDescription.includes('স্মার্টওয়াচের')) ? landingConfig.vintageDescription : (product?.shortSummary || 'স্বাস্থ্যকর জীবনযাপনের জন্য খাঁটি ও বিশুদ্ধ প্রাকৃতিক পুষ্টি উপাদান। যা আপনার প্রতিদিনের শক্তিবর্ধনে সহায়ক।');
 
   const vintageFeatures = useMemo(() => {
-    if (landingConfig?.vintageFeatures && landingConfig.vintageFeatures.length > 0) {
+    if (product?.features && product.features.length > 0) {
+      return product.features.map((f, i) => ({
+        id: `pf-${i}`,
+        title: f,
+        subtitle: '১০০% অরিজিনাল ও পরীক্ষিত',
+        icon: i % 2 === 0 ? 'ShieldCheck' : 'Zap'
+      }));
+    }
+    if (landingConfig?.vintageFeatures && landingConfig.vintageFeatures.length > 0 && !landingConfig.vintageFeatures[0].title.includes('Classic Dial')) {
       return landingConfig.vintageFeatures;
     }
     return [
-      { id: 'vf-1', title: 'Classic Dial', subtitle: '40s-90s original look', icon: 'Clock' },
-      { id: 'vf-2', title: 'Durable metal body', subtitle: 'Can be used for years', icon: 'Wrench' },
-      { id: 'vf-3', title: 'Retro LED backlight', subtitle: 'Brings back old memories', icon: 'Zap' },
-      { id: 'vf-4', title: 'Fits all clothes', subtitle: 'Formal or casual', icon: 'Shirt' }
+      { id: 'vf-1', title: '১০০% খাঁটি ও ফ্রেশ', subtitle: 'বিশ্বস্ত উৎস থেকে সরাসরি সংগৃহীত', icon: 'ShieldCheck' },
+      { id: 'vf-2', title: 'পুষ্টিগুণে ভরপুর', subtitle: 'প্রাকৃতিক ভিটামিন ও মিনারেলে সমৃদ্ধ', icon: 'Zap' },
+      { id: 'vf-3', title: 'হাইজিনিক ফুড-গ্রেড প্যাকেজিং', subtitle: 'বাতাস ও আর্দ্রতারোধক সিলড প্যাকেটে সুরক্ষিত', icon: 'Package' },
+      { id: 'vf-4', title: 'ক্যাশ অন ডেলিভারি', subtitle: 'পণ্য হাতে পেয়ে দেখে নিশ্চিত হয়ে মূল্য পরিশোধ', icon: 'Clock' }
     ];
-  }, [landingConfig?.vintageFeatures]);
+  }, [product?.features, landingConfig?.vintageFeatures]);
 
   // Gallery Section Titles
-  const gallerySectionTag = landingConfig?.gallerySectionTag ?? 'Gallery';
-  const gallerySectionTitle = landingConfig?.gallerySectionTitle ?? 'Premium from every angle';
+  const gallerySectionTag = landingConfig?.gallerySectionTag ?? 'গ্যালারি';
+  const gallerySectionTitle = landingConfig?.gallerySectionTitle ?? 'প্রোডাক্টের প্রতিটি অ্যাঙ্গেলের আসল ছবি';
 
   // Quality Section Data
-  const qualitySectionTag = landingConfig?.qualitySectionTag ?? 'Why this watch?';
-  const qualitySectionTitle = landingConfig?.qualitySectionTitle ?? 'Japanese quality, amazing price';
+  const qualitySectionTag = (landingConfig?.qualitySectionTag && !landingConfig.qualitySectionTag.includes('watch')) ? landingConfig.qualitySectionTag : 'কেন আমাদের পণ্য সেরা?';
+  const qualitySectionTitle = (landingConfig?.qualitySectionTitle && !landingConfig.qualitySectionTitle.includes('Japanese')) ? landingConfig.qualitySectionTitle : 'সেরা মান, শতভাগ বিশুদ্ধতা ও সাশ্রয়ী মূল্য';
 
   const qualityItems = useMemo(() => {
     if (landingConfig?.qualityItems && landingConfig.qualityItems.length > 0) {
       return landingConfig.qualityItems;
     }
     return [
-      { id: 'qi-1', title: 'Precise timing', subtitle: 'Original movement design', icon: 'Settings' },
-      { id: 'qi-2', title: 'Premium look', subtitle: 'Classic design on metal band', icon: 'Trophy' }
+      { id: 'qi-1', title: 'ল্যাব টেস্টেড বিশুদ্ধতা', subtitle: 'কোনো প্রকার ভেজাল বা ক্যামিকেল মুক্ত', icon: 'ShieldCheck' },
+      { id: 'qi-2', title: 'সরাসরি সংগ্রহ', subtitle: 'উৎপাদকদের থেকে সরাসরি বিশ্বস্ত সোর্সিং', icon: 'Trophy' }
     ];
   }, [landingConfig?.qualityItems]);
 
-  // Lucky Draw Campaign Data
-  const luckyDrawTag = landingConfig?.luckyDrawTag ?? 'R15 lucky draw';
-  const luckyDrawTitle = landingConfig?.luckyDrawTitle ?? 'Order, win R15';
+  // Lucky Draw Campaign Data / Ordering Guide
+  const luckyDrawTag = (landingConfig?.luckyDrawTag && !landingConfig.luckyDrawTag.includes('R15')) ? landingConfig.luckyDrawTag : 'সহজ অর্ডার প্রক্রিয়া';
+  const luckyDrawTitle = (landingConfig?.luckyDrawTitle && !landingConfig.luckyDrawTitle.includes('R15')) ? landingConfig.luckyDrawTitle : 'সহজ ৪ ধাপে অর্ডার নির্দেশিকা';
   const luckyDrawSteps = useMemo(() => {
-    if (landingConfig?.luckyDrawSteps && landingConfig.luckyDrawSteps.length > 0) {
+    if (landingConfig?.luckyDrawSteps && landingConfig.luckyDrawSteps.length > 0 && !landingConfig.luckyDrawSteps[0].includes('watch')) {
       return landingConfig.luckyDrawSteps;
     }
     return [
-      'Order watch — receive unique lucky coupon code with parcel',
-      'Keep the coupon code safe',
-      'Winners will be selected by lottery next month',
-      'The result will be announced live on Facebook Live'
+      'আপনার নাম, মোবাইল নম্বর ও পূর্ণ ডেলিভারি ঠিকানা প্রদান করুন',
+      'আপনার পছন্দের প্যাকেজ বা পরিমাণ সিলেক্ট করুন',
+      'অর্ডার কনফার্ম করুন বাটনে ক্লিক করুন',
+      'ডেলিভারি ম্যানের কাছ থেকে প্রোডাক্ট চেক করে মূল্য পরিশোধ করুন'
     ];
   }, [landingConfig?.luckyDrawSteps]);
 
-  const grandPrizeTitle = landingConfig?.grandPrizeTitle ?? 'Yamaha R15';
-  const grandPrizeSubtitle = landingConfig?.grandPrizeSubtitle ?? 'Every order = a new opportunity';
-  const grandPrizeLiveTag = landingConfig?.grandPrizeLiveTag ?? 'FACEBOOK LIVE STREAM';
+  const grandPrizeTitle = landingConfig?.grandPrizeTitle ?? 'SHOSTIR BAZAR';
+  const grandPrizeSubtitle = landingConfig?.grandPrizeSubtitle ?? 'Comfort To Wellness';
+  const grandPrizeLiveTag = landingConfig?.grandPrizeLiveTag ?? '১০০% অরিজিনাল গ্যারান্টি';
 
   // Color Section Titles
-  const colorSectionTag = landingConfig?.colorSectionTag ?? 'Color selection';
-  const colorSectionTitle = landingConfig?.colorSectionTitle ?? 'Click on the color button below to preview the watch and order';
+  const colorSectionTag = landingConfig?.colorSectionTag ?? 'প্যাকেজ নির্বাচন';
+  const colorSectionTitle = landingConfig?.colorSectionTitle ?? 'আপনার পছন্দের প্যাকেজ সিলেক্ট করে অর্ডার করুন';
 
   // Icon Helper for Dynamic Cards
   const renderFeatureIcon = (iconName?: string) => {
     switch ((iconName || '').toLowerCase()) {
+      case 'shieldcheck': return <ShieldCheck className="w-5 h-5 text-emerald-400" />;
+      case 'package': return <Package className="w-5 h-5 text-[#e0562e]" />;
       case 'wrench': return <Wrench className="w-5 h-5 text-[#e0562e]" />;
-      case 'zap': return <Zap className="w-5 h-5 text-[#e0562e]" />;
+      case 'zap': return <Zap className="w-5 h-5 text-amber-400" />;
       case 'shirt': return <Shirt className="w-5 h-5 text-[#e0562e]" />;
       case 'settings': return <Settings className="w-5 h-5 text-[#8f8274]" />;
       case 'trophy': return <Trophy className="w-5 h-5 text-[#d49b38]" />;
@@ -379,7 +451,7 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
 
   const discountPercent = regularPrice > displayPrice 
     ? Math.round(((regularPrice - displayPrice) / regularPrice) * 100) 
-    : 60;
+    : 0;
 
   useEffect(() => {
     if (displayTitle) {
@@ -400,8 +472,10 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
   }, [activeDeliveryMethods, selectedDeliveryMethodId]);
 
   const selectedDeliveryMethod = activeDeliveryMethods.find(m => m.id === selectedDeliveryMethodId) || activeDeliveryMethods[0];
-  const deliveryCharge = selectedDeliveryMethod ? Number(selectedDeliveryMethod.deliveryCharge || 0) : 80;
   const subtotal = (displayPrice || 0) * quantity;
+  const isProductFreeDelivery = product?.deliveryChargeEnabled === false || (product as any)?.freeDelivery === true;
+  const isFreeDelivery = isProductFreeDelivery || (Boolean(storeSettings?.freeDeliveryActive) && subtotal >= Number(storeSettings?.freeDeliveryMinAmount || 0));
+  const deliveryCharge = isFreeDelivery ? 0 : (selectedDeliveryMethod ? Number(selectedDeliveryMethod.deliveryCharge || 0) : 80);
   const totalPrice = subtotal + deliveryCharge;
 
   // Gallery carousel controls
@@ -457,7 +531,7 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
       return;
     }
     const productName = selectedVariant?.name || displayTitle;
-    const message = encodeURIComponent(`Hello, it's me ${productName} watchT (${displayPrice}Tk.) want to order। Give details?`);
+    const message = encodeURIComponent(`আসসালামু আলাইকুম, আমি ${productName} (${displayPrice} টাকা) অর্ডার করতে চাই। বিস্তারিত জানাবেন প্লিজ?`);
     window.open(`https://wa.me/${cleanWhatsAppNumber}?text=${message}`, '_blank');
   };
 
@@ -467,8 +541,8 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
       setFeedback({
         isOpen: true,
         type: 'info',
-        title: 'Information is required',
-        message: 'Please provide your name, mobile number and full delivery address.'
+        title: 'প্রয়োজনীয় তথ্য দিন',
+        message: 'দয়া করে আপনার নাম, মোবাইল নম্বর এবং সম্পূর্ণ ডেলিভারি ঠিকানা প্রদান করুন।'
       });
       return;
     }
@@ -477,7 +551,7 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
 
     try {
       const orderId = 'ORD-' + new Date().getFullYear() + '-' + Math.floor(100000 + Math.random() * 900000);
-      const luckyCode = 'R15-' + Math.floor(100000 + Math.random() * 900000);
+      const luckyCode = 'SB-' + Math.floor(100000 + Math.random() * 900000);
       const chosenItemTitle = selectedVariant ? `${displayTitle} (${selectedVariant.name})` : displayTitle;
       
       const newOrder: BookOrder = {
@@ -498,18 +572,18 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
         paymentMethod: 'COD',
         orderType: 'landing',
         source: slug ? `landing-${slug}` : 'landing-page',
-        productId: product?.id || landingConfig?.productId || 'watch_landing',
+        productId: product?.id || landingConfig?.productId || 'landing_prod',
         productTitle: chosenItemTitle,
         productName: chosenItemTitle,
         luckyCouponCode: luckyCode,
         items: [{
           product: {
-            id: product?.id || landingConfig?.productId || 'watch_prod',
+            id: product?.id || landingConfig?.productId || 'landing_prod',
             title: chosenItemTitle,
             price: displayPrice,
             regularPrice: regularPrice,
             image: selectedVariant?.image || displayImage,
-            category: product?.category || 'Watches',
+            category: product?.category || 'Natural Food',
             stock: 100,
             isAvailable: true
           },
@@ -531,7 +605,7 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
       const eventId = createEventId('purchase');
       trackEvent('Purchase', {
         content_name: chosenItemTitle,
-        content_ids: [product?.id || landingConfig?.productId || 'watch_item'],
+        content_ids: [product?.id || landingConfig?.productId || 'landing_prod'],
         content_type: 'product',
         value: totalPrice,
         currency: 'BDT',
@@ -551,8 +625,8 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
       setFeedback({
         isOpen: true,
         type: 'error',
-        title: 'The order failed',
-        message: err?.message || 'Sorry, the order was not successful. Please try again or contact directly on WhatsApp.'
+        title: 'অর্ডারটি ব্যর্থ হয়েছে',
+        message: err?.message || 'দুঃখিত, অর্ডারটি সফল হয়নি। অনুগ্রহ করে পুনরায় চেষ্টা করুন অথবা সরাসরি হোয়াটসঅ্যাপে যোগাযোগ করুন।'
       });
     } finally {
       setIsSubmitting(false);
@@ -563,7 +637,7 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
     return (
       <div className="min-h-screen bg-[#110e0a] flex flex-col items-center justify-center space-y-4 text-[#e0562e]">
         <RefreshCw className="h-10 w-10 animate-spin text-[#e0562e]" />
-        <p className="text-[#d8c8b8] text-sm font-semibold tracking-wider">Loading Premium Collection of Watches...</p>
+        <p className="text-[#d8c8b8] text-sm font-semibold tracking-wider">লোড হচ্ছে...</p>
       </div>
     );
   }
@@ -576,9 +650,9 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
             <Package className="w-8 h-8" />
           </div>
           <div className="space-y-2">
-            <h2 className="text-xl font-bold text-white">This campaign is currently suspended</h2>
+            <h2 className="text-xl font-bold text-white">এই ক্যাম্পেইনটি বর্তমানে স্থগিত আছে</h2>
             <p className="text-xs text-[#a89d91] leading-relaxed">
-              {displayTitle} - Its landing page campaignT Temporarily closed। You can see other interesting models in our online store।
+              {displayTitle} - এর ল্যান্ডিং পেজ ক্যাম্পেইনটি সাময়িকভাবে বন্ধ আছে। আমাদের অনলাইন শপে থাকা অন্যান্য প্রোডাক্টগুলো দেখতে পারেন।
             </p>
           </div>
           <button
@@ -586,7 +660,7 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
             onClick={onNavigateHome}
             className="w-full py-3.5 bg-[#e0562e] hover:bg-[#c44320] text-white font-black text-xs rounded-xl transition-all shadow-lg cursor-pointer"
           >
-            All storesRoSee Duct
+            অন্যান্য প্রোডাক্ট দেখুন
           </button>
         </div>
       </div>
@@ -952,25 +1026,39 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
                   <CheckCircle2 className="h-8 w-8 stroke-[2.5]" />
                 </div>
                 <div className="space-y-1.5">
-                  <h3 className="text-lg font-bold text-white">Congratulations! Your order has been successful</h3>
+                  <h3 className="text-lg font-bold text-white">অভিনন্দন! আপনার অর্ডারটি সফলভাবে সম্পন্ন হয়েছে</h3>
                   <p className="text-xs text-slate-300">
-                    Order number: <span className="font-mono font-black text-[#f5b842]">#{placedOrderId}</span>
+                    অর্ডার নম্বর: <span className="font-mono font-black text-[#f5b842]">#{placedOrderId}</span>
                   </p>
                 </div>
 
-                {/* Golden Yamaha R15 Lucky Draw Coupon Ticket Card */}
-                {placedLuckyCoupon && (
+                {/* Confirmed Order Card Details */}
+                <div className="bg-[#120e0a] border border-[#382d22] rounded-xl p-3.5 text-left text-xs space-y-2">
+                  <div className="flex justify-between text-[#c9bcb0]">
+                    <span>পণ্য:</span>
+                    <span className="font-bold text-white text-right max-w-[200px] truncate">{displayTitle}</span>
+                  </div>
+                  <div className="flex justify-between text-[#c9bcb0]">
+                    <span>মোট বিল:</span>
+                    <span className="font-bold text-[#f5b842] font-mono">Tk.{totalPrice.toLocaleString('bn-BD')}</span>
+                  </div>
+                  <div className="flex justify-between text-[#c9bcb0]">
+                    <span>পেমেন্ট মাধ্যম:</span>
+                    <span className="font-bold text-emerald-400">ক্যাশ অন ডেলিভারি (হাতে পেয়ে মূল্য পরিশোধ)</span>
+                  </div>
+                </div>
+
+                {placedLuckyCoupon && (landingConfig?.campaignBadgeText?.includes('কুপন') || Boolean(landingConfig?.luckyDrawTag && !landingConfig.luckyDrawTag.includes('R15'))) && (
                   <div className="relative overflow-hidden rounded-2xl border-2 border-[#f5b842] bg-gradient-to-b from-[#2d1e0d] via-[#1c150c] to-[#120e0a] p-4 text-center shadow-2xl space-y-2.5">
-                    <div className="absolute -top-10 -right-10 w-28 h-28 bg-[#f5b842]/10 rounded-full blur-xl pointer-events-none" />
                     <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#f5b842]/20 border border-[#f5b842]/40 text-[#f5b842] text-[11px] font-bold">
                       <Trophy className="w-3.5 h-3.5 text-[#f5b842]" />
-                      <span>Yamaha R15 Mega Lucky Draw Coupon</span>
+                      <span>অফিশিয়াল কুপন কোড</span>
                     </div>
                     
-                    <p className="text-[11px] text-[#d8c8b8]">Your Confirmed Lucky Draw Coupon Number:</p>
+                    <p className="text-[11px] text-[#d8c8b8]">আপনার অর্ডার কুপন নম্বর:</p>
                     
                     <div className="py-2.5 px-4 bg-black/60 border border-dashed border-[#f5b842]/70 rounded-xl flex items-center justify-center gap-3">
-                      <span className="font-mono text-xl sm:text-2xl font-black text-[#f5b842] tracking-wider selection:bg-amber-500">
+                      <span className="font-mono text-xl sm:text-2xl font-black text-[#f5b842] tracking-wider">
                         {placedLuckyCoupon}
                       </span>
                       <button
@@ -980,28 +1068,21 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
                           setFeedback({
                             isOpen: true,
                             type: 'success',
-                            title: 'Copy successful!',
-                            message: `Coupon code ${placedLuckyCoupon} successfulCopied।`
+                            title: 'কপি সফল হয়েছে',
+                            message: `কুপন কোড ${placedLuckyCoupon} কপি হয়েছে।`
                           });
                         }}
                         className="p-1.5 rounded-lg bg-[#f5b842]/20 hover:bg-[#f5b842]/30 text-[#f5b842] transition-colors cursor-pointer"
-                        title="Copy the coupon code"
+                        title="কুপন কোড কপি করুন"
                       >
                         <Copy className="w-4 h-4" />
                       </button>
-                    </div>
-
-                    <div className="text-[10px] text-[#a89d91] space-y-1">
-                      <p className="text-amber-300 font-semibold flex items-center justify-center gap-1">
-                        <span>📸</span> Coupon numberTScreenshot or save
-                      </p>
-                      <p>This code will also be printed on the official coupon card provided with the parcel.</p>
                     </div>
                   </div>
                 )}
 
                 <p className="text-[11px] text-[#a89d91]">
-                  Our representative will call your order shortlyT Confirm।
+                  আমাদের কাস্টমার কেয়ার প্রতিনিধি কিছুক্ষণের মধ্যে আপনার নাম্বারে কল করে অর্ডারটি কনফার্ম করবেন।
                 </p>
 
                 <button
@@ -1009,25 +1090,25 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
                   onClick={() => setOrderSuccess(false)}
                   className="w-full py-3 bg-[#e0562e] hover:bg-[#c44320] text-white font-bold text-xs rounded-xl shadow-md cursor-pointer"
                 >
-                  anotherT order
+                  আরেকটি অর্ডার করুন
                 </button>
               </div>
             ) : (
               <form onSubmit={handleOrderSubmit} className="space-y-3.5 text-xs">
                 <div className="text-center border-b border-[#2e261e] pb-2">
-                  <h3 className="text-sm font-bold text-white">Fill the order form</h3>
-                  <p className="text-[10px] text-[#a89d91]">Cash on Delivery — Pay on receipt of goods</p>
+                  <h3 className="text-sm font-bold text-white">অর্ডার করতে নিচের ফর্মটি পূরণ করুন</h3>
+                  <p className="text-[10px] text-[#a89d91]">ক্যাশ অন ডেলিভারি — পণ্য হাতে পেয়ে মূল্য পরিশোধ করুন</p>
                 </div>
 
                 {/* Name */}
                 <div className="space-y-1">
                   <label className="block font-bold text-slate-200">
-                    your name <span className="text-red-500">*</span>
+                    আপনার নাম <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="Enter your full name"
+                    placeholder="আপনার সম্পূর্ণ নাম লিখুন"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-[#120e0a] border border-[#382d22] rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-[#e0562e] transition-all"
@@ -1037,12 +1118,12 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
                 {/* Phone */}
                 <div className="space-y-1">
                   <label className="block font-bold text-slate-200">
-                    mobile number <span className="text-red-500">*</span>
+                    মোবাইল নম্বর <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="tel"
                     required
-                    placeholder="For example: 017XXXXXXXX"
+                    placeholder="যেমন: 01XXXXXXXXX"
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-[#120e0a] border border-[#382d22] rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-[#e0562e] transition-all font-mono"
@@ -1052,12 +1133,12 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
                 {/* Address */}
                 <div className="space-y-1">
                   <label className="block font-bold text-slate-200">
-                    Complete delivery address <span className="text-red-500">*</span>
+                    সম্পূর্ণ ডেলিভারি ঠিকানা <span className="text-red-500">*</span>
                   </label>
                   <textarea
                     required
                     rows={2}
-                    placeholder="Mention House No., Road, Police Station, District"
+                    placeholder="বাসা/হোল্ডিং নং, রোড, এলাকা/থানা এবং জেলা"
                     value={customerAddress}
                     onChange={(e) => setCustomerAddress(e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-[#120e0a] border border-[#382d22] rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-[#e0562e] transition-all resize-none"
@@ -1066,7 +1147,7 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
 
                 {/* Quantity */}
                 <div className="flex items-center justify-between pt-1">
-                  <span className="font-bold text-slate-200">Quantity:</span>
+                  <span className="font-bold text-slate-200">পরিমাণ:</span>
                   <div className="flex items-center border border-[#382d22] rounded-lg bg-[#120e0a]">
                     <button
                       type="button"
@@ -1090,7 +1171,7 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
 
                 {/* Delivery Area Selection */}
                 <div className="space-y-1.5 pt-1">
-                  <label className="block font-bold text-slate-200">Delivery Area:</label>
+                  <label className="block font-bold text-slate-200">ডেলিভারি এলাকা:</label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {activeDeliveryMethods.map((method) => {
                       const isSelected = (selectedDeliveryMethod?.id === method.id) || (selectedDeliveryMethodId === method.id);
@@ -1106,7 +1187,9 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
                           }`}
                         >
                           <span className="font-bold text-[11px] truncate">{method.title}</span>
-                          <span className="font-bold text-[11px] text-[#f5b842] font-mono">Tk.{method.deliveryCharge}</span>
+                          <span className={`font-bold text-[11px] font-mono ${isFreeDelivery ? 'text-emerald-400' : 'text-[#f5b842]'}`}>
+                            {isFreeDelivery ? 'ফ্রি (Free)' : `Tk.${method.deliveryCharge}`}
+                          </span>
                         </button>
                       );
                     })}
@@ -1116,15 +1199,17 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
                 {/* Price Summary */}
                 <div className="bg-[#120e0a] border border-[#2e261e] rounded-xl p-3 space-y-1.5 pt-2">
                   <div className="flex justify-between text-[#a89d91]">
-                    <span>{quantity} T:</span>
+                    <span>সাবটোটাল ({quantity}টি):</span>
                     <span className="font-bold text-white font-mono">Tk.{subtotal.toLocaleString('bn-BD')}</span>
                   </div>
                   <div className="flex justify-between text-[#a89d91]">
-                    <span>Delivery charges:</span>
-                    <span className="font-bold text-white font-mono">Tk.{deliveryCharge}</span>
+                    <span>ডেলিভারি চার্জ:</span>
+                    <span className={`font-bold font-mono ${deliveryCharge === 0 ? 'text-emerald-400' : 'text-white'}`}>
+                      {deliveryCharge === 0 ? 'ফ্রি (Free)' : `Tk.${deliveryCharge}`}
+                    </span>
                   </div>
                   <div className="pt-1.5 border-t border-[#2e261e] flex justify-between font-black text-sm text-white">
-                    <span>Total Bill:</span>
+                    <span>সর্বমোট বিল:</span>
                     <span className="text-[#f5b842] font-mono">Tk.{totalPrice.toLocaleString('bn-BD')}</span>
                   </div>
                 </div>
@@ -1138,19 +1223,19 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
                   {isSubmitting ? (
                     <>
                       <RefreshCw className="h-4 w-4 animate-spin" />
-                      <span>Processing...</span>
+                      <span>প্রসেসিং হচ্ছে...</span>
                     </>
                   ) : (
                     <>
                       <CheckCircle2 className="h-4 w-4" />
-                      <span>Confirm Order • Tk.{totalPrice.toLocaleString('bn-BD')}</span>
+                      <span>অর্ডার কনফার্ম করুন • Tk.{totalPrice.toLocaleString('bn-BD')}</span>
                     </>
                   )}
                 </button>
 
                 <p className="text-[10px] text-center text-[#a89d91] flex items-center justify-center gap-1">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Pay full price upon receipt of product</span>
+                  <span>পণ্য হাতে পেয়ে চেক করে সম্পূর্ণ মূল্য পরিশোধ করুন</span>
                 </p>
               </form>
             )}

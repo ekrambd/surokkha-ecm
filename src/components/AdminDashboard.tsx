@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { 
-  Users, LogOut, Menu, X, Check, ShoppingBag, ShoppingCart, ClipboardList, Package, LayoutDashboard, User, Code, Truck, CreditCard, Tag, Boxes, Store, Globe, Layout, Layers, Bell, Coins, Send, Sparkles, Eye, Bookmark, Camera, HeartHandshake, Zap
+  Users, LogOut, Menu, X, Check, ShoppingBag, ShoppingCart, ClipboardList, Package, LayoutDashboard, User, Code, Truck, CreditCard, Tag, Boxes, Store, Globe, Layout, Layers, Bell, Coins, Send, Sparkles, Eye, Bookmark, Camera, HeartHandshake, Zap, Volume2, VolumeX, RefreshCw
 } from 'lucide-react';
 import { dbService, subscribeToOrders } from '../lib/dbService';
-import { playCuteAdminOrderTone } from '../lib/soundUtils';
+import { playCuteAdminOrderTone, initAudioUnlock } from '../lib/soundUtils';
+import { showDesktopOrderNotification, requestNotificationPermission } from '../lib/pushNotifications';
 import { ApiClient } from '../services/apiClient';
 import { BookOrder, ActiveTab, Product, Customer } from '../types';
 import DashboardOverview from './DashboardOverview';
@@ -42,16 +43,26 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
   const [viewsOverview, setViewsOverview] = useState<{ websiteViews: number; landingViews: number; totalProductViews: number }>({ websiteViews: 0, landingViews: 0, totalProductViews: 0 });
   const [loading, setLoading] = useState(true);
 
-  // New order toast state
+  // New order toast & sound notification state
   const [newOrderToast, setNewOrderToast] = useState<BookOrder | null>(null);
+  const [isSoundEnabled, setIsSoundEnabled] = useState(true);
+  const [isRefreshingOrders, setIsRefreshingOrders] = useState(false);
   const knownOrderIds = useRef<Set<string>>(new Set());
   const isFirstLoad = useRef(true);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Initialize Web Audio unlock & desktop notifications on admin mount
+  useEffect(() => {
+    initAudioUnlock();
+    requestNotificationPermission();
+  }, []);
+
   // Play cute notification tone
   const playNotificationSound = useCallback(() => {
-    playCuteAdminOrderTone();
-  }, []);
+    if (isSoundEnabled) {
+      playCuteAdminOrderTone();
+    }
+  }, [isSoundEnabled]);
 
   // Load initial data then subscribe to real-time orders
   useEffect(() => {
@@ -164,23 +175,32 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
 
     window.addEventListener('ecom-settings-updated', handleSettingsUpdate);
 
-    // Real-time Firestore listener for orders
-    const unsubOrders = subscribeToOrders((liveOrders) => {
-      if (isFirstLoad.current) return; // skip during initial load
+    // Real-time listener for orders across SSE, BroadcastChannel, and high-speed sync
+    const unsubOrders = subscribeToOrders((liveOrders, newlyArrivedOrder) => {
       setOrders(liveOrders);
+      if (isFirstLoad.current) return; // skip during initial load
 
-      // Detect brand-new orders
-      liveOrders.forEach(o => {
-        if (!knownOrderIds.current.has(o.id)) {
-          knownOrderIds.current.add(o.id);
-          // Show toast for the newest order
-          setNewOrderToast(o);
+      const triggerOrderNotification = (order: BookOrder) => {
+        if (!knownOrderIds.current.has(order.id)) {
+          knownOrderIds.current.add(order.id);
+          setNewOrderToast(order);
           playNotificationSound();
-          // Auto-dismiss after 6 seconds
+          showDesktopOrderNotification(order);
+          // Auto-dismiss after 10 seconds
           if (toastTimer.current) clearTimeout(toastTimer.current);
-          toastTimer.current = setTimeout(() => setNewOrderToast(null), 6000);
+          toastTimer.current = setTimeout(() => setNewOrderToast(null), 10000);
         }
-      });
+      };
+
+      if (newlyArrivedOrder) {
+        triggerOrderNotification(newlyArrivedOrder);
+      } else {
+        liveOrders.forEach(o => {
+          if (!knownOrderIds.current.has(o.id)) {
+            triggerOrderNotification(o);
+          }
+        });
+      }
     });
 
     const handleSync = () => {
@@ -196,6 +216,30 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
       if (toastTimer.current) clearTimeout(toastTimer.current);
     };
   }, [playNotificationSound]);
+
+  // Fast manual refresh orders handler
+  const handleManualRefreshOrders = async () => {
+    setIsRefreshingOrders(true);
+    try {
+      const freshOrders = await dbService.getBookOrders(true);
+      setOrders(freshOrders);
+      freshOrders.forEach(o => knownOrderIds.current.add(o.id));
+    } catch (err) {
+      console.warn('Manual refresh error:', err);
+    } finally {
+      setTimeout(() => setIsRefreshingOrders(false), 400);
+    }
+  };
+
+  // Sound test & permission toggle
+  const handleToggleOrTestSound = () => {
+    initAudioUnlock();
+    requestNotificationPermission();
+    if (!isSoundEnabled) {
+      setIsSoundEnabled(true);
+    }
+    playCuteAdminOrderTone();
+  };
 
   // Handlers for products
   const handleAddProduct = async (product: Product) => {
@@ -501,8 +545,36 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
             </div>
           </div>
 
-          <div className="flex items-center space-x-3 sm:space-x-4">
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            {/* Live Real-time Sync Indicator */}
+            <div className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200/80 text-emerald-700 text-xs font-bold shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>লাইভ সিঙ্ক</span>
+            </div>
 
+            {/* Sound Notification Test & Toggle Button */}
+            <button
+              type="button"
+              onClick={handleToggleOrTestSound}
+              title="সাউন্ড নোটিফিকেশন শুনুন ও টেস্ট করুন"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-teal-200 bg-teal-50 hover:bg-teal-100 text-teal-800 text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
+            >
+              <Volume2 className="h-4 w-4 text-teal-600 animate-pulse" />
+              <span className="hidden md:inline">অর্ডার সাউন্ড টেস্ট</span>
+              <span className="md:hidden">সাউন্ড</span>
+            </button>
+
+            {/* Manual Orders Refresh Button */}
+            <button
+              type="button"
+              onClick={handleManualRefreshOrders}
+              disabled={isRefreshingOrders}
+              title="নতুন অর্ডার রিফ্রেশ করুন"
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95 disabled:opacity-50"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 text-slate-600 ${isRefreshingOrders ? 'animate-spin text-teal-600' : ''}`} />
+              <span className="hidden sm:inline">{isRefreshingOrders ? 'রিফ্রেশ হচ্ছে...' : 'রিফ্রেশ'}</span>
+            </button>
           </div>
         </header>
 
@@ -535,6 +607,7 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
                     onAddOrder={handleAddOrder}
                     onUpdateOrder={handleUpdateOrder}
                     onDeleteOrder={handleDeleteOrder}
+                    onRefreshOrders={handleManualRefreshOrders}
                   />
                 )}
                 {activeTab === 'inventory' && (

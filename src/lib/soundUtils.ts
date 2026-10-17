@@ -19,20 +19,58 @@ function getAudioContext(): AudioContext | null {
   }
 }
 
+// Global gesture listener to unlock Web Audio context on first user interaction
+let hasUnlockedAudio = false;
+
+export function initAudioUnlock(): void {
+  if (typeof window === 'undefined' || hasUnlockedAudio) return;
+
+  const unlock = () => {
+    try {
+      const ctx = getAudioContext();
+      if (ctx && ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+      }
+      hasUnlockedAudio = true;
+      ['click', 'touchstart', 'keydown', 'pointerdown'].forEach(evt => {
+        window.removeEventListener(evt, unlock);
+      });
+    } catch {}
+  };
+
+  ['click', 'touchstart', 'keydown', 'pointerdown'].forEach(evt => {
+    window.addEventListener(evt, unlock, { once: true, passive: true });
+  });
+}
+
 /**
- * Cute, sparkling chime for Admin Dashboard when a new order arrives!
- * Plays a cheerful 4-note melodic cascade (C6 -> E6 -> G6 -> C7) with sweet harmonic ring.
+ * High-clarity, sparkling melodious chime for Admin Dashboard when a new order arrives!
+ * Double ding-dong attention chime + sparkling melodic cascade (A5 -> C#6 -> E6 -> A6 -> C7).
+ * Increased gain (0.50-0.65) so it cuts through room noise and laptop speakers cleanly.
  */
 export function playCuteAdminOrderTone(): void {
   try {
+    // 1. Mobile haptic vibration alert
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try {
+        navigator.vibrate([120, 60, 120, 60, 250]);
+      } catch {}
+    }
+
     const ctx = getAudioContext();
     if (!ctx) return;
 
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+
+    // Melodic sequence: Attention Double-Ding -> Sparkling Cash Register Arpeggio
     const notes = [
-      { freq: 1046.50, delay: 0.00, duration: 0.25, gain: 0.25 }, // C6
-      { freq: 1318.51, delay: 0.08, duration: 0.25, gain: 0.28 }, // E6
-      { freq: 1567.98, delay: 0.16, duration: 0.30, gain: 0.30 }, // G6
-      { freq: 2093.00, delay: 0.24, duration: 0.60, gain: 0.35 }, // C7 (sparkle finish)
+      { freq: 880.00, delay: 0.00, duration: 0.28, gain: 0.45 }, // A5 (Ding!)
+      { freq: 1108.73, delay: 0.10, duration: 0.28, gain: 0.50 }, // C#6
+      { freq: 1318.51, delay: 0.20, duration: 0.32, gain: 0.55 }, // E6 (Dong!)
+      { freq: 1760.00, delay: 0.32, duration: 0.45, gain: 0.60 }, // A6 (High ring)
+      { freq: 2093.00, delay: 0.44, duration: 0.75, gain: 0.65 }, // C7 (Sustained sparkle)
     ];
 
     const now = ctx.currentTime;
@@ -41,23 +79,23 @@ export function playCuteAdminOrderTone(): void {
       const osc = ctx.createOscillator();
       const gainNode = ctx.createGain();
 
-      // Soft sparkling bell timbre
+      // Clear bell chime timbre
       osc.type = 'sine';
       osc.frequency.setValueAtTime(freq, now + delay);
 
-      // Subtle overtone shimmer
+      // Harmonious overtone shimmer
       const overtone = ctx.createOscillator();
       const overtoneGain = ctx.createGain();
       overtone.type = 'triangle';
       overtone.frequency.setValueAtTime(freq * 2, now + delay);
 
       gainNode.gain.setValueAtTime(0.001, now + delay);
-      gainNode.gain.exponentialRampToValueAtTime(gain, now + delay + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(gain, now + delay + 0.015);
       gainNode.gain.exponentialRampToValueAtTime(0.001, now + delay + duration);
 
       overtoneGain.gain.setValueAtTime(0.001, now + delay);
-      overtoneGain.gain.exponentialRampToValueAtTime(gain * 0.15, now + delay + 0.02);
-      overtoneGain.gain.exponentialRampToValueAtTime(0.001, now + delay + duration * 0.5);
+      overtoneGain.gain.exponentialRampToValueAtTime(gain * 0.25, now + delay + 0.015);
+      overtoneGain.gain.exponentialRampToValueAtTime(0.001, now + delay + duration * 0.6);
 
       osc.connect(gainNode);
       overtone.connect(overtoneGain);
@@ -67,7 +105,7 @@ export function playCuteAdminOrderTone(): void {
       osc.start(now + delay);
       osc.stop(now + delay + duration);
       overtone.start(now + delay);
-      overtone.stop(now + delay + duration * 0.5);
+      overtone.stop(now + delay + duration * 0.6);
     });
   } catch (err) {
     console.warn('Could not play admin order chime:', err);

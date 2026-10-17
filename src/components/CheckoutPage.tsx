@@ -105,14 +105,22 @@ export default function CheckoutPage({
     return cart.reduce((acc, item) => acc + item.quantity, 0);
   }, [cart]);
 
-  // Free delivery logic if threshold configured
+  // Free delivery logic: Store threshold OR product-level "Free delivery" toggle
   const isFreeDelivery = useMemo(() => {
-    return Boolean(
+    const storeWideFree = Boolean(
       liveSettings?.freeDeliveryEnabled && 
       liveSettings?.freeDeliveryMinPurchase && 
       cartSubtotal >= liveSettings.freeDeliveryMinPurchase
     );
-  }, [liveSettings, cartSubtotal]);
+
+    const productFree = cart.length > 0 && cart.some(item => 
+      item.product.deliveryChargeEnabled === false || 
+      (item.product as any).freeDelivery === true ||
+      (item.product as any).isFreeDelivery === true
+    );
+
+    return storeWideFree || productFree;
+  }, [liveSettings, cartSubtotal, cart]);
 
   const deliveryCost = isFreeDelivery ? 0 : selectedDelivery.charge;
 

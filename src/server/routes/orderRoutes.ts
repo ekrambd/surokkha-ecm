@@ -59,8 +59,12 @@ orderRouter.get('/live', (req, res) => {
   });
 });
 
-// GET All Orders with cache & Eager Loading (Zero N+1 queries)
-orderRouter.get('/', cacheResponse({ ttlSeconds: 15, staleWhileRevalidateSeconds: 30, tag: 'orders' }), async (req, res) => {
+// GET All Orders - Live in-memory fetch with Zero latency (Never stale)
+orderRouter.get('/', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+
   const includeCustomer = req.query.include === 'customer' || req.query.withCustomer === 'true';
 
   let orders = [...storeOrders];
@@ -213,9 +217,16 @@ orderRouter.post('/checkout', checkoutRateLimiter, async (req, res) => {
         : (Number(storeSettings.deliveryChargeOutsideDhaka) || 110);
     }
 
-    if ((storeSettings as any)?.freeDeliveryEnabled && 
+    const hasFreeDeliveryProduct = validatedItems.some(i => {
+      const p = productLookupMap.get(i.product.id);
+      return p?.deliveryChargeEnabled === false || (p as any)?.freeDelivery === true || (p as any)?.isFreeDelivery === true;
+    });
+
+    if (hasFreeDeliveryProduct || (
+        (storeSettings as any)?.freeDeliveryEnabled && 
         (storeSettings as any)?.freeDeliveryMinPurchase && 
-        calculatedSubtotal >= Number((storeSettings as any).freeDeliveryMinPurchase)) {
+        calculatedSubtotal >= Number((storeSettings as any).freeDeliveryMinPurchase)
+    )) {
       deliveryFee = 0;
     }
 

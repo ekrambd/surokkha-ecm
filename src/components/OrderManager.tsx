@@ -22,6 +22,7 @@ interface OrderManagerProps {
   onAddOrder: (order: BookOrder) => Promise<void>;
   onUpdateOrder: (order: BookOrder) => Promise<void>;
   onDeleteOrder: (id: string) => Promise<void>;
+  onRefreshOrders?: () => Promise<void>;
 }
 
 // Crisp Barcode SVG Generator for print outputs
@@ -209,8 +210,10 @@ export default function OrderManager({
   orders,
   onAddOrder,
   onUpdateOrder,
-  onDeleteOrder
+  onDeleteOrder,
+  onRefreshOrders
 }: OrderManagerProps) {
+  const [isRefreshing, setIsRefreshing] = useState(false);
   // Filters & Search
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'landing' | 'physical' | 'store'>('all');
@@ -1312,6 +1315,25 @@ export default function OrderManager({
         </div>
 
         <div className="flex items-center space-x-2">
+          {onRefreshOrders && (
+            <button 
+              onClick={async () => {
+                setIsRefreshing(true);
+                try {
+                  await onRefreshOrders();
+                } finally {
+                  setTimeout(() => setIsRefreshing(false), 400);
+                }
+              }}
+              disabled={isRefreshing}
+              className="inline-flex items-center justify-center px-3.5 py-2.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold rounded-xl shadow-xs transition-all shrink-0 cursor-pointer disabled:opacity-50"
+              title="নতুন অর্ডার রিফ্রেশ করুন"
+            >
+              <RefreshCw className={`h-4 w-4 mr-1.5 text-slate-500 ${isRefreshing ? 'animate-spin text-teal-600' : ''}`} />
+              <span>{isRefreshing ? 'রিফ্রেশ হচ্ছে...' : 'রিফ্রেশ'}</span>
+            </button>
+          )}
+
           <button 
             onClick={() => setIsAddModalOpen(true)}
             className="inline-flex items-center justify-center px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all shrink-0 cursor-pointer"
