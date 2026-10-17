@@ -11,7 +11,7 @@ import {
   Tag
 } from 'lucide-react';
 import { Product, ProductVariant, BookOrder, EcomSettings, Coupon } from '../types';
-import { dbService } from '../lib/dbService';
+import { dbService, DEFAULT_DELIVERY_METHODS } from '../lib/dbService';
 import { trackEvent, createEventId } from '../lib/pixelGtmService';
 import { playOrderSuccessVibe } from '../lib/soundUtils';
 
@@ -48,26 +48,52 @@ export default function CheckoutPage({
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
-  const [email, setEmail] = useState('');
-  const [specialNotes, setSpecialNotes] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(true);
 
-  // Delivery Tiers (Dynamic from store settings with screenshot defaults 50 / 80 / 100 TK)
-  const insideCharge = Number(ecomSettings?.deliveryChargeInsideDhaka) > 0 ? Number(ecomSettings.deliveryChargeInsideDhaka) : 50;
-  const outsideCharge = Number(ecomSettings?.deliveryChargeOutsideDhaka) > 0 ? Number(ecomSettings.deliveryChargeOutsideDhaka) : 80;
-  const outsideDistrictCharge = Number(ecomSettings?.deliveryChargeOutsideExpress) > 0 
-    ? Number(ecomSettings.deliveryChargeOutsideExpress) 
-    : (Number(ecomSettings?.deliveryChargeOutsideDhaka) > 0 ? Number(ecomSettings.deliveryChargeOutsideDhaka) + 20 : 100);
+  // Dynamic Store Settings & Delivery Methods from Admin Panel
+  const [liveSettings, setLiveSettings] = useState<EcomSettings>(ecomSettings);
 
-  const deliveryOptions = useMemo(() => [
-    { id: 'inside', title: 'ঢাকা সিটির ভেতরে', charge: insideCharge, zone: 'Dhaka City' },
-    { id: 'outside', title: 'ঢাকা সিটির বাহিরে', charge: outsideCharge, zone: 'Dhaka Suburbs' },
-    { id: 'outside-district', title: 'ঢাকা জেলার বাহিরে', charge: outsideDistrictCharge, zone: 'Outside Dhaka' },
-  ], [insideCharge, outsideCharge, outsideDistrictCharge]);
+  useEffect(() => {
+    if (ecomSettings) {
+      setLiveSettings(ecomSettings);
+    }
+    // Fetch live settings on mount to ensure real-time synchronization with Admin changes
+    dbService.getEcomSettings().then(fresh => {
+      if (fresh) {
+        setLiveSettings(fresh);
+      }
+    }).catch(() => {});
+  }, [ecomSettings]);
 
-  const [selectedDeliveryId, setSelectedDeliveryId] = useState<string>('inside');
+  // Delivery Methods dynamically derived from Admin Panel settings
+  const deliveryOptions = useMemo(() => {
+    const list = (liveSettings?.deliveryMethods && liveSettings.deliveryMethods.length > 0)
+      ? liveSettings.deliveryMethods
+      : DEFAULT_DELIVERY_METHODS;
+
+    const activeList = list.filter(m => m.status === 'Active');
+    const sourceList = activeList.length > 0 ? activeList : list;
+
+    return sourceList.map(m => ({
+      id: m.id,
+      title: m.title,
+      charge: Number(m.deliveryCharge) >= 0 ? Number(m.deliveryCharge) : 0,
+      zone: m.title
+    }));
+  }, [liveSettings?.deliveryMethods]);
+
+  const [selectedDeliveryId, setSelectedDeliveryId] = useState<string>('');
+
+  useEffect(() => {
+    if (deliveryOptions.length > 0) {
+      if (!selectedDeliveryId || !deliveryOptions.some(o => o.id === selectedDeliveryId)) {
+        setSelectedDeliveryId(deliveryOptions[0].id);
+      }
+    }
+  }, [deliveryOptions, selectedDeliveryId]);
+
   const selectedDelivery = useMemo(() => {
-    return deliveryOptions.find(o => o.id === selectedDeliveryId) || deliveryOptions[0];
+    return deliveryOptions.find(o => o.id === selectedDeliveryId) || deliveryOptions[0] || { id: 'default', title: 'ডেলিভারি', charge: 0, zone: 'Default' };
   }, [deliveryOptions, selectedDeliveryId]);
 
   // Cart Calculations
@@ -82,11 +108,11 @@ export default function CheckoutPage({
   // Free delivery logic if threshold configured
   const isFreeDelivery = useMemo(() => {
     return Boolean(
-      ecomSettings?.freeDeliveryEnabled && 
-      ecomSettings?.freeDeliveryMinPurchase && 
-      cartSubtotal >= ecomSettings.freeDeliveryMinPurchase
+      liveSettings?.freeDeliveryEnabled && 
+      liveSettings?.freeDeliveryMinPurchase && 
+      cartSubtotal >= liveSettings.freeDeliveryMinPurchase
     );
-  }, [ecomSettings, cartSubtotal]);
+  }, [liveSettings, cartSubtotal]);
 
   const deliveryCost = isFreeDelivery ? 0 : selectedDelivery.charge;
 
@@ -197,10 +223,8 @@ export default function CheckoutPage({
         customerName: name.trim(),
         name: name.trim(),
         phone: phone.trim(),
-        email: email.trim() || undefined,
         address: address.trim(),
         district: selectedDelivery.zone,
-        notes: specialNotes.trim() || undefined,
         deliveryArea: selectedDelivery.title,
         deliveryZone: selectedDelivery.title,
         deliveryCharge: deliveryCost,
@@ -246,9 +270,10 @@ export default function CheckoutPage({
             phone: phone.trim(),
             address: address.trim(),
             deliveryZone: selectedDelivery.title,
+            deliveryCharge: deliveryCost,
+            deliveryMethodId: selectedDelivery.id,
             paymentMethod: 'Cash on Delivery',
             couponCode: appliedCoupon?.code,
-            notes: specialNotes.trim() || undefined,
             items: cart.map(item => ({
               productId: item.product.id,
               quantity: item.quantity,
@@ -584,34 +609,6 @@ export default function CheckoutPage({
                         onChange={(e) => setAddress(e.target.value)}
                         required
                         className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl focus:border-[#144d1a] focus:ring-1 focus:ring-[#144d1a] outline-none transition text-slate-900 placeholder:text-slate-400 resize-none"
-                      />
-                    </div>
-
-                    {/* ইমেইল (অপশনাল) */}
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        ইমেইল (অপশনাল)
-                      </label>
-                      <input
-                        type="email"
-                        placeholder="আপনার ইমেইল (অপশনাল)"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl focus:border-[#144d1a] focus:ring-1 focus:ring-[#144d1a] outline-none transition text-slate-900 placeholder:text-slate-400"
-                      />
-                    </div>
-
-                    {/* অর্ডার নোট */}
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        অর্ডার নোট
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="স্পেশাল কিছু বলতে চাইলে লিখুন (অপশনাল)"
-                        value={specialNotes}
-                        onChange={(e) => setSpecialNotes(e.target.value)}
-                        className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl focus:border-[#144d1a] focus:ring-1 focus:ring-[#144d1a] outline-none transition text-slate-900 placeholder:text-slate-400"
                       />
                     </div>
                   </div>

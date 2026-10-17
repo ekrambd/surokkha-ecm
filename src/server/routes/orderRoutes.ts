@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { checkoutRateLimiter } from '../middleware/rateLimiter';
-import { storeOrders, storeProducts, saveOrdersToDisk } from '../data/store';
+import { storeOrders, storeProducts, storeSettings, saveOrdersToDisk } from '../data/store';
 import { BookOrder } from '../../types';
 import { cacheResponse } from '../middleware/cacheMiddleware';
 import { requireAdmin } from '../middleware/adminAuth';
@@ -125,7 +125,7 @@ orderRouter.get('/shards/stats', (_req, res) => {
 // POST /api/orders/checkout - Secure Server-Side Atomic Order Validation & Placement (N+1 queries prevented)
 orderRouter.post('/checkout', checkoutRateLimiter, async (req, res) => {
   try {
-    const { items, customerName, phone, address, deliveryZone, paymentMethod, senderPhone, trxId, couponCode } = req.body;
+    const { items, customerName, phone, address, deliveryZone, deliveryCharge, deliveryMethodId, paymentMethod, senderPhone, trxId, couponCode, notes, email } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'Order must contain at least one item.' });
@@ -182,8 +182,42 @@ orderRouter.post('/checkout', checkoutRateLimiter, async (req, res) => {
       });
     }
 
-    // 2. Authoritative Delivery Charge Calculation
-    const deliveryFee = deliveryZone === 'inside_dhaka' ? 60 : 110;
+    // 2. Authoritative Dynamic Delivery Charge Calculation from Admin Settings
+    let deliveryFee = 60;
+    const deliveryMethods = (storeSettings as any)?.deliveryMethods;
+    if (Array.isArray(deliveryMethods) && deliveryMethods.length > 0) {
+      const match = deliveryMethods.find((m: any) => 
+        (m.id && (m.id === deliveryMethodId || m.id === deliveryZone)) ||
+        (m.title && m.title.trim().toLowerCase() === String(deliveryZone).trim().toLowerCase()) ||
+        (m.status === 'Active' && (
+          m.title.toLowerCase().includes(String(deliveryZone).toLowerCase()) ||
+          String(deliveryZone).toLowerCase().includes(m.title.toLowerCase())
+        ))
+      );
+      if (match) {
+        deliveryFee = Number(match.deliveryCharge) >= 0 ? Number(match.deliveryCharge) : 60;
+      } else if (deliveryCharge !== undefined && !isNaN(Number(deliveryCharge))) {
+        deliveryFee = Math.max(0, Number(deliveryCharge));
+      } else {
+        const firstActive = deliveryMethods.find((m: any) => m.status === 'Active');
+        deliveryFee = firstActive ? (Number(firstActive.deliveryCharge) || 0) : 60;
+      }
+    } else if (deliveryCharge !== undefined && !isNaN(Number(deliveryCharge))) {
+      deliveryFee = Math.max(0, Number(deliveryCharge));
+    } else {
+      const isInside = deliveryZone === 'inside_dhaka' || 
+                       String(deliveryZone).toLowerCase().includes('inside') || 
+                       String(deliveryZone).includes('ভেতরে');
+      deliveryFee = isInside 
+        ? (Number(storeSettings.deliveryChargeInsideDhaka) || 60) 
+        : (Number(storeSettings.deliveryChargeOutsideDhaka) || 110);
+    }
+
+    if ((storeSettings as any)?.freeDeliveryEnabled && 
+        (storeSettings as any)?.freeDeliveryMinPurchase && 
+        calculatedSubtotal >= Number((storeSettings as any).freeDeliveryMinPurchase)) {
+      deliveryFee = 0;
+    }
 
     // 3. Authoritative Coupon Verification
     let couponDiscount = 0;
@@ -219,6 +253,8 @@ orderRouter.post('/checkout', checkoutRateLimiter, async (req, res) => {
       phone: String(phone).trim(),
       address: String(address).trim(),
       deliveryZone: deliveryZone || 'inside_dhaka',
+      email: email ? String(email).trim() : undefined,
+      notes: notes ? String(notes).trim() : undefined,
       deliveryFee,
       deliveryCharge: deliveryFee,
 
