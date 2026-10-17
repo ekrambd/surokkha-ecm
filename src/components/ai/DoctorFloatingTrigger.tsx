@@ -12,7 +12,7 @@ export const DoctorFloatingTrigger: React.FC<DoctorFloatingTriggerProps> = ({
   onOpenDoctor,
   selectedProductCount = 0,
   whatsappNumber = '8801329458568',
-  storeName = 'Fantine BD'
+  storeName = 'SHOSTIR BAZAR'
 }) => {
   const cleanPhone = (whatsappNumber || '8801329458568').replace(/[^0-9]/g, '');
 
@@ -21,7 +21,7 @@ export const DoctorFloatingTrigger: React.FC<DoctorFloatingTriggerProps> = ({
       
       {/* 1. WhatsApp Floating Circular Button (TOP) - Compact & Elegant */}
       <a
-        href={`https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(storeName)},%20I%20would%20like%20to%20know%20more%20about%20your%20skincare%20series.`}
+        href={`https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(storeName)},%20I%20would%20like%20to%20know%20more%20about%20your%20products.`}
         target="_blank"
         rel="noreferrer"
         aria-label="Chat on WhatsApp"

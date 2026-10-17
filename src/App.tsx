@@ -170,7 +170,7 @@ function AppRoutes() {
             <Route path="/about" element={<FantineStorePage onGoToLogin={() => navigate('/login')} onGoToLanding={() => navigate('/book')} />} />
             <Route path="/quiz" element={<FantineStorePage onGoToLogin={() => navigate('/login')} onGoToLanding={() => navigate('/book')} />} />
             <Route path="/checkout" element={<FantineStorePage onGoToLogin={() => navigate('/login')} onGoToLanding={() => navigate('/book')} />} />
-            <Route path="/product/:id" element={<FantineStorePage onGoToLogin={() => navigate('/login')} onGoToLanding={() => navigate('/book')} />} />
+            <Route path="/product/:slug" element={<FantineStorePage onGoToLogin={() => navigate('/login')} onGoToLanding={() => navigate('/book')} />} />
             <Route path="/product/:slug/:id" element={<FantineStorePage onGoToLogin={() => navigate('/login')} onGoToLanding={() => navigate('/book')} />} />
             <Route path="/fantine" element={<Navigate to="/" replace />} />
             

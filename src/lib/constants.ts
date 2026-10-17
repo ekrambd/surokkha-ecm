@@ -55,71 +55,71 @@ export const DEFAULT_HERO_BANNERS: HeroBannerItem[] = [];
 export const DEFAULT_PROMO_CARDS: PromoCardItem[] = [];
 
 export const DEFAULT_ABOUT_SETTINGS: import('../types').AboutPageSettings = {
-  title: 'about us',
-  subtitle: 'প্রিমিয়াম স্কিনকেয়ার And কোরিয়ান ডার্মাটোলজি এক্সিলেন্স',
-  content: `FANTINE-এ আমরা বিশ্বাস করি ত্বকের যত্ন কেবল বাহ্যিক সৌন্দর্য নয়, বরং আত্মবিশ্বাস ও সুস্থতার একT অংশ।
+  title: 'About Us',
+  subtitle: 'SHOSTIR BAZAR - COMFORT TO WELLNESS',
+  content: `SHOSTIR BAZAR-এ আমরা বিশ্বাস করি সুস্থতা ও স্বাস্থ্যকর জীবনযাপন সবার অধিকার।
 
-আমরা সরাসরি দক্ষিণ কোরিয়ার আধুনিক ল্যাবরেটরি from সংগৃহীত প্রিমিয়াম হ্যানবাং হার্বাল ফর্মুলেশন ও ক্লিনিক্যাল স্কিনকেয়ার উপাদান সরবরাহ করি। আমাদের প্রতিT প্Roডাক্ট 10০% আসল, ল্যাব-টেস্টেড And নিরাপদ।
+আমরা সরাসরি বিশ্বমানের খাঁটি, বিশুদ্ধ ও স্বাস্থ্যকর খাদ্য ও পুষ্টিকর সুপারফুড সরবরাহ করি। আমাদের প্রতিটি প্রোডাক্ট ১০০% আসল, ল্যাব-টেস্টেড এবং সম্পূর্ণ নিরাপদ।
 
-আমাদের লক্ষ্য হলো Bangladeshের প্রতিT customerের কাছে সেরা মানের আন্তর্জাতিক স্কিনকেয়ার product সহজলভ্য And নির্ভরযোগ্যভাবে পৌঁছে দেওয়া।`,
+আমাদের লক্ষ্য হলো বাংলাদেশের প্রতিটি মানুষের কাছে সেরা মানের পুষ্টিকর, খাঁটি ও স্বাস্থ্যকর খাদ্যপণ্য সহজলভ্য এবং নির্ভরযোগ্যভাবে পৌঁছে দেওয়া।`,
   image: 'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=1600&auto=format&fit=crop&q=85',
-  badge: 'CLINICAL K-BEAUTY & BOTANICAL SCIENCE',
-  heroTitle: 'The Heritage of Clinical Hanbang & Dermal Science',
-  heroSubtitle: 'Forged in Seoul by Brandini Co., Ltd., FANTINE harmonizes centuries-old Korean herbal remedies with cutting-edge active bio-fermentation.',
+  badge: 'PURE & ORGANIC WELLNESS',
+  heroTitle: 'Pure Nutrition & Holistic Health For All',
+  heroSubtitle: 'SHOSTIR BAZAR brings you the finest selection of authentic superfoods, organic dates, premium nuts, and daily wellness items.',
   heroImage: 'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=1600&auto=format&fit=crop&q=85',
-  storyBadge: 'PHILOSOPHY & LEGACY',
-  storyTitle: 'Clinical Botanical Purity with Proven Results',
-  storySubtitle: 'From Gangnam Research Labs to Global Beauty Aficionados',
-  storyParagraph1: 'FANTINE was born out of a profound commitment to restorative dermal health. By fusing high-potency Hanbang botanicals—such as 6-year aged Korean Red Ginseng, Fermented Rice Bran, Camellia Sinensis, and Centella Asiatica—with clinical actives like Niacinamide, Stabilized Vitamin C, and 5-Multi Ceramides, we deliver formulas that deeply replenish without compromising sensitive skin barriers.',
-  storyParagraph2: 'Our dedicated laboratories in Seoul adhere to the strictest dermatological standards, ensuring micro-molecular absorption, continuous 72-hour moisture lock, and noticeable clinical fading of hyperpigmentation in 28 days.',
-  storyParagraph3: 'Every formulation is 100% cruelty-free, paraben-free, dermatologist-tested, and certified under Korean KFDA clean beauty standards.',
+  storyBadge: 'OUR PHILOSOPHY & PROMISE',
+  storyTitle: 'Pure Natural Quality You Can Trust',
+  storySubtitle: 'From Trusted Organic Growers Directly to Your Family',
+  storyParagraph1: 'SHOSTIR BAZAR was born out of a profound commitment to health, purity, and daily wellness. By sourcing authentic superfoods—such as fresh Medina Ajwa dates, golden raisins, organic honey, and raw nuts—we bring health straight to your family table.',
+  storyParagraph2: 'Every product is handpicked, quality checked, and carefully packed under strict hygienic standards ensuring maximum freshness and nutritional integrity.',
+  storyParagraph3: '100% natural, fresh, free from artificial additives, and guaranteed authentic.',
   storyImage: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=1000&auto=format&fit=crop&q=85',
-  pillarsTitle: 'Our Four Pillars of Dermal Excellence',
-  pillarsSubtitle: 'Bridging timeless Korean wellness traditions with cutting-edge dermatology',
+  pillarsTitle: 'Our Four Pillars of Quality',
+  pillarsSubtitle: 'Committed to delivering uncompromising purity and vitality',
   pillars: [
     {
       id: 'p1',
-      badge: 'HERITAGE',
-      title: 'Hanbang Herbal Synergy',
-      description: 'Authentic Korean herbal medicine principles blended for cellular vitality, barrier defense, and deep radiant clarity.',
+      badge: 'PURITY',
+      title: '100% Authentic & Pure',
+      description: 'Sourced directly from authentic origins with absolute guarantees of quality and purity.',
       icon: 'Sprout'
     },
     {
       id: 'p2',
-      badge: 'BIOTECH',
-      title: 'Micro Bio-Fermentation',
-      description: 'Micro-molecular cold fermentation allowing active nutrients to penetrate up to 10 dermal layers deep effortlessly.',
-      icon: 'FlaskConical'
-    },
-    {
-      id: 'p3',
-      badge: 'CLEAN DERMA',
-      title: 'EWG Green & Cruelty-Free',
-      description: 'Dermatologist-formulated with zero harsh parabens, artificial fragrances, or sulfates. Safe for the most sensitive skin.',
+      badge: 'HYGIENE',
+      title: 'Hygienic Packing',
+      description: 'Food-grade premium packaging ensuring maximum freshness and extended shelf life.',
       icon: 'ShieldCheck'
     },
     {
+      id: 'p3',
+      badge: 'NUTRITION',
+      title: 'High Nutrient Density',
+      description: 'Loaded with natural vitamins, minerals, and antioxidants for your family’s daily energy.',
+      icon: 'Heart'
+    },
+    {
       id: 'p4',
-      badge: 'RESTORATION',
-      title: '5-Tier Barrier Defense',
-      description: 'Multi-molecular ceramides and phytosphingosine engineered to lock in deep hydration for 72 hours continuously.',
-      icon: 'Layers'
+      badge: 'CARE',
+      title: 'Customer Satisfaction',
+      description: 'Fast nationwide delivery with Cash on Delivery and dedicated customer support.',
+      icon: 'Sparkles'
     }
   ],
-  hqTitle: 'Brandini Co., Ltd. Seoul Headquarters',
-  hqSubtitle: 'Global R&D Center & Innovation Hub',
-  hqAddress: '9F, Gangnamjeil Bldg, 109, Teheran-ro, Gangnam-gu, Seoul, Republic of Korea',
+  hqTitle: 'SHOSTIR BAZAR Headquarters',
+  hqSubtitle: 'Comfort To Wellness',
+  hqAddress: 'Dhaka, Bangladesh',
   hqImage: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1200&auto=format&fit=crop&q=85',
   missionStatement: '',
-  founderQuote: 'True skin radiance is not an overnight illusion, but a harmonious balance between natural botanical resilience and scientific dermal precision.',
-  founderName: 'FANTINE Dermal Research Institute',
-  founderTitle: 'Clinical Formulation & Botanical Science Division',
+  founderQuote: 'Healthy living starts with what you consume every day. We are here to make authentic wellness effortless and trustworthy.',
+  founderName: 'SHOSTIR BAZAR Wellness Team',
+  founderTitle: 'Quality & Wellness Division',
   founderImage: 'https://images.unsplash.com/photo-1594824813589-980f745e69e8?w=800&auto=format&fit=crop&q=85',
   stats: [
-    { id: 's1', value: '28 Days', label: 'Skin Renewal Cycle' },
-    { id: 's2', value: '100%', label: 'K-Clean Certified' },
-    { id: 's3', value: '5-Tier', label: 'Ceramide Barrier Defense' },
-    { id: 's4', value: '15+', label: 'Herbal Bio-Actives' }
+    { id: 's1', value: '100%', label: 'Authentic & Pure' },
+    { id: 's2', value: '24-48h', label: 'Fast Delivery' },
+    { id: 's3', value: '10k+', label: 'Happy Customers' },
+    { id: 's4', value: 'COD', label: 'Cash on Delivery' }
   ]
 };
 

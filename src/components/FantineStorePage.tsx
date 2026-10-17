@@ -470,7 +470,7 @@ function PahariyaFlashSaleSection({
 export default function FantineStorePage({ onGoToLogin, onGoToLanding }: FantineStorePageProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { id: routeId, slug: routeSlug } = useParams<{ id?: string; slug?: string }>();
+  const { slug: routeSlug, id: routeId } = useParams<{ slug?: string; id?: string }>();
 
   // Navigation View: 'home' | 'shop' | 'about' | 'contact' | 'product_detail' | 'checkout' | 'quiz'
   const [activeNav, setActiveNav] = useState<'home' | 'shop' | 'about' | 'contact' | 'product_detail' | 'checkout' | 'quiz'>(() => {
@@ -514,47 +514,48 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
     return [];
   });
 
-  // Helper to find matching product from URL path or router params
-  const findProductFromPath = useCallback((path: string, idParam?: string, slugParam?: string, productList: FantineProductItem[] = products) => {
+  // Helper to find matching product from URL path or router params (supports /product/:slug and legacy /product/:slug/:id)
+  const findProductFromPath = useCallback((path: string, slugParam?: string, idParam?: string, productList: FantineProductItem[] = products) => {
     if (!productList || productList.length === 0) return null;
-    const targetId = (idParam || '').toLowerCase();
-    const targetSlug = (slugParam || '').toLowerCase();
+    const targetSlug = decodeURIComponent(slugParam || '').trim().toLowerCase();
+    const targetId = decodeURIComponent(idParam || '').trim().toLowerCase();
+    const cleanPath = decodeURIComponent(path || '').toLowerCase();
 
-    // 1. Direct match by ID
-    if (targetId) {
-      const directMatch = productList.find(p => p.id.toLowerCase() === targetId);
-      if (directMatch) return directMatch;
-    }
-
-    // 2. Direct match by slug
+    // 1. Direct match by slugParam
     if (targetSlug) {
       const slugMatch = productList.find(p => {
-        const pSlug = getProductSlug(p).toLowerCase();
+        const pSlug = (p.slug || getProductSlug(p)).toLowerCase();
         return pSlug === targetSlug || p.id.toLowerCase() === targetSlug;
       });
       if (slugMatch) return slugMatch;
     }
 
-    // 3. Maybe targetId is actually a slug
+    // 2. Direct match by idParam (for legacy /product/:slug/:id)
     if (targetId) {
-      const slugAsIdMatch = productList.find(p => {
-        const pSlug = getProductSlug(p).toLowerCase();
-        return pSlug === targetId;
+      const idMatch = productList.find(p => {
+        const pSlug = (p.slug || getProductSlug(p)).toLowerCase();
+        return p.id.toLowerCase() === targetId || pSlug === targetId;
       });
-      if (slugAsIdMatch) return slugAsIdMatch;
+      if (idMatch) return idMatch;
     }
 
-    // 4. Check if pathname contains any product id
-    const pathLower = path.toLowerCase();
-    const pathMatch = productList.find(p => pathLower.includes(p.id.toLowerCase()));
-    if (pathMatch) return pathMatch;
+    // 3. Extract product segment from path like /product/:slug
+    const segMatch = cleanPath.match(/\/product\/([^/?#]+)/);
+    if (segMatch && segMatch[1]) {
+      const seg = segMatch[1].trim();
+      const direct = productList.find(p => {
+        const pSlug = (p.slug || getProductSlug(p)).toLowerCase();
+        return pSlug === seg || p.id.toLowerCase() === seg;
+      });
+      if (direct) return direct;
+    }
 
-    // 5. Check if pathname contains any product slug
-    const pathSlugMatch = productList.find(p => {
-      const pSlug = getProductSlug(p).toLowerCase();
-      return pSlug.length > 3 && pathLower.includes(pSlug);
+    // 4. Substring search in path
+    const fallback = productList.find(p => {
+      const pSlug = (p.slug || getProductSlug(p)).toLowerCase();
+      return (pSlug.length > 2 && cleanPath.includes(pSlug)) || cleanPath.includes(p.id.toLowerCase());
     });
-    if (pathSlugMatch) return pathSlugMatch;
+    if (fallback) return fallback;
 
     return null;
   }, [products]);
@@ -568,10 +569,14 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
         if (Array.isArray(parsed) && parsed.length > 0) {
           const initialList = parsed.map((p, idx) => normalizeFantineProduct(p, idx));
           if (typeof window !== 'undefined' && window.location.pathname.startsWith('/product')) {
-            const p = window.location.pathname;
+            const p = decodeURIComponent(window.location.pathname).toLowerCase();
+            const segMatch = p.match(/\/product\/([^/?#]+)/);
+            const target = segMatch ? segMatch[1].trim() : '';
             const found = initialList.find(prod => {
-              const slug = getProductSlug(prod).toLowerCase();
-              return p.includes(prod.id) || (slug.length > 3 && p.toLowerCase().includes(slug));
+              const slug = (prod.slug || getProductSlug(prod)).toLowerCase();
+              return (target && (slug === target || prod.id.toLowerCase() === target)) ||
+                     (slug.length > 2 && p.includes(slug)) ||
+                     p.includes(prod.id.toLowerCase());
             });
             if (found) return found;
           }
@@ -633,7 +638,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
         setProducts(normalized);
         setActiveProductDetail(prev => {
           if (typeof window !== 'undefined' && window.location.pathname.startsWith('/product')) {
-            const urlMatch = findProductFromPath(window.location.pathname, routeId, routeSlug, normalized);
+            const urlMatch = findProductFromPath(window.location.pathname, routeSlug, routeId, normalized);
             if (urlMatch) return urlMatch;
           }
           const match = normalized.find(p => p.id === prev?.id);
@@ -652,7 +657,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
         setProducts(normalized);
         setActiveProductDetail(prev => {
           if (typeof window !== 'undefined' && window.location.pathname.startsWith('/product')) {
-            const urlMatch = findProductFromPath(window.location.pathname, routeId, routeSlug, normalized);
+            const urlMatch = findProductFromPath(window.location.pathname, routeSlug, routeId, normalized);
             if (urlMatch) return urlMatch;
           }
           const match = normalized.find(p => p.id === prev?.id);
@@ -922,7 +927,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
   useEffect(() => {
     const path = location.pathname;
     if (path.startsWith('/product')) {
-      const found = findProductFromPath(path, routeId, routeSlug, products);
+      const found = findProductFromPath(path, routeSlug, routeId, products);
       if (found) {
         setActiveProductDetail(found);
         setActiveNav('product_detail');
@@ -943,7 +948,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
     } else if (path === '/' || path === '') {
       setActiveNav('home');
     }
-  }, [location.pathname, routeId, routeSlug, products, findProductFromPath]);
+  }, [location.pathname, routeSlug, routeId, products, findProductFromPath]);
 
   // Bangladeshi Taka BDT Currency Formatter (Matching Pahariya 1,490.00৳ format)
   const formatPrice = (priceVal: number) => {
@@ -999,7 +1004,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
     }
     setActiveNav('product_detail');
     const slug = getProductSlug(product);
-    navigate(`/product/${encodeURIComponent(slug)}/${encodeURIComponent(product.id)}`);
+    navigate(`/product/${encodeURIComponent(slug)}`);
     scrollToTop();
   }, [navigate, scrollToTop]);
 
@@ -1490,9 +1495,17 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
 
   const currentProductImages = useMemo(() => {
     if (!activeProductDetail) return ['/placeholder-image.svg'];
-    return activeProductDetail.additionalImages && activeProductDetail.additionalImages.length > 0
-      ? activeProductDetail.additionalImages
-      : [activeProductDetail.coverImage || '/placeholder-image.svg'];
+    const imgs: string[] = [];
+    if (activeProductDetail.coverImage) imgs.push(activeProductDetail.coverImage);
+    if (Array.isArray(activeProductDetail.additionalImages)) {
+      activeProductDetail.additionalImages.forEach(img => {
+        if (img && !imgs.includes(img)) imgs.push(img);
+      });
+    }
+    if (imgs.length === 0 && activeProductDetail.image) {
+      imgs.push(activeProductDetail.image);
+    }
+    return imgs.length > 0 ? imgs : ['/placeholder-image.svg'];
   }, [activeProductDetail]);
 
   return (
@@ -1673,38 +1686,62 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-10 items-start">
             
-            {/* Left Gallery: Main Image with Horizontal Thumbnails DIRECTLY Below (Pahariya Style) */}
-            <div className="lg:col-span-6 flex flex-col gap-3 sm:gap-4">
+            {/* Left Gallery: Naturo Style (Vertical Thumbnails on Left, Clean Main Image on Right) */}
+            <div className="lg:col-span-6 flex flex-col-reverse md:flex-row gap-3 sm:gap-4 items-start">
               
-              {/* Main Product Frame */}
+              {/* Vertical Thumbnails List (Desktop: Left Column, Mobile: Horizontal Row Below) */}
+              {currentProductImages.length > 1 && (
+                <div className="flex flex-row md:flex-col gap-2.5 overflow-x-auto md:overflow-y-auto w-full md:w-20 lg:w-24 shrink-0 max-h-[520px] py-1 md:py-0 no-scrollbar">
+                  {currentProductImages.map((imgUrl, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setActiveImageIndex(idx)}
+                      className={`w-16 h-16 sm:w-20 sm:h-20 md:w-full md:h-20 lg:h-24 rounded-lg bg-white border-2 ${
+                        activeImageIndex === idx 
+                          ? 'border-[#1b5e20] ring-2 ring-emerald-600/25 shadow-sm' 
+                          : 'border-slate-200 hover:border-emerald-500/60'
+                      } p-1.5 overflow-hidden transition-all shrink-0 cursor-pointer flex items-center justify-center`}
+                      aria-label={`View product image ${idx + 1}`}
+                    >
+                      <img 
+                        width={80} 
+                        height={80} 
+                        src={imgUrl} 
+                        alt={`${activeProductDetail.title} thumbnail ${idx + 1}`} 
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = DEFAULT_FANTINE_FALLBACK_IMAGE;
+                        }}
+                        className="w-full h-full object-contain" 
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Main Product Frame (Clean, Professional & No Unwanted Hover Zooming) */}
               <div 
-                onMouseMove={(e) => {
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  const x = ((e.clientX - rect.left) / rect.width) * 100;
-                  const y = ((e.clientY - rect.top) / rect.height) * 100;
-                  setZoomPos({ x, y });
-                  setIsHoverZooming(true);
-                }}
-                onMouseLeave={() => setIsHoverZooming(false)}
-                onClick={() => setIsZoomModalOpen(true)}
-                className="relative w-full aspect-square max-h-[520px] bg-[#f8faf8] rounded-xl overflow-hidden border border-slate-200 flex items-center justify-center group cursor-zoom-in"
+                className="relative flex-1 w-full aspect-square max-h-[520px] bg-[#f8faf8] rounded-xl overflow-hidden border border-slate-200 flex items-center justify-center group"
               >
-                <img fetchPriority="high" width={520} height={520} src={currentProductImages[activeImageIndex] || activeProductDetail.coverImage} alt={activeProductDetail.title} 
+                <img 
+                  fetchPriority="high" 
+                  width={520} 
+                  height={520} 
+                  src={currentProductImages[activeImageIndex] || activeProductDetail.coverImage} 
+                  alt={activeProductDetail.title} 
                   onError={(e) => {
                     e.currentTarget.onerror = null;
                     e.currentTarget.src = DEFAULT_FANTINE_FALLBACK_IMAGE;
                   }}
-                  style={{
-                    transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
-                    transform: isHoverZooming ? 'scale(2.2)' : 'scale(1)'
-                  }}
-                  className="w-4/5 h-4/5 object-contain transition-transform duration-200 pointer-events-none select-none"
+                  className="w-4/5 h-4/5 object-contain select-none"
                 />
 
                 {/* Left/Right Carousel Arrows */}
                 {currentProductImages.length > 1 && (
                   <>
                     <button 
+                      type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         setActiveImageIndex(prev => (prev === 0 ? currentProductImages.length - 1 : prev - 1));
@@ -1715,6 +1752,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
                       <ChevronLeft className="w-5 h-5" />
                     </button>
                     <button 
+                      type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         setActiveImageIndex(prev => (prev === currentProductImages.length - 1 ? 0 : prev + 1));
@@ -1727,7 +1765,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
                   </>
                 )}
 
-                {/* Zoom Icon Button */}
+                {/* Fullscreen Zoom Lightbox Button */}
                 <button
                   type="button"
                   onClick={(e) => {
@@ -1740,29 +1778,6 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
                   <ZoomIn className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </button>
               </div>
-
-              {/* Horizontal Thumbnails Strip (Directly Below Main Image - Matching Pahariya) */}
-              {currentProductImages.length > 1 && (
-                <div className="flex items-center gap-2.5 overflow-x-auto py-1 no-scrollbar">
-                  {currentProductImages.map((imgUrl, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setActiveImageIndex(idx)}
-                      className={`w-16 h-16 sm:w-20 sm:h-20 rounded-lg bg-white border-2 ${
-                        activeImageIndex === idx ? 'border-[#1b5e20] ring-2 ring-emerald-600/30' : 'border-slate-200 hover:border-slate-300'
-                      } p-1 overflow-hidden transition-all shrink-0 cursor-pointer`}
-                    >
-                      <img width={80} height={80} src={imgUrl} alt="Thumbnail" 
-                        onError={(e) => {
-                          e.currentTarget.onerror = null;
-                          e.currentTarget.src = DEFAULT_FANTINE_FALLBACK_IMAGE;
-                        }}
-                        className="w-full h-full object-contain" 
-                      />
-                    </button>
-                  ))}
-                </div>
-              )}
 
             </div>
 

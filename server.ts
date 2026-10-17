@@ -23,11 +23,24 @@ function injectServerMeta(html: string, reqPath: string, host: string, proto: st
   const fullUrl = `${proto}://${host}${reqPath}`;
 
   if (reqPath.startsWith('/product')) {
-    const pathLower = reqPath.toLowerCase();
+    const rawSeg = reqPath.replace(/^\/product\/?/, '').split('/')[0] || '';
+    const cleanSeg = decodeURIComponent(rawSeg).trim().toLowerCase();
+    const pathLower = decodeURIComponent(reqPath).toLowerCase();
+
     const matched = storeProducts.find(p => {
-      const pId = p.id.toLowerCase();
-      const pSlug = (p.title || '').toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-');
-      return pathLower.includes(pId) || (pSlug.length > 3 && pathLower.includes(pSlug));
+      const pId = (p.id || '').toLowerCase();
+      const rawTitle = (p.title || '').trim();
+      const pSlug = (p.slug || rawTitle)
+        .toLowerCase()
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^\p{L}\p{M}\p{N}]+/gu, '-')
+        .replace(/^-+|-+$/g, '')
+        .replace(/-{2,}/g, '-');
+
+      return (cleanSeg && (cleanSeg === pSlug || cleanSeg === pId)) ||
+             (pSlug.length > 2 && pathLower.includes(pSlug)) ||
+             (pId.length > 2 && pathLower.includes(pId));
     });
 
     if (matched) {

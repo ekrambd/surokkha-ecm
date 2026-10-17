@@ -43,23 +43,16 @@ function slugify(value) {
 async function generateSitemap() {
   console.log(`Generating sitemap...`);
   const urls = [
-    { loc: 'https://fantinebd.com/', priority: '1.0', changefreq: 'daily' },
-    { loc: 'https://fantinebd.com/shop', priority: '0.9', changefreq: 'daily' },
-    { loc: 'https://fantinebd.com/about', priority: '0.8', changefreq: 'monthly' },
-    { loc: 'https://fantinebd.com/contact', priority: '0.8', changefreq: 'monthly' },
-    { loc: 'https://fantinebd.com/quiz', priority: '0.8', changefreq: 'weekly' },
-    { loc: 'https://fantinebd.com/checkout', priority: '0.7', changefreq: 'weekly' }
+    { loc: 'https://shostirbazar.com/', priority: '1.0', changefreq: 'daily' },
+    { loc: 'https://shostirbazar.com/shop', priority: '0.9', changefreq: 'daily' },
+    { loc: 'https://shostirbazar.com/about', priority: '0.8', changefreq: 'monthly' },
+    { loc: 'https://shostirbazar.com/contact', priority: '0.8', changefreq: 'monthly' },
+    { loc: 'https://shostirbazar.com/quiz', priority: '0.8', changefreq: 'weekly' },
+    { loc: 'https://shostirbazar.com/checkout', priority: '0.7', changefreq: 'weekly' }
   ];
 
   // Default store catalog products for offline/Firestore-free builds
-  const defaultProducts = [
-    { id: 'product_385231', title: 'Rapid Acne Treatment Toner', slug: 'rapid-acne-treatment-toner' },
-    { id: 'fantine-cream', title: 'Ultimate Calming Solution Cream', slug: 'ultimate-calming-solution-cream' },
-    { id: 'fantine-cleanser', title: 'Ultimate Calming Solution Face Cleanser', slug: 'ultimate-calming-solution-face-cleanser' },
-    { id: 'fantine-toner', title: 'Ultimate Calming Solution Toner', slug: 'ultimate-calming-solution-toner' },
-    { id: 'fantine-essence', title: 'Ultimate Calming Solution Essence', slug: 'ultimate-calming-solution-essence' },
-    { id: 'fantine-mask', title: 'Ultra Repair Face Mask', slug: 'ultra-repair-face-mask' }
-  ];
+  const defaultProducts = [];
 
   const productsFile = path.join(__dirname, '../prisma/products.json');
   let productsToInclude = defaultProducts;
@@ -74,7 +67,8 @@ async function generateSitemap() {
 
   productsToInclude.forEach(prod => {
     const slug = slugify(prod.slug || prod.title || prod.id);
-    const loc = `https://fantinebd.com/product/${encodeURIComponent(slug)}/${encodeURIComponent(prod.id)}/`;
+    if (!slug) return;
+    const loc = `https://shostirbazar.com/product/${encodeURIComponent(slug)}/`;
     if (!urls.some(u => u.loc === loc)) {
       urls.push({ loc, priority: '0.8', changefreq: 'weekly' });
     }
@@ -94,8 +88,9 @@ async function generateSitemap() {
             const title = fields.title ? fields.title.stringValue : '';
             const slugField = fields.slug ? fields.slug.stringValue : '';
             const slug = slugify(slugField || title || id);
-            const loc = `https://fantinebd.com/product/${encodeURIComponent(slug)}/${encodeURIComponent(id)}/`;
-            if (slug && id && !urls.some(u => u.loc === loc)) {
+            if (!slug) return;
+            const loc = `https://shostirbazar.com/product/${encodeURIComponent(slug)}/`;
+            if (!urls.some(u => u.loc === loc)) {
               urls.push({ loc, priority: '0.8', changefreq: 'weekly' });
             }
           });
