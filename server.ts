@@ -9,9 +9,12 @@ import { app } from "./src/server/app";
 import { storeProducts, storeSettings } from "./src/server/data/store";
 
 function injectServerMeta(html: string, reqPath: string, host: string, proto: string): string {
-  const storeName = storeSettings?.storeName?.trim() || "Online Store";
-  let title = storeName;
-  let description = storeSettings?.storeTagline?.trim() || storeSettings?.footerDescription?.trim() || "Welcome to our store";
+  const storeName = storeSettings?.storeName?.trim() || "SHOSTIR BAZAR";
+  const storeTagline = storeSettings?.storeTagline?.trim() || "COMFORT TO WELLNESS";
+  let title = storeSettings?.storeName?.trim()
+    ? (storeSettings?.storeTagline?.trim() ? `${storeName} - ${storeTagline}` : `${storeName} - COMFORT TO WELLNESS`)
+    : "SHOSTIR BAZAR - COMFORT TO WELLNESS";
+  let description = storeSettings?.storeTagline?.trim() || storeSettings?.footerDescription?.trim() || "SHOSTIR BAZAR - COMFORT TO WELLNESS. Discover premium quality products for your health, comfort, and daily wellness.";
   
   // Use user-uploaded logo/favicon if configured, otherwise use clean placeholder SVG
   const uploadedLogo = storeSettings?.storeLogo?.trim();

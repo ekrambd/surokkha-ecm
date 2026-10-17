@@ -26,14 +26,14 @@ const BRAND_COLOR_PRESETS = [
 
 export default function ProfileSettings({ adminEmail }: ProfileSettingsProps) {
   // Store Details state
-  const [storeName, setStoreName] = useState('F A И T I И E');
-  const [companyName, setCompanyName] = useState('Brandini Co., Ltd.');
-  const [storeTagline, setStoreTagline] = useState('Brandini Co., Ltd. • Seoul, Republic of Korea. Clinical Hanbang Skincare & Botanical Whitening Solutions.');
-  const [topAnnouncementText, setTopAnnouncementText] = useState('WELCOME TO BRANDINI CO.,LTD');
-  const [phone, setPhone] = useState('+82 (02) 884-9021');
-  const [email, setEmail] = useState('FANTINE@BRANDINI.CO.KR');
-  const [street, setStreet] = useState('9F, Gangnamjeil Bldg, 109, Teheran-ro, Gangnam-gu, Seoul, Republic of Korea');
-  const [industry, setIndustry] = useState('Cosmetics & Skincare');
+  const [storeName, setStoreName] = useState('SHOSTIR BAZAR');
+  const [companyName, setCompanyName] = useState('SHOSTIR BAZAR');
+  const [storeTagline, setStoreTagline] = useState('COMFORT TO WELLNESS');
+  const [topAnnouncementText, setTopAnnouncementText] = useState('WELCOME TO SHOSTIR BAZAR');
+  const [phone, setPhone] = useState('+8801329458568');
+  const [email, setEmail] = useState('support@shostirbazar.com');
+  const [street, setStreet] = useState('Dhaka, Bangladesh');
+  const [industry, setIndustry] = useState('General E-Commerce');
 
   // Social Media Links state
   const [facebookUrl, setFacebookUrl] = useState('');

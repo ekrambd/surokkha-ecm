@@ -61,13 +61,23 @@ async function generateSitemap() {
     { id: 'fantine-mask', title: 'Ultra Repair Face Mask', slug: 'ultra-repair-face-mask' }
   ];
 
-  defaultProducts.forEach(prod => {
+  const productsFile = path.join(__dirname, '../prisma/products.json');
+  let productsToInclude = defaultProducts;
+  if (fs.existsSync(productsFile)) {
+    try {
+      const real = JSON.parse(fs.readFileSync(productsFile, 'utf8'));
+      if (Array.isArray(real) && real.length > 0) {
+        productsToInclude = real;
+      }
+    } catch (e) {}
+  }
+
+  productsToInclude.forEach(prod => {
     const slug = slugify(prod.slug || prod.title || prod.id);
-    urls.push({
-      loc: `https://fantinebd.com/product/${encodeURIComponent(slug)}/${encodeURIComponent(prod.id)}/`,
-      priority: '0.8',
-      changefreq: 'weekly'
-    });
+    const loc = `https://fantinebd.com/product/${encodeURIComponent(slug)}/${encodeURIComponent(prod.id)}/`;
+    if (!urls.some(u => u.loc === loc)) {
+      urls.push({ loc, priority: '0.8', changefreq: 'weekly' });
+    }
   });
 
   // Optional online fetch only if Firestore project is explicitly configured and reachable

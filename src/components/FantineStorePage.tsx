@@ -733,7 +733,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
   }, [cart.length]);
 
   // Dynamic Store & Footer Brand Details (From Admin Profile / Store Setup)
-  const displayStoreName = ecomSettings?.storeName || instituteInfo?.name || 'Online Store';
+  const displayStoreName = ecomSettings?.storeName || instituteInfo?.name || 'SHOSTIR BAZAR';
   const displayStoreLogo = ecomSettings?.storeLogo || instituteInfo?.logo || '/placeholder-logo.svg';
   const displayStoreFavicon = ecomSettings?.storeFavicon || ecomSettings?.favicon || instituteInfo?.favicon || instituteInfo?.storeFavicon || '/placeholder-favicon.svg';
   const displayCompanyName = ecomSettings?.companyName || instituteInfo?.name || displayStoreName;
@@ -791,14 +791,18 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
       link.href = displayStoreFavicon;
     }
     if (displayStoreName) {
+      const homeTitle = ecomSettings?.storeTagline?.trim()
+        ? `${displayStoreName} - ${ecomSettings.storeTagline.trim()}`
+        : `${displayStoreName} - COMFORT TO WELLNESS`;
+      const homeDesc = ecomSettings?.storeTagline?.trim() || aboutSettings?.description || 'SHOSTIR BAZAR - COMFORT TO WELLNESS. Discover premium quality products for your health, comfort, and daily wellness.';
       updateMetaTags(
-        `${displayStoreName} | Official Store`, 
-        aboutSettings?.description || 'Welcome to our official store', 
+        homeTitle, 
+        homeDesc, 
         displayStoreLogo,
         window.location.href
       );
     }
-  }, [displayStoreLogo, displayStoreName, aboutSettings?.description]);
+  }, [displayStoreLogo, displayStoreName, ecomSettings?.storeTagline, aboutSettings?.description]);
 
   // Dynamic SEO based on active view
   useEffect(() => {
@@ -822,16 +826,16 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
       }, eventId);
     } else if (activeNav === 'shop') {
       updateMetaTags(
-        `Shop All Korean Skincare | ${displayStoreName}`,
-        aboutSettings?.description || 'Browse our complete catalog of Korean Hanbang botanical skincare formulations.',
+        `Shop All Products | ${displayStoreName}`,
+        aboutSettings?.description || `Browse our complete catalog of quality products at ${displayStoreName}.`,
         displayStoreLogo,
         window.location.href
       );
       updateProductSchema(null, window.location.href, displayStoreName);
     } else if (activeNav === 'about') {
       updateMetaTags(
-        `About Us & Hanbang Story | ${displayStoreName}`,
-        aboutSettings?.subtitle || aboutSettings?.description || 'Learn about our Seoul heritage, brand story, and Korean skincare philosophy.',
+        `About Us | ${displayStoreName}`,
+        aboutSettings?.subtitle || aboutSettings?.description || `Learn about our story and mission at ${displayStoreName}.`,
         displayStoreLogo,
         window.location.href
       );
@@ -846,8 +850,8 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
       updateProductSchema(null, window.location.href, displayStoreName);
     } else if (activeNav === 'quiz') {
       updateMetaTags(
-        `Personalized Skin Routine Quiz | ${displayStoreName}`,
-        'Find your custom Korean skincare ritual tailored to your specific skin type and concerns.',
+        `Product Finder Quiz | ${displayStoreName}`,
+        'Find your custom recommendations tailored to your needs.',
         displayStoreLogo,
         window.location.href
       );
@@ -861,15 +865,19 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
       );
       updateProductSchema(null, window.location.href, displayStoreName);
     } else if (activeNav === 'home') {
+      const homeTitle = ecomSettings?.storeTagline?.trim()
+        ? `${displayStoreName} - ${ecomSettings.storeTagline.trim()}`
+        : `${displayStoreName} - COMFORT TO WELLNESS`;
+      const homeDesc = ecomSettings?.storeTagline?.trim() || aboutSettings?.description || 'SHOSTIR BAZAR - COMFORT TO WELLNESS. Discover premium quality products for your health, comfort, and daily wellness.';
       updateMetaTags(
-        `${displayStoreName} | Official Store`,
-        aboutSettings?.description || 'Welcome to our official store',
+        homeTitle,
+        homeDesc,
         displayStoreLogo,
         window.location.href
       );
       updateProductSchema(null, window.location.href, displayStoreName);
     }
-  }, [activeNav, activeProductDetail, displayStoreName, displayStoreLogo, aboutSettings?.description, aboutSettings?.subtitle]);
+  }, [activeNav, activeProductDetail, displayStoreName, displayStoreLogo, ecomSettings?.storeTagline, aboutSettings?.description, aboutSettings?.subtitle]);
 
   // Track Search event on search query input (debounced)
   useEffect(() => {

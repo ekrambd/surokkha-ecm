@@ -86,18 +86,23 @@ export function loadSettingsFromDisk(): EcomSettings {
       const raw = fs.readFileSync(SETTINGS_STORAGE_FILE, 'utf-8');
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === 'object') {
-        return parsed;
+        return {
+          storeName: 'SHOSTIR BAZAR',
+          storeTagline: 'COMFORT TO WELLNESS',
+          ...parsed
+        };
       }
     }
   } catch (err) {
     console.warn('[store] Could not load settings from disk:', err);
   }
   return {
-    storeName: '',
+    storeName: 'SHOSTIR BAZAR',
     storeLogo: '',
     storeFavicon: '',
     favicon: '',
-    storeTagline: '',
+    storeTagline: 'COMFORT TO WELLNESS',
+    topAnnouncementText: 'WELCOME TO SHOSTIR BAZAR',
     gtmId: '',
     deliveryChargeInsideDhaka: 60,
     deliveryChargeOutsideDhaka: 110,

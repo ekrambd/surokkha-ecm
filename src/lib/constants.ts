@@ -155,17 +155,17 @@ export const DEFAULT_HIGHLIGHT_SPOTLIGHT_SETTINGS: HighlightSpotlightSettings = 
 };
 
 export const DEFAULT_ECOM_SETTINGS: EcomSettings = {
-  storeName: '',
-  companyName: '',
+  storeName: 'SHOSTIR BAZAR',
+  companyName: 'SHOSTIR BAZAR',
   storeLogo: '',
   storeFavicon: '',
   favicon: '',
-  storeTagline: '',
-  topAnnouncementText: '',
+  storeTagline: 'COMFORT TO WELLNESS',
+  topAnnouncementText: 'WELCOME TO SHOSTIR BAZAR',
   contactEmail: '',
   contactPhone: '',
   storeAddress: '',
-  footerDescription: '',
+  footerDescription: 'SHOSTIR BAZAR - COMFORT TO WELLNESS. Discover premium quality products for your health, comfort, and daily wellness.',
   socialLinks: {
     facebook: '',
     instagram: '',
@@ -195,13 +195,13 @@ export const DEFAULT_ECOM_SETTINGS: EcomSettings = {
 };
 
 export const DEFAULT_INSTITUTE_INFO: InstituteInfo = {
-  name: '',
+  name: 'SHOSTIR BAZAR',
   regNo: '',
   phone: '',
   email: '',
   address: '',
   street: '',
-  description: '',
+  description: 'COMFORT TO WELLNESS',
   industry: '',
   bearingRollLocation: '',
   logo: '',
