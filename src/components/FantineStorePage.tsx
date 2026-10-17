@@ -3029,7 +3029,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
             </div>
             <h3 className="font-serif text-2xl font-bold text-slate-900">Order Confirmed!</h3>
             <p className="text-xs text-slate-600">
-              Thank you for ordering with FANTINE Korea. Your order ID is <strong>{orderSuccess.id}</strong>.
+              Thank you for ordering with {displayStoreName}. Your order ID is <strong>{orderSuccess.id}</strong>.
               Our delivery team will contact you shortly.
             </p>
             <button 

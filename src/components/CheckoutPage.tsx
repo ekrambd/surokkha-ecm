@@ -558,7 +558,7 @@ export default function CheckoutPage({
           {/* 1-Click WhatsApp Order Confirmation & Tracking */}
           <a
             href={`https://wa.me/8801329458568?text=${encodeURIComponent(
-              `Hello FANTINE BD,\nI just placed order #${orderSuccess.id} (Amount: ${(orderSuccess.totalAmount || orderSuccess.totalPrice || 0).toLocaleString()} BDT).\nCustomer Name: ${orderSuccess.customerName}\nPhone: ${orderSuccess.customerPhone || orderSuccess.phone}\nPlease confirm my order & delivery updates!`
+              `Hello SHOSTIR BAZAR,\nI just placed order #${orderSuccess.id} (Amount: ${(orderSuccess.totalAmount || orderSuccess.totalPrice || 0).toLocaleString()} BDT).\nCustomer Name: ${orderSuccess.customerName}\nPhone: ${orderSuccess.customerPhone || orderSuccess.phone}\nPlease confirm my order & delivery updates!`
             )}`}
             target="_blank"
             rel="noopener noreferrer"

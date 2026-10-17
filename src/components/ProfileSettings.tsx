@@ -474,7 +474,7 @@ export default function ProfileSettings({ adminEmail }: ProfileSettingsProps) {
                       value={storeName}
                       onChange={(e) => setStoreName(e.target.value)}
                       className="block w-full pl-10 pr-4 py-3 bg-transparent text-sm text-slate-900 focus:outline-none font-semibold"
-                      placeholder="e.g. F A И T I И E"
+                      placeholder="e.g. SHOSTIR BAZAR"
                     />
                   </div>
                 </div>

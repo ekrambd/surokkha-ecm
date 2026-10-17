@@ -86,10 +86,14 @@ export function loadSettingsFromDisk(): EcomSettings {
       const raw = fs.readFileSync(SETTINGS_STORAGE_FILE, 'utf-8');
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === 'object') {
+        const storeName = (!parsed.storeName || parsed.storeName === 'F A И T I И E' || parsed.storeName === 'FANTINE') ? 'SHOSTIR BAZAR' : parsed.storeName;
+        const storeTagline = (!parsed.storeTagline || parsed.storeTagline.includes('Brandini') || parsed.storeTagline.includes('Hanbang')) ? 'COMFORT TO WELLNESS' : parsed.storeTagline;
         return {
-          storeName: 'SHOSTIR BAZAR',
-          storeTagline: 'COMFORT TO WELLNESS',
-          ...parsed
+          ...parsed,
+          storeName,
+          companyName: (parsed.companyName === 'Brandini Co., Ltd.' || parsed.companyName === 'FANTINE' || !parsed.companyName) ? 'SHOSTIR BAZAR' : parsed.companyName,
+          storeTagline,
+          topAnnouncementText: (parsed.topAnnouncementText?.includes('BRANDINI') || !parsed.topAnnouncementText) ? 'WELCOME TO SHOSTIR BAZAR' : parsed.topAnnouncementText,
         };
       }
     }

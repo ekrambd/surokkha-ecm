@@ -62,9 +62,12 @@ function migrateBusinessPhone(info: InstituteInfo): InstituteInfo {
     ? '01329458568'
     : info.phone;
 
+  const name = (!info.name || info.name === 'FANTINE' || info.name === 'F A И T I И E') ? 'SHOSTIR BAZAR' : info.name;
+  const description = (!info.description || info.description.includes('Brandini') || info.description.includes('Hanbang')) ? 'COMFORT TO WELLNESS' : info.description;
+
   // The business has no government registration number. Always discard the
   // obsolete value from previously saved Firestore/localStorage profile data.
-  return { ...info, phone, regNo: '' };
+  return { ...info, name, description, phone, regNo: '' };
 }
 
 export enum OperationType {
@@ -1038,6 +1041,19 @@ export const dbService = {
     }
     if (!result.deliveryMethods || result.deliveryMethods.length === 0) {
       result.deliveryMethods = DEFAULT_DELIVERY_METHODS;
+    }
+
+    // Purge legacy FANTINE dummy store name and tagline
+    if (result.storeName === 'F A И T I И E' || result.storeName === 'FANTINE' || !result.storeName) {
+      result.storeName = 'SHOSTIR BAZAR';
+      result.companyName = 'SHOSTIR BAZAR';
+      if (!result.storeTagline || result.storeTagline.includes('Brandini') || result.storeTagline.includes('Hanbang')) {
+        result.storeTagline = 'COMFORT TO WELLNESS';
+      }
+      if (!result.topAnnouncementText || result.topAnnouncementText.includes('BRANDINI')) {
+        result.topAnnouncementText = 'WELCOME TO SHOSTIR BAZAR';
+      }
+      setLocalData('noor_ecom_settings', stripIntegrationSecrets(result));
     }
 
     return { ...stripIntegrationSecrets(result), pixelId: META_PIXEL_ID };

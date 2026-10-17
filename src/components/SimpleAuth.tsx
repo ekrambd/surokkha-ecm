@@ -58,8 +58,8 @@ export default function SimpleAuth({ onSuccess, onCancel, isModal = false }: Sim
 
   const getWhatsAppTrackUrl = (orderId?: string) => {
     const text = orderId
-      ? `Hello FANTINE BD,\nI would like an update on my order #${orderId} (Phone: ${identifier.trim()}). Please let me know the status!`
-      : `Hello FANTINE BD,\nI need assistance with my order (Phone: ${identifier.trim() || 'Not Provided'}). Please assist me!`;
+      ? `Hello SHOSTIR BAZAR,\nI would like an update on my order #${orderId} (Phone: ${identifier.trim()}). Please let me know the status!`
+      : `Hello SHOSTIR BAZAR,\nI need assistance with my order (Phone: ${identifier.trim() || 'Not Provided'}). Please assist me!`;
     return `https://wa.me/${WHATSAPP_HOTLINE}?text=${encodeURIComponent(text)}`;
   };
 
