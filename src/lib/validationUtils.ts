@@ -31,16 +31,22 @@ export function sanitizeBDPhoneInput(raw: string): string {
   // 2. Strip anything that is NOT a digit (letters, symbols, punctuation)
   val = val.replace(/\D/g, '');
 
-  // 3. Handle country code prefix (+8801... or 8801...)
+  // 3. Handle country code prefix (+8801..., 8801..., 880...)
   if (val.startsWith('8801')) {
     val = val.slice(2);
   } else if (val.startsWith('880')) {
     val = val.slice(2);
   } else if (val.startsWith('008801')) {
     val = val.slice(4);
+  } else if (val.startsWith('88') && val.length > 2) {
+    val = val.slice(2);
+    if (!val.startsWith('0')) val = '0' + val;
+  } else if (val === '88' || val === '8') {
+    // 88 will not take by default
+    return '';
   }
 
-  // 4. If user typed 13-19 without the leading 0 (e.g. pasted 17XXXXXXXX)
+  // 4. If user typed 13-19 without the leading 0 (e.g. pasted 17XXXXXXXX or 13XXXXXXXX)
   if (/^1[3-9]/.test(val) && val.length <= 10) {
     val = '0' + val;
   }

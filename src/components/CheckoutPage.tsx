@@ -604,51 +604,73 @@ export default function CheckoutPage({
                         <label className="block text-xs font-semibold text-slate-700">
                           মোবাইল নাম্বার <span className="text-red-500">*</span>
                         </label>
-                        <span className="text-[10px] text-slate-400 font-normal">১১ ডিজিট</span>
+                        <span className="text-[10px] text-emerald-700 font-medium bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
+                          ১১ ডিজিট
+                        </span>
                       </div>
-                      <input
-                        type="tel"
-                        inputMode="numeric"
-                        maxLength={11}
-                        placeholder="01XXXXXXXXX"
-                        value={phone}
-                        onKeyDown={(e) => {
-                          if (['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
-                            return;
-                          }
-                          if ((e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x'].includes(e.key.toLowerCase())) {
-                            return;
-                          }
-                          if (!/^[0-9০-৯]$/.test(e.key)) {
+                      <div className="relative">
+                        <input
+                          type="tel"
+                          inputMode="numeric"
+                          placeholder="যেমন: 01315861003"
+                          value={phone}
+                          onKeyDown={(e) => {
+                            if (['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
+                              return;
+                            }
+                            if ((e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x'].includes(e.key.toLowerCase())) {
+                              return;
+                            }
+                            if (!/^[0-9০-৯\+]$/.test(e.key)) {
+                              e.preventDefault();
+                            }
+                          }}
+                          onPaste={(e) => {
                             e.preventDefault();
-                          }
-                        }}
-                        onChange={(e) => {
-                          const sanitized = sanitizeBDPhoneInput(e.target.value);
-                          setPhone(sanitized);
-                          if (phoneError) setPhoneError('');
-                          if (sanitized.length === 11) {
-                            const val = validateBDPhone(sanitized);
-                            if (!val.isValid) setPhoneError(val.error || '');
-                            else setPhoneError('');
-                          }
-                        }}
-                        onBlur={() => {
-                          if (phone.trim()) {
-                            const val = validateBDPhone(phone);
-                            if (!val.isValid) setPhoneError(val.error || '');
-                            else setPhoneError('');
-                          }
-                        }}
-                        required
-                        className={`w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border ${
-                          phoneError ? 'border-red-500 ring-1 ring-red-500/20' : 'border-slate-200 focus:border-[#144d1a] focus:ring-[#144d1a]'
-                        } rounded-xl focus:ring-1 outline-none transition text-slate-900 placeholder:text-slate-400 font-mono`}
-                      />
+                            const pasted = e.clipboardData.getData('text');
+                            const clean = sanitizeBDPhoneInput(pasted);
+                            setPhone(clean);
+                            if (phoneError) setPhoneError('');
+                            if (clean.length === 11) {
+                              const val = validateBDPhone(clean);
+                              if (!val.isValid) setPhoneError(val.error || '');
+                              else setPhoneError('');
+                            }
+                          }}
+                          onChange={(e) => {
+                            const sanitized = sanitizeBDPhoneInput(e.target.value);
+                            setPhone(sanitized);
+                            if (phoneError) setPhoneError('');
+                            if (sanitized.length === 11) {
+                              const val = validateBDPhone(sanitized);
+                              if (!val.isValid) setPhoneError(val.error || '');
+                              else setPhoneError('');
+                            }
+                          }}
+                          onBlur={() => {
+                            if (phone.trim()) {
+                              const val = validateBDPhone(phone);
+                              if (!val.isValid) setPhoneError(val.error || '');
+                              else setPhoneError('');
+                            }
+                          }}
+                          required
+                          className={`w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border ${
+                            phoneError ? 'border-red-500 ring-1 ring-red-500/20' : 'border-slate-200 focus:border-[#144d1a] focus:ring-[#144d1a]'
+                          } rounded-xl focus:ring-1 outline-none transition text-slate-900 placeholder:text-slate-400 font-mono`}
+                        />
+                        {phone.length === 11 && !phoneError && (
+                          <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-emerald-600 font-bold text-xs select-none">
+                            ✓
+                          </span>
+                        )}
+                      </div>
                       {phoneError ? (
                         <p className="text-[11px] text-red-600 mt-1 font-medium">{phoneError}</p>
                       ) : (
-                        <p className="text-[10px] text-slate-400 mt-0.5">সঠিক ১১ ডিজিটের বাংলাদেশী মোবাইল নম্বর লিখুন (যেমন: 017XXXXXXXX)</p>
+                        <p className="text-[10px] text-slate-500 mt-1 flex items-center gap-1">
+                          <span className="font-semibold text-emerald-700">হিন্ট:</span> 01 দিয়ে শুরু ১১ ডিজিটের মোবাইল নম্বর দিন (যেমন: <span className="font-mono font-medium text-slate-700">01315861003</span>)। 88 বা কান্ট্রি কোড দেওয়ার প্রয়োজন নেই।
+                        </p>
                       )}
                     </div>
 

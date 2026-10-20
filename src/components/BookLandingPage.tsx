@@ -1152,49 +1152,69 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
                     </label>
                     <span className="text-[10px] text-slate-400">১১ ডিজিট</span>
                   </div>
-                  <input
-                    type="tel"
-                    inputMode="numeric"
-                    maxLength={11}
-                    required
-                    placeholder="যেমন: 01XXXXXXXXX"
-                    value={customerPhone}
-                    onKeyDown={(e) => {
-                      if (['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
-                        return;
-                      }
-                      if ((e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x'].includes(e.key.toLowerCase())) {
-                        return;
-                      }
-                      if (!/^[0-9০-৯]$/.test(e.key)) {
+                  <div className="relative">
+                    <input
+                      type="tel"
+                      inputMode="numeric"
+                      required
+                      placeholder="যেমন: 01315861003"
+                      value={customerPhone}
+                      onKeyDown={(e) => {
+                        if (['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
+                          return;
+                        }
+                        if ((e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x'].includes(e.key.toLowerCase())) {
+                          return;
+                        }
+                        if (!/^[0-9০-৯\+]$/.test(e.key)) {
+                          e.preventDefault();
+                        }
+                      }}
+                      onPaste={(e) => {
                         e.preventDefault();
-                      }
-                    }}
-                    onChange={(e) => {
-                      const sanitized = sanitizeBDPhoneInput(e.target.value);
-                      setCustomerPhone(sanitized);
-                      if (phoneError) setPhoneError('');
-                      if (sanitized.length === 11) {
-                        const val = validateBDPhone(sanitized);
-                        if (!val.isValid) setPhoneError(val.error || '');
-                        else setPhoneError('');
-                      }
-                    }}
-                    onBlur={() => {
-                      if (customerPhone.trim()) {
-                        const val = validateBDPhone(customerPhone);
-                        if (!val.isValid) setPhoneError(val.error || '');
-                        else setPhoneError('');
-                      }
-                    }}
-                    className={`w-full px-3.5 py-2.5 bg-[#120e0a] border ${
-                      phoneError ? 'border-red-500 ring-1 ring-red-500/30' : 'border-[#382d22] focus:border-[#e0562e]'
-                    } rounded-xl text-white placeholder-slate-500 focus:outline-none transition-all font-mono`}
-                  />
+                        const pasted = e.clipboardData.getData('text');
+                        const clean = sanitizeBDPhoneInput(pasted);
+                        setCustomerPhone(clean);
+                        if (phoneError) setPhoneError('');
+                        if (clean.length === 11) {
+                          const val = validateBDPhone(clean);
+                          if (!val.isValid) setPhoneError(val.error || '');
+                          else setPhoneError('');
+                        }
+                      }}
+                      onChange={(e) => {
+                        const sanitized = sanitizeBDPhoneInput(e.target.value);
+                        setCustomerPhone(sanitized);
+                        if (phoneError) setPhoneError('');
+                        if (sanitized.length === 11) {
+                          const val = validateBDPhone(sanitized);
+                          if (!val.isValid) setPhoneError(val.error || '');
+                          else setPhoneError('');
+                        }
+                      }}
+                      onBlur={() => {
+                        if (customerPhone.trim()) {
+                          const val = validateBDPhone(customerPhone);
+                          if (!val.isValid) setPhoneError(val.error || '');
+                          else setPhoneError('');
+                        }
+                      }}
+                      className={`w-full px-3.5 py-2.5 bg-[#120e0a] border ${
+                        phoneError ? 'border-red-500 ring-1 ring-red-500/30' : 'border-[#382d22] focus:border-[#e0562e]'
+                      } rounded-xl text-white placeholder-slate-500 focus:outline-none transition-all font-mono`}
+                    />
+                    {customerPhone.length === 11 && !phoneError && (
+                      <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-emerald-400 font-bold text-xs select-none">
+                        ✓
+                      </span>
+                    )}
+                  </div>
                   {phoneError ? (
                     <p className="text-[11px] text-red-400 font-medium">{phoneError}</p>
                   ) : (
-                    <p className="text-[10px] text-slate-400">১১ ডিজিটের সঠিক বাংলাদেশী মোবাইল নম্বর লিখুন</p>
+                    <p className="text-[10px] text-slate-400">
+                      <span className="text-[#f5b842] font-semibold">হিন্ট:</span> 01 দিয়ে শুরু ১১ ডিজিটের নম্বর দিন (যেমন: 01315861003)। 88 দেওয়ার প্রয়োজন নেই।
+                    </p>
                   )}
                 </div>
 
