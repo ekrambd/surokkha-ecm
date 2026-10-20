@@ -12,6 +12,7 @@ import { initPixelAndGtm, trackEvent, createEventId } from '../lib/pixelGtmServi
 import { getProductSlug } from '../lib/seoUtils';
 import { FeedbackDialog } from './ui/FeedbackDialog';
 import { playOrderSuccessVibe } from '../lib/soundUtils';
+import { validateBDPhone, validateDeliveryAddress } from '../lib/validationUtils';
 
 interface BookLandingPageProps {
   onNavigateHome: () => void;
@@ -89,6 +90,8 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+  const [addressError, setAddressError] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [selectedDeliveryMethodId, setSelectedDeliveryMethodId] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -537,15 +540,41 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
 
   const handleOrderSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customerName.trim() || !customerPhone.trim() || !customerAddress.trim()) {
+    if (!customerName.trim()) {
       setFeedback({
         isOpen: true,
         type: 'info',
         title: 'প্রয়োজনীয় তথ্য দিন',
-        message: 'দয়া করে আপনার নাম, মোবাইল নম্বর এবং সম্পূর্ণ ডেলিভারি ঠিকানা প্রদান করুন।'
+        message: 'দয়া করে আপনার সম্পূর্ণ নাম প্রদান করুন।'
       });
       return;
     }
+
+    const phoneVal = validateBDPhone(customerPhone);
+    if (!phoneVal.isValid) {
+      setPhoneError(phoneVal.error || '');
+      setFeedback({
+        isOpen: true,
+        type: 'error',
+        title: 'সঠিক মোবাইল নম্বর দিন',
+        message: phoneVal.error || 'অনুগ্রহ করে ১১ ডিজিটের সঠিক বাংলাদেশী মোবাইল নম্বর লিখুন।'
+      });
+      return;
+    }
+    setPhoneError('');
+
+    const addrVal = validateDeliveryAddress(customerAddress);
+    if (!addrVal.isValid) {
+      setAddressError(addrVal.error || '');
+      setFeedback({
+        isOpen: true,
+        type: 'error',
+        title: 'সম্পূর্ণ ডেলিভারি ঠিকানা প্রয়োজন',
+        message: addrVal.error || 'অনুগ্রহ করে বাসা নং, রোড অথবা গ্রাম, থানা, জেলা সহ বিস্তারিত ঠিকানা দিন।'
+      });
+      return;
+    }
+    setAddressError('');
 
     setIsSubmitting(true);
 
@@ -557,8 +586,8 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
       const newOrder: BookOrder = {
         id: orderId,
         customerName: customerName.trim(),
-        phone: customerPhone.trim(),
-        address: customerAddress.trim(),
+        phone: phoneVal.cleanedPhone,
+        address: addrVal.cleanedAddress,
         quantity: quantity,
         price: displayPrice,
         unitPrice: displayPrice,
@@ -1117,32 +1146,70 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
 
                 {/* Phone */}
                 <div className="space-y-1">
-                  <label className="block font-bold text-slate-200">
-                    মোবাইল নম্বর <span className="text-red-500">*</span>
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="block font-bold text-slate-200">
+                      মোবাইল নম্বর <span className="text-red-500">*</span>
+                    </label>
+                    <span className="text-[10px] text-slate-400">১১ ডিজিট</span>
+                  </div>
                   <input
                     type="tel"
                     required
                     placeholder="যেমন: 01XXXXXXXXX"
                     value={customerPhone}
-                    onChange={(e) => setCustomerPhone(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-[#120e0a] border border-[#382d22] rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-[#e0562e] transition-all font-mono"
+                    onChange={(e) => {
+                      setCustomerPhone(e.target.value);
+                      if (phoneError) setPhoneError('');
+                    }}
+                    onBlur={() => {
+                      if (customerPhone.trim()) {
+                        const val = validateBDPhone(customerPhone);
+                        if (!val.isValid) setPhoneError(val.error || '');
+                      }
+                    }}
+                    className={`w-full px-3.5 py-2.5 bg-[#120e0a] border ${
+                      phoneError ? 'border-red-500 ring-1 ring-red-500/30' : 'border-[#382d22] focus:border-[#e0562e]'
+                    } rounded-xl text-white placeholder-slate-500 focus:outline-none transition-all font-mono`}
                   />
+                  {phoneError ? (
+                    <p className="text-[11px] text-red-400 font-medium">{phoneError}</p>
+                  ) : (
+                    <p className="text-[10px] text-slate-400">১১ ডিজিটের সঠিক বাংলাদেশী মোবাইল নম্বর লিখুন</p>
+                  )}
                 </div>
 
                 {/* Address */}
                 <div className="space-y-1">
-                  <label className="block font-bold text-slate-200">
-                    সম্পূর্ণ ডেলিভারি ঠিকানা <span className="text-red-500">*</span>
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="block font-bold text-slate-200">
+                      সম্পূর্ণ ডেলিভারি ঠিকানা <span className="text-red-500">*</span>
+                    </label>
+                    <span className="text-[10px] text-slate-400">বাসা/রোড আবশ্যক</span>
+                  </div>
                   <textarea
                     required
                     rows={2}
-                    placeholder="বাসা/হোল্ডিং নং, রোড, এলাকা/থানা এবং জেলা"
+                    placeholder="বাসা নং, রোড, এলাকা, জেলা (যেমন: বাসা নং ১০, আদাবর, ঢাকা অথবা মঙ্গলবাড়ি, ধামইরহাট, নওগাঁ)"
                     value={customerAddress}
-                    onChange={(e) => setCustomerAddress(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-[#120e0a] border border-[#382d22] rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-[#e0562e] transition-all resize-none"
+                    onChange={(e) => {
+                      setCustomerAddress(e.target.value);
+                      if (addressError) setAddressError('');
+                    }}
+                    onBlur={() => {
+                      if (customerAddress.trim()) {
+                        const val = validateDeliveryAddress(customerAddress);
+                        if (!val.isValid) setAddressError(val.error || '');
+                      }
+                    }}
+                    className={`w-full px-3.5 py-2.5 bg-[#120e0a] border ${
+                      addressError ? 'border-red-500 ring-1 ring-red-500/30' : 'border-[#382d22] focus:border-[#e0562e]'
+                    } rounded-xl text-white placeholder-slate-500 focus:outline-none transition-all resize-none`}
                   />
+                  {addressError ? (
+                    <p className="text-[11px] text-red-400 font-medium leading-tight">{addressError}</p>
+                  ) : (
+                    <p className="text-[10px] text-slate-400">বাসা নং, রোড অথবা গ্রাম, থানা, জেলা উল্লেখ করুন (শুধু এলাকার নাম দিলে পার্সেল যাবে না)</p>
+                  )}
                 </div>
 
                 {/* Quantity */}

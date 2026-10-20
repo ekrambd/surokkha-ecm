@@ -22,6 +22,7 @@ import ResponsiveImage from './ResponsiveImage';
 import CheckoutPage from './CheckoutPage';
 import { SkinQuizView } from './SkinQuizView';
 import { playOrderSuccessVibe } from '../lib/soundUtils';
+import { validateBDPhone, validateDeliveryAddress } from '../lib/validationUtils';
 
 const FantineFooter = React.lazy(() => import('./FantineFooter'));
 
@@ -1350,8 +1351,20 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!checkoutPhone.trim() || !checkoutAddress.trim() || !checkoutName.trim()) {
-      alert('Please provide your name, mobile number and full delivery address.');
+    if (!checkoutName.trim()) {
+      alert('অনুগ্রহ করে আপনার নাম লিখুন।');
+      return;
+    }
+
+    const phoneVal = validateBDPhone(checkoutPhone);
+    if (!phoneVal.isValid) {
+      alert(phoneVal.error || 'সঠিক ১১ ডিজিটের মোবাইল নম্বর দিন।');
+      return;
+    }
+
+    const addrVal = validateDeliveryAddress(checkoutAddress);
+    if (!addrVal.isValid) {
+      alert(addrVal.error || 'অনুগ্রহ করে সম্পূর্ণ বিস্তারিত ঠিকানা লিখুন।');
       return;
     }
 
@@ -1372,8 +1385,8 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
         id: orderId,
         customerName: checkoutName.trim(),
         name: checkoutName.trim(),
-        phone: checkoutPhone.trim(),
-        address: checkoutAddress.trim(),
+        phone: phoneVal.cleanedPhone,
+        address: addrVal.cleanedAddress,
         deliveryArea: selectedDeliveryMethod?.title || 'Inside Dhaka',
         deliveryZone: selectedDeliveryMethod?.title || 'Inside Dhaka',
         district: selectedDeliveryMethod?.title || 'Inside Dhaka',

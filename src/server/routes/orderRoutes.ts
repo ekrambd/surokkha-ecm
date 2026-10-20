@@ -8,6 +8,7 @@ import { globalCache } from '../services/cacheEngine';
 import { shardService } from '../services/shardService';
 import { redundancyService } from '../services/redundancyService';
 import { prisma } from '../db';
+import { validateBDPhone, validateDeliveryAddress } from '../../lib/validationUtils';
 
 export const orderRouter = Router();
 
@@ -138,6 +139,16 @@ orderRouter.post('/checkout', checkoutRateLimiter, async (req, res) => {
       return res.status(400).json({ error: 'Customer name, phone number, and delivery address are required.' });
     }
 
+    const phoneVal = validateBDPhone(String(phone));
+    if (!phoneVal.isValid) {
+      return res.status(400).json({ error: phoneVal.error || 'Invalid Bangladeshi mobile phone number.' });
+    }
+
+    const addressVal = validateDeliveryAddress(String(address));
+    if (!addressVal.isValid) {
+      return res.status(400).json({ error: addressVal.error || 'Invalid delivery address.' });
+    }
+
     // 1. Authoritative Server-Side Stock & Price Verification (Indexed O(1) Map - Zero N+1 queries)
     let calculatedSubtotal = 0;
     const validatedItems: any[] = [];
@@ -261,8 +272,8 @@ orderRouter.post('/checkout', checkoutRateLimiter, async (req, res) => {
     const confirmedOrder: BookOrder & { _shardMeta?: { shardIndex: number; partition: string } } = {
       id: orderId,
       customerName: String(customerName).trim(),
-      phone: String(phone).trim(),
-      address: String(address).trim(),
+      phone: phoneVal.cleanedPhone,
+      address: addressVal.cleanedAddress,
       deliveryZone: deliveryZone || 'inside_dhaka',
       email: email ? String(email).trim() : undefined,
       notes: notes ? String(notes).trim() : undefined,
@@ -313,6 +324,28 @@ orderRouter.post('/checkout', checkoutRateLimiter, async (req, res) => {
 
 // POST Create Order - with sharded partitioning & distributed counter
 orderRouter.post('/', checkoutRateLimiter, (req, res) => {
+  const rawPhone = req.body.phone || req.body.customerPhone;
+  const rawAddress = req.body.address || req.body.customerAddress;
+  const isPhysicalOrShowroom = req.body.orderType === 'physical' || (rawAddress && String(rawAddress).toLowerCase().includes('showroom'));
+
+  if (rawPhone && !isPhysicalOrShowroom) {
+    const phoneVal = validateBDPhone(String(rawPhone));
+    if (!phoneVal.isValid) {
+      return res.status(400).json({ error: phoneVal.error || 'Invalid Bangladeshi mobile phone number.' });
+    }
+    req.body.phone = phoneVal.cleanedPhone;
+    if (req.body.customerPhone) req.body.customerPhone = phoneVal.cleanedPhone;
+  }
+
+  if (rawAddress && !isPhysicalOrShowroom) {
+    const addressVal = validateDeliveryAddress(String(rawAddress));
+    if (!addressVal.isValid) {
+      return res.status(400).json({ error: addressVal.error || 'Invalid delivery address.' });
+    }
+    req.body.address = addressVal.cleanedAddress;
+    if (req.body.customerAddress) req.body.customerAddress = addressVal.cleanedAddress;
+  }
+
   const orderId = req.body.id || `ORD-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
   const shardIndex = shardService.getShardIndex(orderId);
   const timePartition = shardService.getTimePartitionName('orders');
