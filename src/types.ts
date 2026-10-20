@@ -5,6 +5,7 @@ export interface ProductVariant {
   regularPrice?: number;
   image?: string;
   color?: string;
+  weight?: number; // Weight in kg
 }
 
 export interface CartItem {
@@ -21,6 +22,7 @@ export interface Product {
   price: number;
   regularPrice?: number;
   costPrice?: number;
+  weight?: number; // Weight in kg
   hasVariants?: boolean;
   variants?: ProductVariant[];
   image?: string;
@@ -175,6 +177,8 @@ export interface DeliveryMethodItem {
   maximumCharge: number;
   deliveryCharge: number;
   updatedAt: string;
+  baseWeightKg?: number; // Base weight threshold (default 1 kg)
+  extraPerKgCharge?: number; // Additional fee per kg above base weight (e.g. 20 Tk/kg)
 }
 
 export interface LandingPagePrize {
@@ -376,6 +380,11 @@ export interface EcomSettings {
   deliveryChargeOutsideExpress?: number;
   freeDeliveryEnabled?: boolean;
   freeDeliveryMinPurchase?: number;
+  weightBasedDeliveryEnabled?: boolean;
+  defaultBaseWeightKg?: number; // e.g. 1 kg
+  defaultExtraPerKgInsideDhaka?: number; // e.g. 20 Tk/kg
+  defaultExtraPerKgOutsideDhaka?: number; // e.g. 25 Tk/kg
+  defaultProductWeightKg?: number; // fallback e.g. 0.5 kg if product weight not specified
   deliveryDays?: string[];
   deliveryCutoffTimes?: Record<string, string>;
 

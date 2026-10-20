@@ -30,22 +30,26 @@ export const DEFAULT_DELIVERY_METHODS: DeliveryMethodItem[] = [
     id: 'dm-1',
     title: 'Inside Dhaka',
     status: 'Active',
-    mode: 'Fixed',
-    type: 'Fixed',
+    mode: 'Weight based',
+    type: 'Weight based',
     minimumCharge: 0,
     maximumCharge: 0,
     deliveryCharge: 60,
+    baseWeightKg: 1,
+    extraPerKgCharge: 20,
     updatedAt: new Date().toLocaleDateString()
   },
   {
     id: 'dm-2',
     title: 'Outside Dhaka',
     status: 'Active',
-    mode: 'Fixed',
-    type: 'Fixed',
+    mode: 'Weight based',
+    type: 'Weight based',
     minimumCharge: 0,
     maximumCharge: 0,
-    deliveryCharge: 110,
+    deliveryCharge: 120,
+    baseWeightKg: 1,
+    extraPerKgCharge: 25,
     updatedAt: new Date().toLocaleDateString()
   }
 ];

@@ -210,7 +210,26 @@ orderRouter.post('/checkout', checkoutRateLimiter, async (req, res) => {
         ))
       );
       if (match) {
-        deliveryFee = Number(match.deliveryCharge) >= 0 ? Number(match.deliveryCharge) : 60;
+        const baseCharge = Number(match.deliveryCharge) >= 0 ? Number(match.deliveryCharge) : 60;
+        const isWeightBased = match.mode === 'Weight based' || Boolean((storeSettings as any)?.weightBasedDeliveryEnabled && match.mode !== 'Fixed');
+        if (isWeightBased) {
+          const defaultItemWeight = Number((storeSettings as any)?.defaultProductWeightKg) > 0 ? Number((storeSettings as any).defaultProductWeightKg) : 0.5;
+          const totalWeightKg = items.reduce((acc: number, item: any) => {
+            const matchedP = productLookupMap.get(item.productId || item.product?.id || item.id);
+            const w = (typeof matchedP?.weight === 'number' && matchedP.weight > 0) ? matchedP.weight : defaultItemWeight;
+            return acc + (w * Math.max(1, parseInt(item.quantity || 1, 10)));
+          }, 0);
+          const baseWeight = Number(match.baseWeightKg) > 0 ? Number(match.baseWeightKg) : (Number((storeSettings as any)?.defaultBaseWeightKg) || 1);
+          const extraKg = totalWeightKg > baseWeight ? Math.ceil(totalWeightKg - baseWeight) : 0;
+          const isInside = match.title ? (match.title.toLowerCase().includes('inside') || match.title.includes('ভেতরে')) : true;
+          const fallbackRate = isInside 
+            ? (Number((storeSettings as any)?.defaultExtraPerKgInsideDhaka) || 20) 
+            : (Number((storeSettings as any)?.defaultExtraPerKgOutsideDhaka) || 25);
+          const extraRate = Number(match.extraPerKgCharge) >= 0 ? Number(match.extraPerKgCharge) : fallbackRate;
+          deliveryFee = baseCharge + (extraKg * extraRate);
+        } else {
+          deliveryFee = baseCharge;
+        }
       } else if (deliveryCharge !== undefined && !isNaN(Number(deliveryCharge))) {
         deliveryFee = Math.max(0, Number(deliveryCharge));
       } else {

@@ -43,11 +43,11 @@ export const useAppStore = create<AppState>()(
         }),
       removeFromCart: (productId, variantId?: string) =>
         set((state) => ({
-          cart: state.cart.filter((i) => !(i.product.id === productId && (variantId ? i.variant?.id === variantId : true))),
+          cart: state.cart.filter((i) => !(i.product.id === productId && (variantId ? (i.variant?.id === variantId || i.variant?.name === variantId) : true))),
         })),
       updateQuantity: (productId, quantity, variantId?: string) =>
         set((state) => ({
-          cart: state.cart.map((i) => (i.product.id === productId && (variantId ? i.variant?.id === variantId : true) ? { ...i, quantity } : i)),
+          cart: state.cart.map((i) => (i.product.id === productId && (variantId ? (i.variant?.id === variantId || i.variant?.name === variantId) : true) ? { ...i, quantity } : i)),
         })),
       clearCart: () => set({ cart: [] }),
     }),

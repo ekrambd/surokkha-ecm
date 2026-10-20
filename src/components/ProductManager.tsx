@@ -146,6 +146,7 @@ export default function ProductManager({
   const [codAvailable, setCodAvailable] = useState(true);
 
   // Delivery & Advanced
+  const [weight, setWeight] = useState<number | ''>(''); // Weight in kg for weight-based shipping
   const [deliveryChargeEnabled, setDeliveryChargeEnabled] = useState(true);
   const [deliveryChargeAmount, setDeliveryChargeAmount] = useState<number | ''>(0);
   const [exclusiveDelivery, setExclusiveDelivery] = useState(true);
@@ -219,6 +220,7 @@ export default function ProductManager({
 
       setDeliveryChargeEnabled(product.deliveryChargeEnabled ?? true);
       setDeliveryChargeAmount(product.deliveryChargeAmount ?? 0);
+      setWeight(product.weight ?? '');
       setExclusiveDelivery(product.exclusiveDelivery ?? true);
       setAddQrToImage(product.addQrToImage ?? false);
       setAddBarcodeToImage(product.addBarcodeToImage ?? false);
@@ -226,6 +228,7 @@ export default function ProductManager({
       setGiftWrapPrice(product.giftWrapPrice ?? 0);
     } else {
       setEditingProduct(null);
+      setWeight('');
       setProductType('Physical product');
       setTitle('');
       setAuthorName('');
@@ -477,6 +480,7 @@ export default function ProductManager({
       continueSelling,
       isUnlisted,
       codAvailable,
+      weight: weight !== '' ? Number(weight) : undefined,
       deliveryChargeEnabled,
       deliveryChargeAmount: Number(deliveryChargeAmount) || 0,
       exclusiveDelivery,
@@ -1322,6 +1326,24 @@ export default function ProductManager({
                               />
                             </div>
 
+                            {/* Variant Weight (kg) */}
+                            <div className="relative w-20 shrink-0">
+                              <input
+                                type="number"
+                                step="0.05"
+                                min="0"
+                                placeholder="ওজন kg"
+                                value={v.weight || ''}
+                                onChange={(e) => {
+                                  const newVariants = [...variants];
+                                  newVariants[idx] = { ...newVariants[idx], weight: Number(e.target.value) || undefined };
+                                  setVariants(newVariants);
+                                }}
+                                className="w-full px-2 py-1.5 bg-slate-50 focus:bg-white border border-slate-200 focus:border-teal-500 rounded-lg text-xs text-slate-700 font-mono"
+                                title="Weight in kg (e.g. 0.5 or 1)"
+                              />
+                            </div>
+
                             {/* Delete Variant */}
                             <button
                               type="button"
@@ -1335,7 +1357,7 @@ export default function ProductManager({
                         ))}
                         <button
                           type="button"
-                          onClick={() => setVariants([...variants, { id: `var-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`, name: '', price: 0, image: '' }])}
+                          onClick={() => setVariants([...variants, { id: `var-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`, name: '', price: 0, image: '', weight: 0.5 }])}
                           className="mt-2 text-xs font-bold text-teal-700 hover:text-teal-800 bg-white hover:bg-teal-50 border border-teal-300 px-3.5 py-1.5 rounded-lg inline-flex items-center gap-1.5 cursor-pointer shadow-2xs"
                         >
                           <Plus className="h-3.5 w-3.5 text-teal-600" />
@@ -1344,7 +1366,7 @@ export default function ProductManager({
                       </div>
                     )}
 
-                    <div className={`grid grid-cols-1 md:grid-cols-3 gap-3 ${hasVariants ? 'opacity-50 pointer-events-none' : ''}`}>
+                    <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 ${hasVariants ? 'opacity-50 pointer-events-none' : ''}`}>
                       <div>
                         <label className="block text-[11px] font-bold text-slate-700 mb-1">Sale / Retail PriceTk. *</label>
                         <input
@@ -1375,6 +1397,19 @@ export default function ProductManager({
                           value={costPrice}
                           onChange={(e) => setCostPrice(e.target.value === '' ? '' : Number(e.target.value))}
                           className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">Package Weight (কেজি)</label>
+                        <input
+                          type="number"
+                          step="0.05"
+                          min="0"
+                          placeholder="e.g. 0.5 or 1"
+                          value={weight}
+                          onChange={(e) => setWeight(e.target.value === '' ? '' : Number(e.target.value))}
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
                         />
                       </div>
                     </div>

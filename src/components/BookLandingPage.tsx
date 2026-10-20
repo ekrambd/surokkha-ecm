@@ -13,6 +13,7 @@ import { getProductSlug } from '../lib/seoUtils';
 import { FeedbackDialog } from './ui/FeedbackDialog';
 import { playOrderSuccessVibe } from '../lib/soundUtils';
 import { validateBDPhone, validateDeliveryAddress, sanitizeBDPhoneInput } from '../lib/validationUtils';
+import { calculateDeliveryCharge } from '../lib/deliveryUtils';
 
 interface BookLandingPageProps {
   onNavigateHome: () => void;
@@ -478,7 +479,26 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
   const subtotal = (displayPrice || 0) * quantity;
   const isProductFreeDelivery = product?.deliveryChargeEnabled === false || (product as any)?.freeDelivery === true;
   const isFreeDelivery = isProductFreeDelivery || (Boolean(storeSettings?.freeDeliveryActive) && subtotal >= Number(storeSettings?.freeDeliveryMinAmount || 0));
-  const deliveryCharge = isFreeDelivery ? 0 : (selectedDeliveryMethod ? Number(selectedDeliveryMethod.deliveryCharge || 0) : 80);
+
+  const deliveryCalc = useMemo(() => {
+    return calculateDeliveryCharge({
+      items: [{
+        product: product || { price: displayPrice },
+        variant: selectedVariant ? {
+          id: selectedVariant.id,
+          name: selectedVariant.name,
+          price: selectedVariant.price,
+          weight: (selectedVariant as any).weight
+        } : null,
+        quantity
+      }],
+      method: selectedDeliveryMethod,
+      settings: storeSettings,
+      isFreeDelivery
+    });
+  }, [product, selectedVariant, quantity, selectedDeliveryMethod, storeSettings, isFreeDelivery, displayPrice]);
+
+  const deliveryCharge = isFreeDelivery ? 0 : deliveryCalc.totalCharge;
   const totalPrice = subtotal + deliveryCharge;
 
   // Gallery carousel controls
@@ -1209,12 +1229,8 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
                       </span>
                     )}
                   </div>
-                  {phoneError ? (
+                  {phoneError && (
                     <p className="text-[11px] text-red-400 font-medium">{phoneError}</p>
-                  ) : (
-                    <p className="text-[10px] text-slate-400">
-                      <span className="text-[#f5b842] font-semibold">হিন্ট:</span> 01 দিয়ে শুরু ১১ ডিজিটের নম্বর দিন (যেমন: 01315861003)। 88 দেওয়ার প্রয়োজন নেই।
-                    </p>
                   )}
                 </div>
 
@@ -1257,12 +1273,8 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
                       </span>
                     )}
                   </div>
-                  {addressError ? (
+                  {addressError && (
                     <p className="text-[11px] text-red-400 font-medium leading-tight">{addressError}</p>
-                  ) : (
-                    <p className="text-[10px] text-slate-400">
-                      <span className="text-[#f5b842] font-semibold">হিন্ট:</span> বাসা/রোড নম্বর দিন (যেমন: বাসা নং ১০, আদাবর, ঢাকা) অথবা গ্রাম, থানা, জেলা উল্লেখ করুন (যেমন: মঙ্গলবাড়ি, ধামইরহাট, নওগাঁ)।
-                    </p>
                   )}
                 </div>
 
@@ -1296,6 +1308,17 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {activeDeliveryMethods.map((method) => {
                       const isSelected = (selectedDeliveryMethod?.id === method.id) || (selectedDeliveryMethodId === method.id);
+                      const mCalc = calculateDeliveryCharge({
+                        items: [{
+                          product: product || { price: displayPrice },
+                          variant: selectedVariant ? { id: selectedVariant.id, name: selectedVariant.name, price: selectedVariant.price, weight: (selectedVariant as any).weight } : null,
+                          quantity
+                        }],
+                        method,
+                        settings: storeSettings,
+                        isFreeDelivery
+                      });
+
                       return (
                         <button
                           key={method.id}
@@ -1307,9 +1330,16 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
                               : 'bg-[#120e0a] border-[#2e261e] text-[#a89d91]'
                           }`}
                         >
-                          <span className="font-bold text-[11px] truncate">{method.title}</span>
-                          <span className={`font-bold text-[11px] font-mono ${isFreeDelivery ? 'text-emerald-400' : 'text-[#f5b842]'}`}>
-                            {isFreeDelivery ? 'ফ্রি (Free)' : `Tk.${method.deliveryCharge}`}
+                          <div>
+                            <span className="font-bold text-[11px] truncate block">{method.title}</span>
+                            {mCalc.isWeightBased && mCalc.extraWeightKg > 0 && !isFreeDelivery && (
+                              <span className="text-[10px] text-[#f5b842]/90 block">
+                                (+{mCalc.extraWeightKg} কেজি অতিরিক্ত ৳{mCalc.extraCharge})
+                              </span>
+                            )}
+                          </div>
+                          <span className={`font-bold text-[11px] font-mono shrink-0 ml-2 ${isFreeDelivery ? 'text-emerald-400' : 'text-[#f5b842]'}`}>
+                            {isFreeDelivery ? 'ফ্রি (Free)' : `Tk.${mCalc.totalCharge}`}
                           </span>
                         </button>
                       );
@@ -1324,11 +1354,24 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
                     <span className="font-bold text-white font-mono">Tk.{subtotal.toLocaleString('bn-BD')}</span>
                   </div>
                   <div className="flex justify-between text-[#a89d91]">
-                    <span>ডেলিভারি চার্জ:</span>
+                    <div className="flex items-center gap-1.5">
+                      <span>ডেলিভারি চার্জ:</span>
+                      {deliveryCalc.isWeightBased && deliveryCalc.totalWeightKg > 0 && !isFreeDelivery && (
+                        <span className="text-[10px] bg-[#1f1812] text-[#f5b842] px-1.5 py-0.5 rounded font-mono">
+                          {deliveryCalc.totalWeightKg} কেজি
+                        </span>
+                      )}
+                    </div>
                     <span className={`font-bold font-mono ${deliveryCharge === 0 ? 'text-emerald-400' : 'text-white'}`}>
                       {deliveryCharge === 0 ? 'ফ্রি (Free)' : `Tk.${deliveryCharge}`}
                     </span>
                   </div>
+                  {deliveryCalc.isWeightBased && deliveryCalc.extraWeightKg > 0 && !isFreeDelivery && (
+                    <div className="text-[11px] text-[#f5b842] flex justify-between bg-[#1f1812] px-2 py-1 rounded">
+                      <span>অতিরিক্ত ওজনের চার্জ ({deliveryCalc.extraWeightKg} কেজি x ৳{deliveryCalc.extraPerKgRate}):</span>
+                      <span className="font-mono font-bold">+{deliveryCalc.extraCharge} Tk</span>
+                    </div>
+                  )}
                   <div className="pt-1.5 border-t border-[#2e261e] flex justify-between font-black text-sm text-white">
                     <span>সর্বমোট বিল:</span>
                     <span className="text-[#f5b842] font-mono">Tk.{totalPrice.toLocaleString('bn-BD')}</span>

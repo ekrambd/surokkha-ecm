@@ -10,7 +10,10 @@ import {
   Plus, 
   Trash2, 
   Edit3, 
-  X
+  X,
+  Scale,
+  Sparkles,
+  Info
 } from 'lucide-react';
 import { FeedbackDialog } from './ui/FeedbackDialog';
 import { ConfirmDialog } from './ui/ConfirmDialog';
@@ -18,11 +21,16 @@ import { ConfirmDialog } from './ui/ConfirmDialog';
 export default function DeliverySettingsManager() {
   const [settings, setSettings] = useState<EcomSettings>({
     gtmId: '',
-    deliveryChargeInsideDhaka: 80,
-    deliveryChargeOutsideDhaka: 130,
+    deliveryChargeInsideDhaka: 60,
+    deliveryChargeOutsideDhaka: 120,
     bkashNumber: '',
     nagadNumber: '',
-    deliveryMethods: DEFAULT_DELIVERY_METHODS
+    deliveryMethods: DEFAULT_DELIVERY_METHODS,
+    weightBasedDeliveryEnabled: true,
+    defaultBaseWeightKg: 1,
+    defaultExtraPerKgInsideDhaka: 20,
+    defaultExtraPerKgOutsideDhaka: 25,
+    defaultProductWeightKg: 0.5
   });
 
   const [isLoading, setIsLoading] = useState(true);
@@ -47,6 +55,7 @@ export default function DeliverySettingsManager() {
   const [editingDelivery, setEditingDelivery] = useState<DeliveryMethodItem | null>(null);
   const [isAddingDelivery, setIsAddingDelivery] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [calcWeight, setCalcWeight] = useState<number>(2.5);
 
   useEffect(() => {
     loadSettings();
@@ -57,7 +66,14 @@ export default function DeliverySettingsManager() {
     try {
       const data = await dbService.getEcomSettings();
       if (data) {
-        setSettings(data);
+        setSettings({
+          ...data,
+          weightBasedDeliveryEnabled: data.weightBasedDeliveryEnabled ?? true,
+          defaultBaseWeightKg: data.defaultBaseWeightKg ?? 1,
+          defaultExtraPerKgInsideDhaka: data.defaultExtraPerKgInsideDhaka ?? 20,
+          defaultExtraPerKgOutsideDhaka: data.defaultExtraPerKgOutsideDhaka ?? 25,
+          defaultProductWeightKg: data.defaultProductWeightKg ?? 0.5
+        });
       }
     } catch (err) {
       console.error('Failed to load delivery settings:', err);
@@ -105,11 +121,13 @@ export default function DeliverySettingsManager() {
       id: `dm-${Date.now()}`,
       title: 'New Delivery Method',
       status: 'Active',
-      mode: 'Fixed',
-      type: 'Fixed',
+      mode: 'Weight based',
+      type: 'Weight based',
       minimumCharge: 0,
       maximumCharge: 0,
-      deliveryCharge: 80,
+      deliveryCharge: 60,
+      baseWeightKg: 1,
+      extraPerKgCharge: 20,
       updatedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     });
     setIsAddingDelivery(true);
@@ -213,7 +231,7 @@ export default function DeliverySettingsManager() {
                 Delivery Methods & Shipping Rates
               </h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                Configure shipping charges, delivery zones, and checkout options for customers.
+                Configure professional weight-based shipping, zones, and delivery rates for checkout.
               </p>
             </div>
           </div>
@@ -265,7 +283,7 @@ export default function DeliverySettingsManager() {
                 <span>{editingDelivery.title || 'New Delivery Method'}</span>
               </h3>
               <p className="text-xs text-slate-500 mt-0.5">
-                Configure delivery zone, rate type, and checkout availability.
+                Configure delivery zone, rate type, base weight, and extra weight surcharge.
               </p>
             </div>
             <button
@@ -286,7 +304,7 @@ export default function DeliverySettingsManager() {
                 value={editingDelivery.title}
                 onChange={(e) => setEditingDelivery({ ...editingDelivery, title: e.target.value })}
                 className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:bg-white focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors font-medium"
-                placeholder="e.g. Inside Dhaka or Express Delivery"
+                placeholder="e.g. Inside Dhaka or Outside Dhaka"
               />
             </div>
 
@@ -297,14 +315,15 @@ export default function DeliverySettingsManager() {
                 onChange={(e) => setEditingDelivery({ ...editingDelivery, type: e.target.value, mode: e.target.value })}
                 className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:bg-white focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors font-medium cursor-pointer"
               >
-                <option value="Fixed">Fixed Rate</option>
-                <option value="Weight based">Weight-Based</option>
-                <option value="Percentage">Percentage</option>
+                <option value="Weight based">Weight-Based (প্রতি কেজি ভিত্তিক - Recommended)</option>
+                <option value="Fixed">Fixed Rate (নির্দিষ্ট রেট)</option>
               </select>
             </div>
 
-            <div className="md:col-span-2">
-              <label className="block text-slate-700 font-bold mb-1">Delivery Charge (Tk) *</label>
+            <div>
+              <label className="block text-slate-700 font-bold mb-1">
+                {editingDelivery.type === 'Weight based' ? 'Base Delivery Charge (Tk) *' : 'Delivery Charge (Tk) *'}
+              </label>
               <input
                 type="number"
                 required
@@ -312,8 +331,95 @@ export default function DeliverySettingsManager() {
                 onChange={(e) => setEditingDelivery({ ...editingDelivery, deliveryCharge: Number(e.target.value) })}
                 className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono font-bold text-sm focus:bg-white focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors"
               />
-              <p className="text-[10px] text-slate-500 mt-1">This charge will be applied when the customer selects this delivery zone at checkout.</p>
+              <p className="text-[10px] text-slate-500 mt-1">
+                {editingDelivery.type === 'Weight based'
+                  ? 'Covers parcels up to base weight (e.g. 60 Tk Inside Dhaka, 120 Tk Outside Dhaka).'
+                  : 'Fixed charge applied regardless of package weight.'}
+              </p>
             </div>
+
+            {editingDelivery.type === 'Weight based' ? (
+              <div>
+                <label className="block text-slate-700 font-bold mb-1">Base Weight (Kg) *</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0.1"
+                  required
+                  value={editingDelivery.baseWeightKg ?? 1}
+                  onChange={(e) => setEditingDelivery({ ...editingDelivery, baseWeightKg: Number(e.target.value) })}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono font-bold text-sm focus:bg-white focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors"
+                />
+                <p className="text-[10px] text-slate-500 mt-1">Standard courier base limit in Bangladesh (Default: 1 kg).</p>
+              </div>
+            ) : (
+              <div />
+            )}
+
+            {editingDelivery.type === 'Weight based' && (
+              <div className="md:col-span-2">
+                <label className="block text-slate-700 font-bold mb-1">Extra Charge Per Additional Kg (Tk) *</label>
+                <input
+                  type="number"
+                  min="0"
+                  required
+                  value={editingDelivery.extraPerKgCharge ?? 20}
+                  onChange={(e) => setEditingDelivery({ ...editingDelivery, extraPerKgCharge: Number(e.target.value) })}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono font-bold text-sm focus:bg-white focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors"
+                />
+                <p className="text-[10px] text-slate-500 mt-1">
+                  Amount added for each additional kg over the base weight (e.g. +20 Tk for Inside Dhaka, +25 Tk for Outside Dhaka).
+                </p>
+              </div>
+            )}
+
+            {/* Interactive Calculator Preview for Weight-Based */}
+            {editingDelivery.type === 'Weight based' && (
+              <div className="md:col-span-2 p-4 bg-teal-50/70 border border-teal-200 rounded-xl space-y-2.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <span className="font-bold text-xs text-teal-950 flex items-center gap-1.5">
+                    <Scale className="w-4 h-4 text-teal-700" />
+                    Live Shipping Rate Calculator Preview (লাইভ হিসাব যাচাই)
+                  </span>
+                  <div className="flex items-center gap-1.5 text-xs">
+                    <span className="text-slate-600 font-medium">Test Weight:</span>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0.5"
+                      value={calcWeight}
+                      onChange={(e) => setCalcWeight(Math.max(0.1, Number(e.target.value)))}
+                      className="w-16 px-2 py-1 bg-white border border-teal-300 rounded font-mono font-bold text-center text-teal-900 text-xs"
+                    />
+                    <span className="font-bold text-teal-900">kg</span>
+                  </div>
+                </div>
+
+                {(() => {
+                  const baseWeight = editingDelivery.baseWeightKg ?? 1;
+                  const extraPerKg = editingDelivery.extraPerKgCharge ?? 20;
+                  const extraKg = Math.max(0, Math.ceil(calcWeight - baseWeight));
+                  const extraFee = extraKg * extraPerKg;
+                  const total = editingDelivery.deliveryCharge + extraFee;
+                  return (
+                    <div className="text-xs text-slate-700 font-medium flex flex-wrap items-center gap-2 pt-1">
+                      <span>Customer orders <strong>{calcWeight} kg</strong>:</span>
+                      <span className="bg-white px-2 py-0.5 rounded border border-teal-200">
+                        Base (≤ {baseWeight}kg) = <strong>Tk {editingDelivery.deliveryCharge}</strong>
+                      </span>
+                      <span>+</span>
+                      <span className="bg-white px-2 py-0.5 rounded border border-teal-200">
+                        Extra ({extraKg} kg × Tk {extraPerKg}) = <strong>Tk {extraFee}</strong>
+                      </span>
+                      <span>=</span>
+                      <span className="bg-teal-700 text-white font-extrabold px-3 py-1 rounded shadow-2xs">
+                        Calculated Delivery: Tk {total}
+                      </span>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
 
             {/* Status Toggle Block */}
             <div className="md:col-span-2 bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center justify-between">
@@ -353,6 +459,97 @@ export default function DeliverySettingsManager() {
           </div>
         </form>
       )}
+
+      {/* Global Weight-Based Shipping Rule Card */}
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 space-y-4 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          <div className="flex items-center space-x-2.5">
+            <div className="p-2 bg-amber-50 text-amber-600 rounded-xl border border-amber-200">
+              <Scale className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-extrabold text-slate-900">
+                Weight-Based Shipping System (ওজনভিত্তিক ডেলিভারি সিস্টেম)
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Automatically increase shipping charges based on parcel weight (Professional courier standard: Steadfast, Pathao, RedX).
+              </p>
+            </div>
+          </div>
+
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={settings.weightBasedDeliveryEnabled ?? true}
+              onChange={(e) => {
+                const newSettings = { ...settings, weightBasedDeliveryEnabled: e.target.checked };
+                setSettings(newSettings);
+                dbService.saveEcomSettings(newSettings);
+              }}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
+            <span className="ml-3 text-xs font-bold text-slate-800">
+              {settings.weightBasedDeliveryEnabled ?? true ? 'Active (চালু)' : 'Inactive (বন্ধ)'}
+            </span>
+          </label>
+        </div>
+
+        {settings.weightBasedDeliveryEnabled && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1 text-xs">
+            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
+              <label className="block text-slate-700 font-bold">Standard Base Weight</label>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0.1"
+                  value={settings.defaultBaseWeightKg ?? 1}
+                  onChange={(e) => {
+                    const newSettings = { ...settings, defaultBaseWeightKg: Number(e.target.value) };
+                    setSettings(newSettings);
+                    dbService.saveEcomSettings(newSettings);
+                  }}
+                  className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-900 font-mono font-bold"
+                />
+                <span className="font-bold text-slate-600">kg</span>
+              </div>
+              <p className="text-[10px] text-slate-500">Weight included in base charge (Standard in BD: 1 kg).</p>
+            </div>
+
+            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
+              <label className="block text-slate-700 font-bold">Default Product Fallback Weight</label>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0.05"
+                  value={settings.defaultProductWeightKg ?? 0.5}
+                  onChange={(e) => {
+                    const newSettings = { ...settings, defaultProductWeightKg: Number(e.target.value) };
+                    setSettings(newSettings);
+                    dbService.saveEcomSettings(newSettings);
+                  }}
+                  className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-900 font-mono font-bold"
+                />
+                <span className="font-bold text-slate-600">kg</span>
+              </div>
+              <p className="text-[10px] text-slate-500">Used if a product does not have an explicit weight set.</p>
+            </div>
+
+            <div className="p-3.5 bg-amber-50/60 rounded-xl border border-amber-200 space-y-1">
+              <div className="font-bold text-amber-950 flex items-center gap-1">
+                <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                <span>Standard BD Courier Rates:</span>
+              </div>
+              <ul className="text-[11px] text-slate-700 space-y-1 list-disc list-inside">
+                <li><strong>Inside Dhaka:</strong> ৳60 base (1kg) + ৳20/extra kg</li>
+                <li><strong>Outside Dhaka:</strong> ৳120 base (1kg) + ৳25/extra kg</li>
+              </ul>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Delivery Methods Table Card */}
       <div className="bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 space-y-4 shadow-xs">
@@ -423,7 +620,7 @@ export default function DeliverySettingsManager() {
                       </div>
                       <div>
                         <div className="font-extrabold text-slate-900 text-xs">{dm.title}</div>
-                        <div className="text-[11px] text-slate-500">{dm.mode || 'Fixed'}</div>
+                        <div className="text-[11px] text-slate-500">{dm.mode || 'Weight based'}</div>
                       </div>
                     </div>
                   </td>
@@ -441,7 +638,13 @@ export default function DeliverySettingsManager() {
                     </button>
                   </td>
                   <td className="px-4 py-3.5 font-mono text-slate-900 font-bold">
-                    Tk {dm.deliveryCharge}
+                    <div>Tk {dm.deliveryCharge}</div>
+                    {(dm.type === 'Weight based' || dm.mode === 'Weight based' || settings.weightBasedDeliveryEnabled) && (
+                      <div className="text-[10px] text-teal-700 font-semibold mt-0.5 flex items-center gap-1 font-sans">
+                        <Scale className="w-3 h-3 text-teal-600 shrink-0" />
+                        <span>+ Tk {dm.extraPerKgCharge ?? (dm.title.toLowerCase().includes('inside') ? 20 : 25)}/kg (&gt; {dm.baseWeightKg ?? 1}kg)</span>
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-3.5 text-slate-500 text-[11px]">
                     {dm.updatedAt}

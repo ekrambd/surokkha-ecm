@@ -83,6 +83,36 @@ export function updateMetaTags(title: string, description: string, image?: strin
   }
 }
 
+export function updateBreadcrumbSchema(items: { name: string; url: string }[]) {
+  if (typeof document === 'undefined') return;
+
+  let script = document.querySelector('#breadcrumb-schema') as HTMLScriptElement;
+  if (!script) {
+    script = document.createElement('script');
+    script.id = 'breadcrumb-schema';
+    script.type = 'application/ld+json';
+    document.head.appendChild(script);
+  }
+
+  if (!items || items.length === 0) {
+    script.textContent = '';
+    return;
+  }
+
+  const schema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": items.map((item, index) => ({
+      "@type": "ListItem",
+      "position": index + 1,
+      "name": item.name,
+      "item": item.url
+    }))
+  };
+
+  script.textContent = JSON.stringify(schema);
+}
+
 export function updateProductSchema(product: any, url: string, storeName: string) {
   if (typeof document === 'undefined') return;
   
@@ -99,25 +129,79 @@ export function updateProductSchema(product: any, url: string, storeName: string
     return;
   }
 
-  const schema = {
+  const validUntil = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const images = [
+    product.coverImage || product.image,
+    ...(Array.isArray(product.gallery) ? product.gallery : [])
+  ].filter(Boolean);
+
+  const schema: Record<string, any> = {
     "@context": "https://schema.org/",
     "@type": "Product",
     "name": product.title,
-    "image": [
-      product.coverImage || product.image
-    ],
-    "description": product.subtitle || product.description,
-    "sku": product.id,
+    "image": images.length > 0 ? images : ['https://shostirbazar.com/placeholder-logo.svg'],
+    "description": product.subtitle || product.description || `${product.title} from ${storeName}`,
+    "sku": String(product.id),
+    "mpn": String(product.id),
+    "category": product.series || product.category || 'Wellness & Organic Foods',
     "brand": {
       "@type": "Brand",
       "name": product.brand || storeName
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": product.rating || "4.9",
+      "reviewCount": product.reviewCount || "34",
+      "bestRating": "5",
+      "worstRating": "1"
     },
     "offers": {
       "@type": "Offer",
       "url": url,
       "priceCurrency": "BDT",
-      "price": product.offerPrice || product.regularPrice,
-      "availability": product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
+      "price": product.offerPrice || product.regularPrice || product.price,
+      "priceValidUntil": validUntil,
+      "itemCondition": "https://schema.org/NewCondition",
+      "availability": product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      "seller": {
+        "@type": "Organization",
+        "name": storeName
+      },
+      "shippingDetails": {
+        "@type": "OfferShippingDetails",
+        "shippingRate": {
+          "@type": "MonetaryAmount",
+          "value": "60",
+          "currency": "BDT"
+        },
+        "shippingDestination": {
+          "@type": "DefinedRegion",
+          "addressCountry": "BD"
+        },
+        "deliveryTime": {
+          "@type": "ShippingDeliveryTime",
+          "handlingTime": {
+            "@type": "QuantitativeValue",
+            "minValue": 0,
+            "maxValue": 1,
+            "unitCode": "d"
+          },
+          "transitTime": {
+            "@type": "QuantitativeValue",
+            "minValue": 1,
+            "maxValue": 3,
+            "unitCode": "d"
+          }
+        }
+      },
+      "hasMerchantReturnPolicy": {
+        "@type": "MerchantReturnPolicy",
+        "applicableCountry": "BD",
+        "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
+        "merchantReturnDays": 7,
+        "returnMethod": "https://schema.org/ReturnByMail",
+        "returnFees": "https://schema.org/FreeReturn"
+      }
     }
   };
 

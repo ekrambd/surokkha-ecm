@@ -25,7 +25,7 @@
   "companyName": "SHOSTIR BAZAR",
   "topAnnouncementText": "WELCOME TO SHOSTIR BAZAR",
   "contactEmail": "sostirbazar@gmail.com",
-  "contactPhone": "‪+880 1934‑224441‬",
+  "contactPhone": "01859776717",
   "storeAddress": "Dhaka,Bangladesh",
   "footerDescription": "COMFORT TO WELLNESS",
   "socialLinks": {
@@ -157,14 +157,14 @@
     ]
   },
   "flashSale": {
-    "enabled": false,
-    "productId": "prod-1792008111113",
+    "enabled": true,
+    "productId": "prod-1792007690982",
     "badgeTag": "",
-    "title": "🍇 কিসমিস – প্রাকৃতিক মিষ্টি, প্রতিদিনের পুষ্টি 🌿",
+    "title": "সুন্দরবনের খলিশা ফুলের মধু।",
     "subtitle": "",
     "customImage": "",
-    "flashPrice": 900,
-    "originalPrice": 900,
+    "flashPrice": 1200,
+    "originalPrice": 1250,
     "endDate": "2026-10-30T16:49:00.000Z",
     "buttonText": "SHOP NOW",
     "showVideoSection": false,

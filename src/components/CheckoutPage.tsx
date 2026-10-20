@@ -8,13 +8,15 @@ import {
   CheckCircle2, 
   MessageCircle,
   RefreshCw,
-  Tag
+  Tag,
+  Trash2
 } from 'lucide-react';
 import { Product, ProductVariant, BookOrder, EcomSettings, Coupon } from '../types';
 import { dbService, DEFAULT_DELIVERY_METHODS } from '../lib/dbService';
 import { trackEvent, createEventId } from '../lib/pixelGtmService';
 import { playOrderSuccessVibe } from '../lib/soundUtils';
 import { validateBDPhone, validateDeliveryAddress, sanitizeBDPhoneInput } from '../lib/validationUtils';
+import { calculateDeliveryCharge } from '../lib/deliveryUtils';
 
 interface CartItem {
   product: Product;
@@ -68,37 +70,6 @@ export default function CheckoutPage({
     }).catch(() => {});
   }, [ecomSettings]);
 
-  // Delivery Methods dynamically derived from Admin Panel settings
-  const deliveryOptions = useMemo(() => {
-    const list = (liveSettings?.deliveryMethods && liveSettings.deliveryMethods.length > 0)
-      ? liveSettings.deliveryMethods
-      : DEFAULT_DELIVERY_METHODS;
-
-    const activeList = list.filter(m => m.status === 'Active');
-    const sourceList = activeList.length > 0 ? activeList : list;
-
-    return sourceList.map(m => ({
-      id: m.id,
-      title: m.title,
-      charge: Number(m.deliveryCharge) >= 0 ? Number(m.deliveryCharge) : 0,
-      zone: m.title
-    }));
-  }, [liveSettings?.deliveryMethods]);
-
-  const [selectedDeliveryId, setSelectedDeliveryId] = useState<string>('');
-
-  useEffect(() => {
-    if (deliveryOptions.length > 0) {
-      if (!selectedDeliveryId || !deliveryOptions.some(o => o.id === selectedDeliveryId)) {
-        setSelectedDeliveryId(deliveryOptions[0].id);
-      }
-    }
-  }, [deliveryOptions, selectedDeliveryId]);
-
-  const selectedDelivery = useMemo(() => {
-    return deliveryOptions.find(o => o.id === selectedDeliveryId) || deliveryOptions[0] || { id: 'default', title: 'ডেলিভারি', charge: 0, zone: 'Default' };
-  }, [deliveryOptions, selectedDeliveryId]);
-
   // Cart Calculations
   const cartSubtotal = useMemo(() => {
     return cart.reduce((acc, item) => acc + ((item.variant?.price ?? item.product.price) * item.quantity), 0);
@@ -124,6 +95,66 @@ export default function CheckoutPage({
 
     return storeWideFree || productFree;
   }, [liveSettings, cartSubtotal, cart]);
+
+  // Delivery Methods dynamically derived from Admin Panel settings with Weight-Based calculation
+  const deliveryOptions = useMemo(() => {
+    const list = (liveSettings?.deliveryMethods && liveSettings.deliveryMethods.length > 0)
+      ? liveSettings.deliveryMethods
+      : DEFAULT_DELIVERY_METHODS;
+
+    const activeList = list.filter(m => m.status === 'Active');
+    const sourceList = activeList.length > 0 ? activeList : list;
+
+    return sourceList.map(m => {
+      const calc = calculateDeliveryCharge({
+        items: cart,
+        method: m,
+        settings: liveSettings,
+        isFreeDelivery
+      });
+
+      return {
+        id: m.id,
+        title: m.title,
+        charge: calc.totalCharge,
+        baseCharge: calc.baseCharge,
+        extraCharge: calc.extraCharge,
+        baseWeightKg: calc.baseWeightKg,
+        totalWeightKg: calc.totalWeightKg,
+        extraWeightKg: calc.extraWeightKg,
+        extraPerKgRate: calc.extraPerKgRate,
+        isWeightBased: calc.isWeightBased,
+        weightBreakdownText: calc.weightBreakdownText,
+        zone: m.title
+      };
+    });
+  }, [liveSettings, cart, isFreeDelivery]);
+
+  const [selectedDeliveryId, setSelectedDeliveryId] = useState<string>('');
+
+  useEffect(() => {
+    if (deliveryOptions.length > 0) {
+      if (!selectedDeliveryId || !deliveryOptions.some(o => o.id === selectedDeliveryId)) {
+        setSelectedDeliveryId(deliveryOptions[0].id);
+      }
+    }
+  }, [deliveryOptions, selectedDeliveryId]);
+
+  const selectedDelivery = useMemo(() => {
+    return deliveryOptions.find(o => o.id === selectedDeliveryId) || deliveryOptions[0] || { 
+      id: 'default', 
+      title: 'ডেলিভারি', 
+      charge: 0, 
+      zone: 'Default',
+      baseCharge: 0,
+      extraCharge: 0,
+      baseWeightKg: 1,
+      totalWeightKg: 0,
+      extraWeightKg: 0,
+      extraPerKgRate: 0,
+      isWeightBased: false
+    };
+  }, [deliveryOptions, selectedDeliveryId]);
 
   const deliveryCost = isFreeDelivery ? 0 : selectedDelivery.charge;
 
@@ -351,7 +382,7 @@ export default function CheckoutPage({
           </div>
 
           <div className="space-y-1.5">
-            <h1 className="text-2xl sm:text-3xl font-bold text-[#144d1a]">আপনার অর্ডার সফল হয়েছে!</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">আপনার অর্ডার সফল হয়েছে!</h1>
             <p className="text-sm text-slate-600">
               ধন্যবাদ <span className="font-semibold text-slate-900">{orderSuccess.customerName}</span>! আমাদের প্রতিনিধি আপনাকে কল করে দ্রুত কনফার্ম করবেন।
             </p>
@@ -364,7 +395,7 @@ export default function CheckoutPage({
             </div>
             <div className="flex justify-between items-center pb-2 border-b border-slate-200/80">
               <span className="text-slate-500">সর্বমোট প্রদেয় মূল্য:</span>
-              <span className="font-bold text-[#144d1a] text-base sm:text-lg">{(orderSuccess.totalAmount || orderSuccess.totalPrice || 0).toLocaleString()} TK</span>
+              <span className="font-extrabold text-slate-950 text-base sm:text-lg">{(orderSuccess.totalAmount || orderSuccess.totalPrice || 0).toLocaleString()} TK</span>
             </div>
             <div className="flex justify-between items-center pb-2 border-b border-slate-200/80">
               <span className="text-slate-500">পেমেন্ট মেথড:</span>
@@ -408,7 +439,7 @@ export default function CheckoutPage({
         
         {/* Top Header Bar */}
         <div className="px-5 py-4 sm:px-8 sm:py-5 border-b border-slate-200/80 bg-white flex items-center justify-between">
-          <h1 className="text-lg sm:text-2xl font-bold text-[#144d1a] tracking-tight">
+          <h1 className="text-lg sm:text-2xl font-bold text-slate-900 tracking-tight">
             অর্ডার করুন - ক্যাশ অন ডেলিভারিতে
           </h1>
           <button
@@ -429,10 +460,11 @@ export default function CheckoutPage({
             <button
               type="button"
               onClick={onNavigateShop}
-              className="px-6 py-2.5 bg-[#c5892b] hover:bg-[#b07823] text-white text-xs sm:text-sm font-bold rounded-xl cursor-pointer shadow-sm transition"
+              className="px-6 py-2.5 bg-[#FDD305] hover:bg-[#e6be02] text-slate-950 text-xs sm:text-sm font-bold rounded-xl cursor-pointer shadow-sm transition"
             >
               পণ্য দেখুন
             </button>
+
           </div>
         ) : (
           <form onSubmit={handlePlaceOrder} className="p-4 sm:p-6 lg:p-8 space-y-5 sm:space-y-6">
@@ -448,10 +480,10 @@ export default function CheckoutPage({
                 {/* CARD 1: আপনার পণ্য */}
                 <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs space-y-4">
                   <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                    <h2 className="text-sm sm:text-base font-bold text-[#144d1a]">
+                    <h2 className="text-sm sm:text-base font-bold text-slate-900">
                       আপনার পণ্য
                     </h2>
-                    <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-200/60 rounded-full text-xs font-semibold">
+                    <span className="px-2.5 py-0.5 bg-amber-50 text-amber-900 border border-amber-200/80 rounded-full text-xs font-semibold">
                       {totalItemCount} টি
                     </span>
                   </div>
@@ -512,6 +544,17 @@ export default function CheckoutPage({
                               <Plus className="w-3 h-3" />
                             </button>
                           </div>
+
+                          {/* Direct Remove Item Button */}
+                          <button
+                            type="button"
+                            onClick={() => onRemoveItem(item.product.id, variantKey)}
+                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer shrink-0"
+                            title="কার্ট থেকে মুছে ফেলুন (Remove)"
+                            aria-label="Remove item"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
                       );
                     })}
@@ -530,7 +573,7 @@ export default function CheckoutPage({
 
                 {/* CARD 2: ডেলিভারি */}
                 <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs space-y-3">
-                  <h2 className="text-sm sm:text-base font-bold text-[#144d1a]">
+                  <h2 className="text-sm sm:text-base font-bold text-slate-900">
                     ডেলিভারি
                   </h2>
 
@@ -545,24 +588,38 @@ export default function CheckoutPage({
                           onClick={() => setSelectedDeliveryId(opt.id)}
                           className={`flex items-center justify-between p-3.5 rounded-xl border-2 transition-all cursor-pointer ${
                             isSelected 
-                              ? 'border-[#1b5e20] bg-emerald-50/20 shadow-2xs' 
+                              ? 'border-amber-400 bg-amber-50/40 shadow-xs ring-1 ring-amber-400' 
                               : 'border-slate-200 bg-white hover:border-slate-300'
                           }`}
                         >
                           <div className="flex items-center gap-3">
-                            <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${
-                              isSelected ? 'border-[#1b5e20]' : 'border-slate-300'
+                            <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
+                              isSelected ? 'border-amber-500' : 'border-slate-300'
                             }`}>
-                              {isSelected && <span className="w-2 h-2 rounded-full bg-[#1b5e20]" />}
+                              {isSelected && <span className="w-2 h-2 rounded-full bg-amber-500" />}
                             </span>
-                            <span className="text-xs sm:text-sm font-medium text-slate-800">
-                              {opt.title}
-                            </span>
+                            <div>
+                              <span className="text-xs sm:text-sm font-semibold text-slate-800 block">
+                                {opt.title}
+                              </span>
+                              {opt.isWeightBased && opt.extraWeightKg > 0 && !isFreeDelivery && (
+                                <span className="text-[11px] text-amber-700 block mt-0.5">
+                                  বেস ৳{opt.baseCharge} ({opt.baseWeightKg} কেজি) + অতিরিক্ত {opt.extraWeightKg} কেজি ৳{opt.extraCharge}
+                                </span>
+                              )}
+                            </div>
                           </div>
 
-                          <span className="text-xs sm:text-sm font-bold text-slate-900">
-                            {isFreeDelivery ? 'ফ্রি' : `${chargeToDisplay} TK`}
-                          </span>
+                          <div className="text-right shrink-0">
+                            <span className="text-xs sm:text-sm font-bold text-slate-900 block">
+                              {isFreeDelivery ? 'ফ্রি' : `${chargeToDisplay} TK`}
+                            </span>
+                            {opt.isWeightBased && opt.totalWeightKg > 0 && (
+                              <span className="text-[10px] text-slate-500 block font-medium">
+                                মোট ওজন: {opt.totalWeightKg} কেজি
+                              </span>
+                            )}
+                          </div>
                         </label>
                       );
                     })}
@@ -578,7 +635,7 @@ export default function CheckoutPage({
                 
                 {/* CARD 3: অর্ডার করতে নিচের তথ্যগুলি দিন */}
                 <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs space-y-3.5">
-                  <h2 className="text-sm sm:text-base font-bold text-[#144d1a]">
+                  <h2 className="text-sm sm:text-base font-bold text-slate-900">
                     অর্ডার করতে নিচের তথ্যগুলি দিন
                   </h2>
 
@@ -594,7 +651,7 @@ export default function CheckoutPage({
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         required
-                        className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl focus:border-[#144d1a] focus:ring-1 focus:ring-[#144d1a] outline-none transition text-slate-900 placeholder:text-slate-400"
+                        className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl focus:border-amber-400 focus:ring-1 focus:ring-amber-400 outline-none transition text-slate-900 placeholder:text-slate-400"
                       />
                     </div>
 
@@ -604,7 +661,7 @@ export default function CheckoutPage({
                         <label className="block text-xs font-semibold text-slate-700">
                           মোবাইল নাম্বার <span className="text-red-500">*</span>
                         </label>
-                        <span className="text-[10px] text-emerald-700 font-medium bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
+                        <span className="text-[10px] text-amber-900 font-medium bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/60">
                           ১১ ডিজিট
                         </span>
                       </div>
@@ -656,7 +713,7 @@ export default function CheckoutPage({
                           }}
                           required
                           className={`w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border ${
-                            phoneError ? 'border-red-500 ring-1 ring-red-500/20' : 'border-slate-200 focus:border-[#144d1a] focus:ring-[#144d1a]'
+                            phoneError ? 'border-red-500 ring-1 ring-red-500/20' : 'border-slate-200 focus:border-amber-400 focus:ring-amber-400'
                           } rounded-xl focus:ring-1 outline-none transition text-slate-900 placeholder:text-slate-400 font-mono`}
                         />
                         {phone.length === 11 && !phoneError && (
@@ -665,12 +722,8 @@ export default function CheckoutPage({
                           </span>
                         )}
                       </div>
-                      {phoneError ? (
+                      {phoneError && (
                         <p className="text-[11px] text-red-600 mt-1 font-medium">{phoneError}</p>
-                      ) : (
-                        <p className="text-[10px] text-slate-500 mt-1 flex items-center gap-1">
-                          <span className="font-semibold text-emerald-700">হিন্ট:</span> 01 দিয়ে শুরু ১১ ডিজিটের মোবাইল নম্বর দিন (যেমন: <span className="font-mono font-medium text-slate-700">01315861003</span>)। 88 বা কান্ট্রি কোড দেওয়ার প্রয়োজন নেই।
-                        </p>
                       )}
                     </div>
 
@@ -680,7 +733,7 @@ export default function CheckoutPage({
                         <label className="block text-xs font-semibold text-slate-700">
                           সম্পূর্ণ ডেলিভারি ঠিকানা <span className="text-red-500">*</span>
                         </label>
-                        <span className="text-[10px] text-emerald-700 font-medium bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
+                        <span className="text-[10px] text-amber-900 font-medium bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/60">
                           বাসা/রোড আবশ্যক
                         </span>
                       </div>
@@ -706,7 +759,7 @@ export default function CheckoutPage({
                           }}
                           required
                           className={`w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border ${
-                            addressError ? 'border-red-500 ring-1 ring-red-500/20' : 'border-slate-200 focus:border-[#144d1a] focus:ring-[#144d1a]'
+                            addressError ? 'border-red-500 ring-1 ring-red-500/20' : 'border-slate-200 focus:border-amber-400 focus:ring-amber-400'
                           } rounded-xl focus:ring-1 outline-none transition text-slate-900 placeholder:text-slate-400 resize-none`}
                         />
                         {address.trim().length >= 10 && validateDeliveryAddress(address).isValid && !addressError && (
@@ -715,12 +768,8 @@ export default function CheckoutPage({
                           </span>
                         )}
                       </div>
-                      {addressError ? (
+                      {addressError && (
                         <p className="text-[11px] text-red-600 mt-1 font-medium leading-tight">{addressError}</p>
-                      ) : (
-                        <p className="text-[10px] text-slate-500 mt-1 flex items-center gap-1">
-                          <span className="font-semibold text-emerald-700">হিন্ট:</span> বাসা/রোড নম্বর দিন (যেমন: <span className="font-medium text-slate-700">বাসা নং ১০, আদাবর, ঢাকা</span>) অথবা গ্রাম, থানা, জেলা উল্লেখ করুন (যেমন: <span className="font-medium text-slate-700">মঙ্গলবাড়ি, ধামইরহাট, নওগাঁ</span>)।
-                        </p>
                       )}
                     </div>
                   </div>
@@ -728,7 +777,7 @@ export default function CheckoutPage({
 
                 {/* CARD 4: মূল্য বিবরণ */}
                 <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs space-y-3">
-                  <h2 className="text-sm sm:text-base font-bold text-[#144d1a]">
+                  <h2 className="text-sm sm:text-base font-bold text-slate-900">
                     মূল্য বিবরণ
                   </h2>
 
@@ -739,11 +788,25 @@ export default function CheckoutPage({
                     </div>
 
                     <div className="flex justify-between items-center text-slate-600">
-                      <span>ডেলিভারি চার্জ</span>
+                      <div className="flex items-center gap-1.5">
+                        <span>ডেলিভারি চার্জ</span>
+                        {selectedDelivery.isWeightBased && selectedDelivery.totalWeightKg > 0 && !isFreeDelivery && (
+                          <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-medium">
+                            {selectedDelivery.totalWeightKg} কেজি
+                          </span>
+                        )}
+                      </div>
                       <span className="font-bold text-slate-800">
                         {isFreeDelivery ? 'ফ্রি' : (deliveryCost > 0 ? `${deliveryCost} TK` : 'এলাকা নির্বাচন করুন')}
                       </span>
                     </div>
+
+                    {selectedDelivery.isWeightBased && selectedDelivery.extraWeightKg > 0 && !isFreeDelivery && (
+                      <div className="flex justify-between items-center text-[11px] text-amber-800 bg-amber-50/80 px-2.5 py-1.5 rounded-lg border border-amber-200/60 font-medium">
+                        <span>অতিরিক্ত ওজন চার্জ ({selectedDelivery.extraWeightKg} কেজি x ৳{selectedDelivery.extraPerKgRate}):</span>
+                        <span className="font-bold">+{selectedDelivery.extraCharge} TK</span>
+                      </div>
+                    )}
 
                     {couponDiscountAmount > 0 && (
                       <div className="flex justify-between items-center text-emerald-700 font-semibold">
@@ -784,7 +847,7 @@ export default function CheckoutPage({
                           <button
                             type="button"
                             onClick={handleApplyCoupon}
-                            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-lg transition cursor-pointer"
+                            className="px-4 py-1.5 bg-[#FDD305] hover:bg-[#e6be02] text-slate-950 text-xs font-bold rounded-lg transition cursor-pointer shadow-xs"
                           >
                             এপ্লাই
                           </button>
@@ -811,14 +874,14 @@ export default function CheckoutPage({
                   type="checkbox"
                   checked={agreeTerms}
                   onChange={(e) => setAgreeTerms(e.target.checked)}
-                  className="mt-0.5 w-4 h-4 text-[#144d1a] accent-[#144d1a] rounded cursor-pointer shrink-0"
+                  className="mt-0.5 w-4 h-4 text-slate-900 accent-[#FDD305] rounded cursor-pointer shrink-0"
                 />
                 <span className="leading-relaxed">
                   আমি{' '}
                   <button
                     type="button"
                     onClick={(e) => { e.preventDefault(); onNavigateHome(); }}
-                    className="text-emerald-700 underline font-medium hover:text-emerald-900 inline p-0 bg-transparent border-0"
+                    className="text-amber-800 underline font-medium hover:text-amber-950 inline p-0 bg-transparent border-0"
                   >
                     শর্তাবলী ও ব্যবহারবিধি
                   </button>
@@ -826,7 +889,7 @@ export default function CheckoutPage({
                   <button
                     type="button"
                     onClick={(e) => { e.preventDefault(); onNavigateHome(); }}
-                    className="text-emerald-700 underline font-medium hover:text-emerald-900 inline p-0 bg-transparent border-0"
+                    className="text-amber-800 underline font-medium hover:text-amber-950 inline p-0 bg-transparent border-0"
                   >
                     গোপনীয়তা নীতিমালা
                   </button>
@@ -834,7 +897,7 @@ export default function CheckoutPage({
                   <button
                     type="button"
                     onClick={(e) => { e.preventDefault(); onNavigateHome(); }}
-                    className="text-emerald-700 underline font-medium hover:text-emerald-900 inline p-0 bg-transparent border-0"
+                    className="text-amber-800 underline font-medium hover:text-amber-950 inline p-0 bg-transparent border-0"
                   >
                     পণ্য বিনিময় ও ফেরত নীতিমালা
                   </button>
@@ -842,21 +905,22 @@ export default function CheckoutPage({
                 </span>
               </label>
 
-              {/* Big Golden CTA Button */}
+              {/* Big #FDD305 Primary CTA Button */}
               <button
                 type="submit"
                 disabled={isSubmitting || cart.length === 0}
-                className="w-full py-3.5 sm:py-4 px-6 bg-[#c5892b] hover:bg-[#b07823] active:scale-[0.99] text-white font-bold text-base sm:text-lg rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full py-3.5 sm:py-4 px-6 bg-[#FDD305] hover:bg-[#e6be02] active:scale-[0.99] text-slate-950 font-black text-base sm:text-lg rounded-xl shadow-lg shadow-amber-400/25 transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {isSubmitting ? (
-                  <span className="flex items-center gap-2">
-                    <RefreshCw className="w-5 h-5 animate-spin" />
+                  <span className="flex items-center gap-2 text-slate-950">
+                    <RefreshCw className="w-5 h-5 animate-spin text-slate-950" />
                     অর্ডার প্রসেস হচ্ছে...
                   </span>
                 ) : (
                   <span>অর্ডার কনফার্ম করুন {grandTotal.toLocaleString()} TK</span>
                 )}
               </button>
+
 
               {/* Reassurance Subtitle */}
               <p className="text-center text-xs text-slate-500 font-medium pt-1">

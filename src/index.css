@@ -7,13 +7,18 @@
 }
 
 @layer base {
+  :root {
+    color-scheme: light;
+  }
+
   body {
     font-family: 'Hind Siliguri', 'Plus Jakarta Sans', 'Inter', 'Noto Sans Bengali', system-ui, -apple-system, sans-serif;
     background-color: #ffffff;
-    color: #1a1a1a;
+    color: #0f172a;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+
 
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Hind Siliguri', 'Plus Jakarta Sans', 'Inter', 'Noto Sans Bengali', sans-serif;

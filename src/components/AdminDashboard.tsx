@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { 
-  Users, LogOut, Menu, X, Check, ShoppingBag, ShoppingCart, ClipboardList, Package, LayoutDashboard, User, Code, Truck, CreditCard, Tag, Boxes, Store, Globe, Layout, Layers, Bell, Coins, Send, Sparkles, Eye, Bookmark, Camera, HeartHandshake, Zap, Volume2, VolumeX, RefreshCw
+  Users, LogOut, Menu, X, Check, ShoppingBag, ShoppingCart, ClipboardList, Package, LayoutDashboard, User, Code, Truck, CreditCard, Tag, Boxes, Store, Globe, Layout, Layers, Bell, Coins, Send, Sparkles, Eye, Bookmark, Camera, Zap, Volume2, VolumeX, RefreshCw
 } from 'lucide-react';
 import { dbService, subscribeToOrders } from '../lib/dbService';
 import { playCuteAdminOrderTone, initAudioUnlock } from '../lib/soundUtils';
@@ -22,7 +22,6 @@ const PixelSettingsManager = lazy(() => import('./PixelSettingsManager'));
 const CourierSettingsManager = lazy(() => import('./CourierSettingsManager'));
 const PaymentSettingsManager = lazy(() => import('./PaymentSettingsManager'));
 const DeliverySettingsManager = lazy(() => import('./DeliverySettingsManager'));
-const AboutUsManager = lazy(() => import('./AboutUsManager'));
 const FlashSaleManager = lazy(() => import('./FlashSaleManager'));
 import { TabContentSkeleton } from './LoadingSkeleton';
 import { motion, AnimatePresence } from 'motion/react';
@@ -326,7 +325,6 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
     { id: 'coupons' as const, label: 'Coupons', icon: Tag },
     { id: 'header_store' as any, isHeader: true, label: 'Store Setup' },
     { id: 'flash_sale' as const, label: 'Flash Sale', icon: Zap },
-    { id: 'about_settings' as const, label: 'About Us', icon: HeartHandshake },
     { id: 'category_management' as const, label: 'Categories', icon: Layers },
     { id: 'brand_management' as const, label: 'Brands', icon: Bookmark },
     { id: 'landing_setup' as const, label: 'Landing Pages', icon: Globe },
@@ -631,9 +629,6 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
                   <FlashSaleManager 
                     products={products}
                   />
-                )}
-                {activeTab === 'about_settings' && (
-                  <AboutUsManager />
                 )}
                 {activeTab === 'landing_setup' && (
                   <LandingPageManager />
