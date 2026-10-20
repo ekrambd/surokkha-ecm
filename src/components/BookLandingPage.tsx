@@ -1224,31 +1224,45 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
                     <label className="block font-bold text-slate-200">
                       সম্পূর্ণ ডেলিভারি ঠিকানা <span className="text-red-500">*</span>
                     </label>
-                    <span className="text-[10px] text-slate-400">বাসা/রোড আবশ্যক</span>
+                    <span className="text-[10px] text-[#f5b842]">বাসা/রোড আবশ্যক</span>
                   </div>
-                  <textarea
-                    required
-                    rows={2}
-                    placeholder="বাসা নং, রোড, এলাকা, জেলা (যেমন: বাসা নং ১০, আদাবর, ঢাকা অথবা মঙ্গলবাড়ি, ধামইরহাট, নওগাঁ)"
-                    value={customerAddress}
-                    onChange={(e) => {
-                      setCustomerAddress(e.target.value);
-                      if (addressError) setAddressError('');
-                    }}
-                    onBlur={() => {
-                      if (customerAddress.trim()) {
-                        const val = validateDeliveryAddress(customerAddress);
-                        if (!val.isValid) setAddressError(val.error || '');
-                      }
-                    }}
-                    className={`w-full px-3.5 py-2.5 bg-[#120e0a] border ${
-                      addressError ? 'border-red-500 ring-1 ring-red-500/30' : 'border-[#382d22] focus:border-[#e0562e]'
-                    } rounded-xl text-white placeholder-slate-500 focus:outline-none transition-all resize-none`}
-                  />
+                  <div className="relative">
+                    <textarea
+                      required
+                      rows={2}
+                      placeholder="যেমন: বাসা নং ১০, আদাবর, ঢাকা অথবা গ্রাম: মঙ্গলবাড়ি, থানা: ধামইরহাট, জেলা: নওগাঁ"
+                      value={customerAddress}
+                      onChange={(e) => {
+                        setCustomerAddress(e.target.value);
+                        if (addressError) setAddressError('');
+                        if (e.target.value.trim().length >= 10) {
+                          const val = validateDeliveryAddress(e.target.value);
+                          if (val.isValid) setAddressError('');
+                        }
+                      }}
+                      onBlur={() => {
+                        if (customerAddress.trim()) {
+                          const val = validateDeliveryAddress(customerAddress);
+                          if (!val.isValid) setAddressError(val.error || '');
+                          else setAddressError('');
+                        }
+                      }}
+                      className={`w-full px-3.5 py-2.5 bg-[#120e0a] border ${
+                        addressError ? 'border-red-500 ring-1 ring-red-500/30' : 'border-[#382d22] focus:border-[#e0562e]'
+                      } rounded-xl text-white placeholder-slate-500 focus:outline-none transition-all resize-none`}
+                    />
+                    {customerAddress.trim().length >= 10 && validateDeliveryAddress(customerAddress).isValid && !addressError && (
+                      <span className="absolute right-3.5 bottom-3.5 text-emerald-400 font-bold text-xs select-none">
+                        ✓
+                      </span>
+                    )}
+                  </div>
                   {addressError ? (
                     <p className="text-[11px] text-red-400 font-medium leading-tight">{addressError}</p>
                   ) : (
-                    <p className="text-[10px] text-slate-400">বাসা নং, রোড অথবা গ্রাম, থানা, জেলা উল্লেখ করুন (শুধু এলাকার নাম দিলে পার্সেল যাবে না)</p>
+                    <p className="text-[10px] text-slate-400">
+                      <span className="text-[#f5b842] font-semibold">হিন্ট:</span> বাসা/রোড নম্বর দিন (যেমন: বাসা নং ১০, আদাবর, ঢাকা) অথবা গ্রাম, থানা, জেলা উল্লেখ করুন (যেমন: মঙ্গলবাড়ি, ধামইরহাট, নওগাঁ)।
+                    </p>
                   )}
                 </div>
 

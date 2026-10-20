@@ -680,31 +680,47 @@ export default function CheckoutPage({
                         <label className="block text-xs font-semibold text-slate-700">
                           সম্পূর্ণ ডেলিভারি ঠিকানা <span className="text-red-500">*</span>
                         </label>
-                        <span className="text-[10px] text-slate-400 font-normal">বাসা/রোড নম্বর আবশ্যক</span>
+                        <span className="text-[10px] text-emerald-700 font-medium bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
+                          বাসা/রোড আবশ্যক
+                        </span>
                       </div>
-                      <textarea
-                        rows={3}
-                        placeholder="বাসা নং, রোড, এলাকা, জেলা (যেমন: বাসা নং ১০, আদাবর, ঢাকা অথবা মঙ্গলবাড়ি, ধামইরহাট, নওগাঁ)"
-                        value={address}
-                        onChange={(e) => {
-                          setAddress(e.target.value);
-                          if (addressError) setAddressError('');
-                        }}
-                        onBlur={() => {
-                          if (address.trim()) {
-                            const val = validateDeliveryAddress(address);
-                            if (!val.isValid) setAddressError(val.error || '');
-                          }
-                        }}
-                        required
-                        className={`w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border ${
-                          addressError ? 'border-red-500 ring-1 ring-red-500/20' : 'border-slate-200 focus:border-[#144d1a] focus:ring-[#144d1a]'
-                        } rounded-xl focus:ring-1 outline-none transition text-slate-900 placeholder:text-slate-400 resize-none`}
-                      />
+                      <div className="relative">
+                        <textarea
+                          rows={3}
+                          placeholder="যেমন: বাসা নং ১০, আদাবর, ঢাকা অথবা গ্রাম: মঙ্গলবাড়ি, থানা: ধামইরহাট, জেলা: নওগাঁ"
+                          value={address}
+                          onChange={(e) => {
+                            setAddress(e.target.value);
+                            if (addressError) setAddressError('');
+                            if (e.target.value.trim().length >= 10) {
+                              const val = validateDeliveryAddress(e.target.value);
+                              if (val.isValid) setAddressError('');
+                            }
+                          }}
+                          onBlur={() => {
+                            if (address.trim()) {
+                              const val = validateDeliveryAddress(address);
+                              if (!val.isValid) setAddressError(val.error || '');
+                              else setAddressError('');
+                            }
+                          }}
+                          required
+                          className={`w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border ${
+                            addressError ? 'border-red-500 ring-1 ring-red-500/20' : 'border-slate-200 focus:border-[#144d1a] focus:ring-[#144d1a]'
+                          } rounded-xl focus:ring-1 outline-none transition text-slate-900 placeholder:text-slate-400 resize-none`}
+                        />
+                        {address.trim().length >= 10 && validateDeliveryAddress(address).isValid && !addressError && (
+                          <span className="absolute right-3.5 bottom-3.5 text-emerald-600 font-bold text-xs select-none">
+                            ✓
+                          </span>
+                        )}
+                      </div>
                       {addressError ? (
                         <p className="text-[11px] text-red-600 mt-1 font-medium leading-tight">{addressError}</p>
                       ) : (
-                        <p className="text-[10px] text-slate-400 mt-0.5">বাসা নং, রোড অথবা গ্রাম, থানা, জেলা উল্লেখ করুন (শুধু এলাকার নাম দিলে পার্সেল যাবে না)</p>
+                        <p className="text-[10px] text-slate-500 mt-1 flex items-center gap-1">
+                          <span className="font-semibold text-emerald-700">হিন্ট:</span> বাসা/রোড নম্বর দিন (যেমন: <span className="font-medium text-slate-700">বাসা নং ১০, আদাবর, ঢাকা</span>) অথবা গ্রাম, থানা, জেলা উল্লেখ করুন (যেমন: <span className="font-medium text-slate-700">মঙ্গলবাড়ি, ধামইরহাট, নওগাঁ</span>)।
+                        </p>
                       )}
                     </div>
                   </div>
