@@ -17,6 +17,55 @@ export function normalizeBanglaDigits(input: string): string {
 }
 
 /**
+ * Real-time phone input sanitizer for Bangladeshi numbers.
+ * Strictly blocks alphabetic & non-numeric characters, strips unwanted symbols,
+ * converts Bengali numerals (০-৯ -> 0-9), enforces standard 01[3-9] prefix,
+ * and restricts input length to exactly 11 digits.
+ */
+export function sanitizeBDPhoneInput(raw: string): string {
+  if (!raw) return '';
+
+  // 1. Convert any Bengali numerals to English digits
+  let val = normalizeBanglaDigits(raw);
+
+  // 2. Strip anything that is NOT a digit (letters, symbols, punctuation)
+  val = val.replace(/\D/g, '');
+
+  // 3. Handle country code prefix (+8801... or 8801...)
+  if (val.startsWith('8801')) {
+    val = val.slice(2);
+  } else if (val.startsWith('880')) {
+    val = val.slice(2);
+  } else if (val.startsWith('008801')) {
+    val = val.slice(4);
+  }
+
+  // 4. If user typed 13-19 without the leading 0 (e.g. pasted 17XXXXXXXX)
+  if (/^1[3-9]/.test(val) && val.length <= 10) {
+    val = '0' + val;
+  }
+
+  // 5. Enforce valid Bangladesh mobile prefix strictly:
+  // Digit 1: Must be '0'
+  if (val.length >= 1 && val[0] !== '0') {
+    return '';
+  }
+
+  // Digit 2: Must be '1'
+  if (val.length >= 2 && val[1] !== '1') {
+    return '0';
+  }
+
+  // Digit 3: Must be 3, 4, 5, 6, 7, 8, or 9 (GP, Banglalink, Robi, Airtel, Teletalk)
+  if (val.length >= 3 && !/[3-9]/.test(val[2])) {
+    return '01';
+  }
+
+  // 6. Max length: Strictly 11 digits
+  return val.slice(0, 11);
+}
+
+/**
  * Validates and normalizes Bangladesh mobile phone numbers.
  * Valid BD operators start with 013, 014, 015, 016, 017, 018, 019 and must be exactly 11 digits.
  */

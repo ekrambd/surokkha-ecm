@@ -12,7 +12,7 @@ import { initPixelAndGtm, trackEvent, createEventId } from '../lib/pixelGtmServi
 import { getProductSlug } from '../lib/seoUtils';
 import { FeedbackDialog } from './ui/FeedbackDialog';
 import { playOrderSuccessVibe } from '../lib/soundUtils';
-import { validateBDPhone, validateDeliveryAddress } from '../lib/validationUtils';
+import { validateBDPhone, validateDeliveryAddress, sanitizeBDPhoneInput } from '../lib/validationUtils';
 
 interface BookLandingPageProps {
   onNavigateHome: () => void;
@@ -1154,17 +1154,37 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
                   </div>
                   <input
                     type="tel"
+                    inputMode="numeric"
+                    maxLength={11}
                     required
                     placeholder="যেমন: 01XXXXXXXXX"
                     value={customerPhone}
+                    onKeyDown={(e) => {
+                      if (['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
+                        return;
+                      }
+                      if ((e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x'].includes(e.key.toLowerCase())) {
+                        return;
+                      }
+                      if (!/^[0-9০-৯]$/.test(e.key)) {
+                        e.preventDefault();
+                      }
+                    }}
                     onChange={(e) => {
-                      setCustomerPhone(e.target.value);
+                      const sanitized = sanitizeBDPhoneInput(e.target.value);
+                      setCustomerPhone(sanitized);
                       if (phoneError) setPhoneError('');
+                      if (sanitized.length === 11) {
+                        const val = validateBDPhone(sanitized);
+                        if (!val.isValid) setPhoneError(val.error || '');
+                        else setPhoneError('');
+                      }
                     }}
                     onBlur={() => {
                       if (customerPhone.trim()) {
                         const val = validateBDPhone(customerPhone);
                         if (!val.isValid) setPhoneError(val.error || '');
+                        else setPhoneError('');
                       }
                     }}
                     className={`w-full px-3.5 py-2.5 bg-[#120e0a] border ${

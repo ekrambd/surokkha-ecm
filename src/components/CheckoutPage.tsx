@@ -14,7 +14,7 @@ import { Product, ProductVariant, BookOrder, EcomSettings, Coupon } from '../typ
 import { dbService, DEFAULT_DELIVERY_METHODS } from '../lib/dbService';
 import { trackEvent, createEventId } from '../lib/pixelGtmService';
 import { playOrderSuccessVibe } from '../lib/soundUtils';
-import { validateBDPhone, validateDeliveryAddress } from '../lib/validationUtils';
+import { validateBDPhone, validateDeliveryAddress, sanitizeBDPhoneInput } from '../lib/validationUtils';
 
 interface CartItem {
   product: Product;
@@ -608,16 +608,36 @@ export default function CheckoutPage({
                       </div>
                       <input
                         type="tel"
+                        inputMode="numeric"
+                        maxLength={11}
                         placeholder="01XXXXXXXXX"
                         value={phone}
+                        onKeyDown={(e) => {
+                          if (['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
+                            return;
+                          }
+                          if ((e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x'].includes(e.key.toLowerCase())) {
+                            return;
+                          }
+                          if (!/^[0-9০-৯]$/.test(e.key)) {
+                            e.preventDefault();
+                          }
+                        }}
                         onChange={(e) => {
-                          setPhone(e.target.value);
+                          const sanitized = sanitizeBDPhoneInput(e.target.value);
+                          setPhone(sanitized);
                           if (phoneError) setPhoneError('');
+                          if (sanitized.length === 11) {
+                            const val = validateBDPhone(sanitized);
+                            if (!val.isValid) setPhoneError(val.error || '');
+                            else setPhoneError('');
+                          }
                         }}
                         onBlur={() => {
                           if (phone.trim()) {
                             const val = validateBDPhone(phone);
                             if (!val.isValid) setPhoneError(val.error || '');
+                            else setPhoneError('');
                           }
                         }}
                         required
