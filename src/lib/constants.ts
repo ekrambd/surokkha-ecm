@@ -161,9 +161,9 @@ export const DEFAULT_HIGHLIGHT_SPOTLIGHT_SETTINGS: HighlightSpotlightSettings = 
 export const DEFAULT_ECOM_SETTINGS: EcomSettings = {
   storeName: 'SHOSTIR BAZAR',
   companyName: 'SHOSTIR BAZAR',
-  storeLogo: '/uploads/file-1792215004226-886642061.jpg',
-  storeFavicon: '/uploads/file-1792215009696-613126128.jpg',
-  favicon: '/uploads/file-1792215009696-613126128.jpg',
+  storeLogo: '/logo-transparent.png',
+  storeFavicon: '/favicon/favicon.ico',
+  favicon: '/favicon/favicon.ico',
   heroBannerLeftImage: '/uploads/file-1792185577063-331672488.jpg',
   heroBannerRightImage: '/uploads/file-1792185581499-616845250.jpg',
   storeTagline: 'COMFORT TO WELLNESS',
@@ -210,8 +210,8 @@ export const DEFAULT_INSTITUTE_INFO: InstituteInfo = {
   description: 'COMFORT TO WELLNESS',
   industry: 'E-Commerce & Natural Foods',
   bearingRollLocation: '',
-  logo: '/uploads/file-1792215004226-886642061.jpg',
-  favicon: '/uploads/file-1792215009696-613126128.jpg'
+  logo: '/logo-transparent.png',
+  favicon: '/favicon/favicon.ico'
 };
 
 export const DEFAULT_LANDING_PAGE_SETTINGS: import('../types').LandingPageData = {

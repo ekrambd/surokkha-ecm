@@ -3,3 +3,11 @@
 node_modules/
 dist/
 .DS_Store
+
+# Dynamic User Uploads (Stored on Hostinger VPS NVMe disk, ignored by Git to prevent repo bloat & conflicts)
+public/uploads/*
+!public/uploads/.gitkeep
+!public/uploads/file-1792215004226-886642061.jpg
+!public/uploads/logo-transparent.png
+!public/uploads/file-1792185577063-331672488.jpg
+!public/uploads/file-1792185581499-616845250.jpg

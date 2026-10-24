@@ -1,0 +1,21 @@
+{
+  "name": "SHOSTIR BAZAR - স্বস্তির বাজার",
+  "short_name": "ShostirBazar",
+  "description": "SHOSTIR BAZAR (স্বস্তির বাজার) - COMFORT TO WELLNESS. Premium organic dates, fresh dry fruits, raw nuts, seeds, and healthy lifestyle products delivered across Bangladesh.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/favicon/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

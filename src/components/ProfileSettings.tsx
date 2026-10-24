@@ -167,11 +167,12 @@ export default function ProfileSettings({ adminEmail }: ProfileSettingsProps) {
       link.rel = 'icon';
       document.head.appendChild(link);
     }
-    link.href = faviconUrl || '/placeholder-favicon.svg';
+    const activeFavicon = faviconUrl && !faviconUrl.includes('placeholder') ? faviconUrl : '/favicon/favicon.ico';
+    link.href = activeFavicon;
 
     let shortcut = document.head.querySelector<HTMLLinkElement>('link[rel="shortcut icon"]');
     if (shortcut) {
-      shortcut.href = faviconUrl || '/placeholder-favicon.svg';
+      shortcut.href = activeFavicon;
     }
   };
 
@@ -717,15 +718,15 @@ export default function ProfileSettings({ adminEmail }: ProfileSettingsProps) {
                       </div>
                     ) : (
                       <div className="flex items-center gap-3">
-                        <div className="w-14 h-14 bg-slate-100 border border-dashed border-slate-300 rounded-xl p-2 flex items-center justify-center shadow-xs">
+                        <div className="w-14 h-14 bg-slate-100 border border-slate-300 rounded-xl p-2 flex items-center justify-center shadow-xs">
                           <img 
-                            src="/placeholder-favicon.svg" 
-                            alt="Placeholder Favicon" 
-                            className="w-10 h-10 object-contain opacity-80"
+                            src="/favicon/favicon-32x32.png" 
+                            alt="Brand Favicon" 
+                            className="w-10 h-10 object-contain"
                           />
                         </div>
                         <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">
-                          Placeholder Favicon In Use
+                          Brand Favicon In Use
                         </span>
                       </div>
                     )}

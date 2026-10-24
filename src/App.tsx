@@ -21,7 +21,8 @@ if (typeof window !== 'undefined') {
 
 function DynamicFaviconSync({ ecomSettings }: { ecomSettings: any }) {
   useEffect(() => {
-    const faviconUrl = ecomSettings?.storeFavicon || ecomSettings?.favicon || '/placeholder-favicon.svg';
+    const rawFavicon = ecomSettings?.storeFavicon || ecomSettings?.favicon;
+    const faviconUrl = rawFavicon && !rawFavicon.includes('placeholder') ? rawFavicon : '/favicon/favicon.ico';
     let link: HTMLLinkElement | null = document.querySelector("link[rel*='icon']");
     if (!link) {
       link = document.createElement('link');

@@ -102,9 +102,9 @@ export function loadSettingsFromDisk(): EcomSettings {
   }
   return {
     storeName: 'SHOSTIR BAZAR',
-    storeLogo: '/uploads/file-1792215004226-886642061.jpg',
-    storeFavicon: '/uploads/file-1792215009696-613126128.jpg',
-    favicon: '/uploads/file-1792215009696-613126128.jpg',
+    storeLogo: '/logo-transparent.png',
+    storeFavicon: '/favicon/favicon.ico',
+    favicon: '/favicon/favicon.ico',
     heroBannerLeftImage: '/uploads/file-1792185577063-331672488.jpg',
     heroBannerRightImage: '/uploads/file-1792185581499-616845250.jpg',
     storeTagline: 'COMFORT TO WELLNESS',

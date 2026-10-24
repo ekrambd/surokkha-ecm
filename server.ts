@@ -16,10 +16,12 @@ function injectServerMeta(html: string, reqPath: string, host: string, proto: st
     : "SHOSTIR BAZAR - COMFORT TO WELLNESS | স্বস্তির বাজার Official Store";
   let description = storeSettings?.storeTagline?.trim() || storeSettings?.footerDescription?.trim() || "SHOSTIR BAZAR (স্বস্তির বাজার) - COMFORT TO WELLNESS. Discover premium organic dates, fresh dry fruits, raw nuts, seeds, and healthy lifestyle products delivered across Bangladesh.";
   
-  // Use user-uploaded logo/favicon if configured, otherwise use clean placeholder SVG
+  // Use user-uploaded logo/favicon if configured, otherwise use real brand assets
   const uploadedLogo = storeSettings?.storeLogo?.trim();
   const uploadedFavicon = (storeSettings?.storeFavicon || storeSettings?.favicon)?.trim();
-  let image = uploadedLogo || (uploadedFavicon ? uploadedFavicon : `${proto}://${host}/placeholder-logo.svg`);
+  let image = (uploadedLogo && !uploadedLogo.includes('file-1792215004226-886642061')) 
+    ? uploadedLogo 
+    : `${proto}://${host}/logo-transparent.png`;
   const fullUrl = `${proto}://${host}${reqPath}`;
 
   let productSchemaHtml = "";
@@ -122,9 +124,9 @@ function injectServerMeta(html: string, reqPath: string, host: string, proto: st
     }
   }
 
-  // Dynamically update favicon tag
-  const faviconUrl = uploadedFavicon || '/placeholder-favicon.svg';
-  modified = modified.replace(/<link rel="icon" [^>]*>/i, `<link rel="icon" href="${faviconUrl}" />`);
+  // Dynamically update favicon tag if a custom uploaded favicon is present
+  const faviconUrl = (uploadedFavicon && !uploadedFavicon.includes('placeholder')) ? uploadedFavicon : '/favicon/favicon.ico';
+  modified = modified.replace(/<link rel="icon" [^>]*>/i, `<link rel="icon" type="image/x-icon" href="${faviconUrl}" />`);
   modified = modified.replace(/<link rel="shortcut icon" [^>]*>/i, `<link rel="shortcut icon" href="${faviconUrl}" />`);
 
   return modified;
