@@ -8,7 +8,7 @@ import {
   ShieldCheck, Truck, RefreshCw, Send, HelpCircle, Eye, Share2, Award,
   Phone, Mail, Globe, Droplet, Sun, Moon, Zap, Flame, Layers, MessageCircle, MessageSquare, ArrowUp, MapPin, ZoomIn, Clock,
   Building2, BookOpen, Microscope, Quote, Sprout, FlaskConical, CreditCard, Smartphone, Copy, Tag,
-  Play, Pause, Volume2, VolumeX, Menu, Package, Layout, Trash2
+  Play, Pause, Volume2, VolumeX, Menu, Package, Layout, Trash2, Home, LayoutGrid
 } from 'lucide-react';
 import { trackEvent, createEventId } from '../lib/pixelGtmService';
 import { Product, BookOrder, EcomSettings, InstituteInfo, AboutPageSettings, DeliveryMethodItem, PaymentGatewayItem, Coupon, CategoryItem } from '../types';
@@ -227,9 +227,9 @@ function PahariyaProductCard({
                       e.stopPropagation();
                       setSelectedVariantId(v.id);
                     }}
-                    className={`px-3 py-1 rounded-[4px] text-xs font-bold transition-all cursor-pointer border ${
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
                       isSelected
-                        ? 'bg-[#FDD305] text-slate-950 border-[#FDD305] shadow-xs ring-1 ring-amber-400'
+                        ? 'bg-[#F7A800] text-slate-950 border-[#F7A800] shadow-xs ring-1 ring-[#F7A800]'
                         : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-white'
                     }`}
                   >
@@ -243,12 +243,12 @@ function PahariyaProductCard({
 
       </div>
 
-      {/* Two Stacked Action Buttons (Pahariya Style: Forest Green Add to cart + Orange Buy Now) */}
+      {/* Two Stacked Action Buttons */}
       <div className="space-y-1.5 pt-2 mt-auto">
         <button
           type="button"
           onClick={() => onAddToCart(product, 1, selectedVariant || undefined)}
-          className="w-full bg-slate-900 hover:bg-slate-800 active:scale-95 text-white font-semibold text-xs py-2 px-3 rounded-[4px] shadow-xs transition cursor-pointer flex items-center justify-center gap-1.5"
+          className="w-full bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white font-semibold text-xs py-2 px-3 rounded-lg shadow-xs transition cursor-pointer flex items-center justify-center gap-1.5"
         >
           <ShoppingBag className="w-3.5 h-3.5 text-white" />
           <span>Add to cart</span>
@@ -256,7 +256,7 @@ function PahariyaProductCard({
         <button
           type="button"
           onClick={() => onBuyNow(product, selectedVariant || undefined)}
-          className="w-full bg-[#FDD305] hover:bg-[#e6be02] active:scale-95 text-slate-950 font-bold text-xs py-2 px-3 rounded-[4px] shadow-xs transition cursor-pointer flex items-center justify-center gap-1.5"
+          className="w-full bg-[#F7A800] hover:bg-[#e09900] active:scale-[0.98] text-slate-950 font-bold text-xs py-2 px-3 rounded-lg shadow-xs transition cursor-pointer flex items-center justify-center gap-1.5"
         >
           <span>Buy Now</span>
         </button>
@@ -431,10 +431,10 @@ function PahariyaFlashSaleSection({
                             e.stopPropagation();
                             setSelectedVariantId(v.id);
                           }}
-                          className={`px-3.5 py-1.5 rounded-[4px] text-xs font-bold transition-all cursor-pointer border ${
+                          className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
                             isSelected
-                              ? 'bg-[#FDD305] text-slate-950 border-[#FDD305] shadow-xs ring-1 ring-amber-400'
-                              : 'bg-white text-slate-700 border-slate-300 hover:border-amber-400 hover:bg-amber-50/20'
+                              ? 'bg-[#F7A800] text-slate-950 border-[#F7A800] shadow-xs ring-1 ring-[#F7A800]'
+                              : 'bg-white text-slate-700 border-slate-300 hover:border-[#F7A800] hover:bg-[#fffbf2]'
                           }`}
                         >
                           {v.name}
@@ -450,7 +450,7 @@ function PahariyaFlashSaleSection({
                 <button
                   type="button"
                   onClick={() => onAddToCart(product, 1, selectedVariant || undefined)}
-                  className="w-full bg-slate-900 hover:bg-slate-800 active:scale-95 text-white font-semibold text-xs sm:text-sm py-3 px-4 rounded-[4px] shadow-xs transition cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white font-semibold text-xs sm:text-sm py-3 px-4 rounded-xl shadow-xs transition cursor-pointer flex items-center justify-center gap-2"
                 >
                   <ShoppingBag className="w-4 h-4 text-white" />
                   <span>কার্ট-এ যোগ করুন</span>
@@ -458,7 +458,7 @@ function PahariyaFlashSaleSection({
                 <button
                   type="button"
                   onClick={() => onBuyNow(product, selectedVariant || undefined)}
-                  className="w-full bg-[#FDD305] hover:bg-[#e6be02] active:scale-95 text-slate-950 font-bold text-xs sm:text-sm py-3 px-4 rounded-[4px] shadow-xs transition cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full bg-[#F7A800] hover:bg-[#e09900] active:scale-[0.98] text-slate-950 font-bold text-xs sm:text-sm py-3 px-4 rounded-xl shadow-xs transition cursor-pointer flex items-center justify-center gap-2"
                 >
                   <span>অর্ডার করুন</span>
                 </button>
@@ -704,8 +704,13 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
   // General States
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState<boolean>(false);
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState<boolean>(false);
+  const [isHeaderHidden, setIsHeaderHidden] = useState<boolean>(false);
+  const lastScrollY = useRef<number>(0);
+  const mobileSearchInputRef = useRef<HTMLInputElement>(null);
+  const desktopSearchInputRef = useRef<HTMLInputElement>(null);
   const [currency] = useState<'BDT'>('BDT');
-  
+
   // Modals & Drawers
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isOrderTrackingOpen, setIsOrderTrackingOpen] = useState(false);
@@ -715,6 +720,40 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
   const [orderTrackSearched, setOrderTrackSearched] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [showNotificationToast, setShowNotificationToast] = useState<{ show: boolean; msg: string }>({ show: false, msg: '' });
+
+  // Smart Auto-Hide Top Header on Scroll Down, Reveal on Scroll Up (PC & Mobile)
+  useEffect(() => {
+    let ticking = false;
+    const handleScroll = () => {
+      if (isMobileSearchOpen || isOrderTrackingOpen || isCartOpen || isSearchDropdownOpen) return;
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentScrollY = window.scrollY;
+
+          // Always show near top of page (< 100px)
+          if (currentScrollY < 100) {
+            setIsHeaderHidden(false);
+          } else {
+            const diff = currentScrollY - lastScrollY.current;
+            // Scroll down past threshold (> 15px)
+            if (diff > 15) {
+              setIsHeaderHidden(true);
+            } 
+            // Scroll up past threshold (< -15px)
+            else if (diff < -15) {
+              setIsHeaderHidden(false);
+            }
+          }
+          lastScrollY.current = currentScrollY;
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isMobileSearchOpen, isOrderTrackingOpen, isCartOpen, isSearchDropdownOpen]);
   // Recently Viewed Products tracking
   const [recentlyViewedIds, setRecentlyViewedIds] = useState<string[]>(() => {
     try {
@@ -1092,21 +1131,82 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
     }
   }, []);
 
-  // Quick Autocomplete Suggestions for Search Bar
+  // Highlight Matching Search Query in Result Titles (matching Image 2 & Image 4)
+  const highlightMatch = useCallback((text: string, query: string) => {
+    if (!text) return '';
+    if (!query || !query.trim()) return text;
+    
+    const trimmed = query.trim();
+    const words = trimmed.split(/\s+/).filter(Boolean);
+    const escapedWords = words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    
+    let regex: RegExp;
+    try {
+      regex = new RegExp(`(${escapedWords.join('|')})`, 'gi');
+    } catch {
+      return text;
+    }
+
+    if (!regex.test(text) && trimmed.length <= 6) {
+      const chars = Array.from(new Set(trimmed.toLowerCase().split(''))).filter(c => /[a-z0-9\u0980-\u09FF]/i.test(c));
+      if (chars.length > 0) {
+        try {
+          regex = new RegExp(`(${chars.map(c => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi');
+        } catch {
+          return text;
+        }
+      }
+    }
+
+    const parts = text.split(regex);
+    return parts.map((part, i) =>
+      regex.test(part) ? (
+        <mark key={i} className="bg-yellow-300 text-slate-950 font-bold px-0.5 rounded-xs">
+          {part}
+        </mark>
+      ) : (
+        part
+      )
+    );
+  }, []);
+
+  // Quick Autocomplete Suggestions for Search Bar (Live Instant Matching)
   const searchSuggestions = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
     if (!q) return [];
-    return products.filter(p => 
-      p.title.toLowerCase().includes(q) || 
-      (p.description && p.description.toLowerCase().includes(q)) ||
-      (p.category && p.category.toLowerCase().includes(q))
-    ).slice(0, 6);
+    const queryWords = q.split(/\s+/).filter(Boolean);
+
+    return products.filter(p => {
+      const title = (p.title || '').toLowerCase();
+      const desc = (p.description || '').toLowerCase();
+      const cat = (p.category || '').toLowerCase();
+      const series = (p.series || '').toLowerCase();
+      const tags = Array.isArray(p.tags) ? p.tags.join(' ').toLowerCase() : '';
+      const fullText = `${title} ${desc} ${cat} ${series} ${tags}`;
+
+      // 1. Direct match
+      if (fullText.includes(q)) return true;
+      // 2. All words match anywhere
+      if (queryWords.every(w => fullText.includes(w))) return true;
+      // 3. Any query word in title
+      if (queryWords.some(w => title.includes(w))) return true;
+      // 4. Character subsequence in title for fuzzy tolerance (e.g. "ghree" -> "ghee" or "ginger")
+      if (q.length >= 3) {
+        let qi = 0;
+        for (let i = 0; i < title.length && qi < q.length; i++) {
+          if (title[i] === q[qi]) qi++;
+        }
+        if (qi >= q.length - 1) return true;
+      }
+      return false;
+    }).slice(0, 15);
   }, [products, searchTerm]);
 
   // Execute Search: navigates to shop view and applies search query
   const handleExecuteSearch = useCallback((e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setIsSearchDropdownOpen(false);
+    setIsMobileSearchOpen(false);
     setSelectedCategoryCheckbox('All');
     setCurrentPage(1);
     if (activeNav !== 'shop') {
@@ -1254,6 +1354,58 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
 
     return list;
   }, [ecomSettings?.categoryItems, ecomSettings?.categories, products]);
+
+  // Smart Icon Resolver for Top Category Bar
+  const getCategoryIcon = useCallback((categoryName: string) => {
+    // 1. Check if category item from admin settings has an uploaded image or icon URL
+    const foundItem = ecomSettings?.categoryItems?.find(
+      (c) => c.name?.toLowerCase().trim() === categoryName.toLowerCase().trim()
+    );
+    if (foundItem?.image || foundItem?.icon) {
+      return (
+        <img
+          src={foundItem.image || foundItem.icon}
+          alt=""
+          className="w-3.5 h-3.5 sm:w-4 sm:h-4 object-contain rounded-xs shrink-0"
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+          }}
+        />
+      );
+    }
+
+    // 2. Contextual Icon Mapping based on Category Name
+    const name = categoryName.toLowerCase();
+    if (name.includes('honey') || name.includes('মধু') || name.includes('হানি')) {
+      return <Droplet className="w-3.5 h-3.5 text-slate-950 shrink-0" />;
+    }
+    if (name.includes('ghee') || name.includes('ঘি') || name.includes('বাটার') || name.includes('butter')) {
+      return <Flame className="w-3.5 h-3.5 text-slate-950 shrink-0" />;
+    }
+    if (name.includes('oil') || name.includes('তেল') || name.includes('সরিষা')) {
+      return <Droplet className="w-3.5 h-3.5 text-slate-950 shrink-0" />;
+    }
+    if (name.includes('tea') || name.includes('চা') || name.includes('কফি') || name.includes('coffee')) {
+      return <FlaskConical className="w-3.5 h-3.5 text-slate-950 shrink-0" />;
+    }
+    if (name.includes('date') || name.includes('খেজুর') || name.includes('ফুড') || name.includes('food')) {
+      return <Package className="w-3.5 h-3.5 text-slate-950 shrink-0" />;
+    }
+    if (name.includes('nut') || name.includes('বাদাম') || name.includes('seed') || name.includes('বীজ')) {
+      return <Sprout className="w-3.5 h-3.5 text-slate-950 shrink-0" />;
+    }
+    if (name.includes('organic') || name.includes('ভেষজ') || name.includes('হার্বাল') || name.includes('গ্রীন') || name.includes('green')) {
+      return <Sprout className="w-3.5 h-3.5 text-slate-950 shrink-0" />;
+    }
+    if (name.includes('combo') || name.includes('কম্বো') || name.includes('অফার') || name.includes('offer')) {
+      return <Tag className="w-3.5 h-3.5 text-slate-950 shrink-0" />;
+    }
+    if (name === 'all' || name === 'সকল') {
+      return <LayoutGrid className="w-3.5 h-3.5 text-slate-950 shrink-0" />;
+    }
+
+    return <Sparkles className="w-3.5 h-3.5 text-slate-950 shrink-0" />;
+  }, [ecomSettings?.categoryItems]);
 
 
 
@@ -1687,7 +1839,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
   }, [activeProductDetail]);
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans relative selection:bg-rose-100 selection:text-rose-900">
+    <div className="min-h-screen bg-white text-slate-900 font-sans relative pb-16 lg:pb-0 selection:bg-amber-100 selection:text-amber-900">
       
       {/* Toast Notification */}
       {showNotificationToast.show && (
@@ -1698,10 +1850,16 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
       )}
 
       {/* ============================================================
-          PRIMARY #FDD305 TOP HEADER APPBAR & DYNAMIC CATEGORY BAR
+          PRIMARY #F7A800 TOP HEADER APPBAR & DYNAMIC CATEGORY BAR
           ============================================================ */}
-      <header className="sticky top-0 z-40 bg-[#FDD305] text-slate-900 shadow-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 flex items-center justify-between gap-3 sm:gap-6">
+      <header 
+        className={`sticky top-0 z-40 bg-[#F7A800] text-slate-950 shadow-md transition-transform duration-300 ease-out will-change-transform ${
+          isHeaderHidden ? '-translate-y-[58px] sm:-translate-y-[64px]' : 'translate-y-0'
+        }`}
+      >
+        {/* Main Header Top Bar: Fixed height, smoothly translates offscreen on scroll down */}
+        <div className="h-[58px] sm:h-[64px] flex items-center">
+          <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3 sm:gap-6">
           
           {/* Left: Brand Logo (Always refreshes to home on click) */}
           <div className="flex items-center shrink-0">
@@ -1711,7 +1869,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
               onClick={handleHomeClick}
               title={`${displayStoreName} - হোম`}
             >
-              <div className="bg-white rounded-lg px-2 py-1 shadow-2xs border border-amber-300/60 flex items-center justify-center">
+              <div className="bg-white rounded-lg px-2 py-1 shadow-2xs border border-[#d99200]/50 flex items-center justify-center">
                 <img 
                   src={displayStoreLogo} 
                   alt={displayStoreName} 
@@ -1725,13 +1883,14 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
             </button>
           </div>
 
-          {/* Center: Full-Width Responsive Search Bar */}
+          {/* Center: Full-Width Responsive Search Bar (Matching Image 1 & Image 4) */}
           <div className="relative flex-1 min-w-0 max-w-xl mx-1 sm:mx-3">
             <form 
               onSubmit={handleExecuteSearch}
-              className="relative flex items-center bg-white rounded-md overflow-hidden shadow-xs border border-amber-300 focus-within:border-slate-900 transition-all w-full"
+              className="relative flex items-center bg-white rounded-xl shadow-xs border border-slate-200/90 focus-within:border-slate-950 focus-within:ring-2 focus-within:ring-black/10 transition-all w-full p-1 pl-3.5 sm:pl-4"
             >
               <input
+                ref={desktopSearchInputRef}
                 type="text"
                 value={searchTerm}
                 onChange={(e) => {
@@ -1744,13 +1903,22 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
                   }
                 }}
                 onFocus={() => {
-                  if (searchTerm.trim()) setIsSearchDropdownOpen(true);
+                  if (window.innerWidth < 768) {
+                    setIsMobileSearchOpen(true);
+                  } else if (searchTerm.trim()) {
+                    setIsSearchDropdownOpen(true);
+                  }
+                }}
+                onClick={() => {
+                  if (window.innerWidth < 768) {
+                    setIsMobileSearchOpen(true);
+                  }
                 }}
                 onBlur={() => {
                   setTimeout(() => setIsSearchDropdownOpen(false), 250);
                 }}
                 placeholder={`Search in ${displayStoreName}...`}
-                className="w-full px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm text-slate-800 placeholder:text-slate-500 focus:outline-none"
+                className="w-full py-1.5 sm:py-2 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none"
               />
 
               {searchTerm.trim() && (
@@ -1759,69 +1927,87 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
                   onClick={() => {
                     setSearchTerm('');
                     setIsSearchDropdownOpen(false);
+                    desktopSearchInputRef.current?.focus();
                   }}
-                  className="p-1.5 text-slate-400 hover:text-slate-600 transition-colors mr-1 cursor-pointer"
+                  className="p-1.5 text-slate-400 hover:text-slate-700 transition-colors mr-1 cursor-pointer"
                   title="Clear"
                 >
-                  <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <X className="w-4 h-4" />
                 </button>
               )}
 
               <button
                 type="submit"
-                className="bg-slate-950 hover:bg-slate-800 active:bg-black text-white px-3.5 sm:px-5 py-2 sm:py-2.5 transition-colors cursor-pointer shrink-0 flex items-center justify-center"
+                className="bg-slate-950 hover:bg-slate-800 active:bg-black text-white px-3 sm:px-4 py-2 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center shadow-xs"
                 title="Search"
               >
-                <Search className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+                <Search className="w-4 h-4" />
               </button>
             </form>
 
-            {/* Quick Live Autocomplete Dropdown */}
-            {isSearchDropdownOpen && searchSuggestions.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-slate-200 rounded-md shadow-2xl z-50 overflow-hidden divide-y divide-slate-100 max-h-[380px] overflow-y-auto text-slate-900">
-                <div className="p-2.5 bg-slate-50 text-[11px] font-bold text-slate-700 uppercase tracking-wider flex justify-between items-center">
-                  <span className="text-slate-800">অনুসন্ধান ফলাফল ({searchSuggestions.length})</span>
-                  <span className="text-[10px] font-normal text-slate-400">এন্টার চাপুন বা ক্লিক করুন</span>
+            {/* Quick Live Autocomplete Dropdown (Matching Image 4) */}
+            {isSearchDropdownOpen && searchTerm.trim() && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 overflow-hidden divide-y divide-slate-100 max-h-[460px] overflow-y-auto text-slate-900 animate-fadeIn">
+                <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100 text-xs font-semibold text-slate-600 flex justify-between items-center">
+                  <span>Found {searchSuggestions.length} {searchSuggestions.length === 1 ? 'result' : 'results'} for &quot;{searchTerm}&quot;</span>
+                  <span className="text-[10px] text-slate-400 font-normal">ক্লিক করে বিস্তারিত দেখুন</span>
                 </div>
-                {searchSuggestions.map((prod) => (
-                  <div
-                    key={prod.id}
+
+                <div className="divide-y divide-slate-100 max-h-[380px] overflow-y-auto">
+                  {searchSuggestions.length > 0 ? (
+                    searchSuggestions.map((prod) => (
+                      <div
+                        key={prod.id}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          setIsSearchDropdownOpen(false);
+                          openProductDetail(prod);
+                        }}
+                        className="flex items-center gap-3.5 p-3 hover:bg-amber-50/70 active:bg-amber-100/70 transition-colors cursor-pointer group"
+                      >
+                        <img 
+                          src={prod.image || prod.coverImage || '/placeholder-product.svg'} 
+                          alt={prod.title} 
+                          className="w-11 h-11 object-contain rounded-lg bg-white border border-slate-100 p-0.5 shrink-0" 
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs sm:text-sm font-semibold text-slate-900 group-hover:text-amber-700 transition-colors line-clamp-1">
+                            {highlightMatch(prod.title, searchTerm)}
+                          </p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-xs sm:text-sm font-bold text-slate-950">
+                              ৳{prod.price.toLocaleString('bn-BD')}
+                            </span>
+                            {prod.originalPrice && prod.originalPrice > prod.price && (
+                              <span className="text-xs text-slate-400 line-through">
+                                ৳{prod.originalPrice.toLocaleString('bn-BD')}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-8 text-center space-y-1">
+                      <p className="text-sm font-bold text-slate-700">&quot;{searchTerm}&quot; এর জন্য কোনো পণ্য পাওয়া যায়নি</p>
+                      <p className="text-xs text-slate-400">অন্য কোনো নাম বা কি-ওয়ার্ড দিয়ে অনুসন্ধান করুন</p>
+                    </div>
+                  )}
+                </div>
+
+                {searchSuggestions.length > 0 && (
+                  <button
+                    type="button"
                     onMouseDown={(e) => {
                       e.preventDefault();
                       setIsSearchDropdownOpen(false);
-                      openProductDetail(prod);
+                      handleExecuteSearch();
                     }}
-                    className="flex items-center gap-3 p-2.5 hover:bg-amber-50/80 transition-colors cursor-pointer"
+                    className="w-full py-2.5 px-4 bg-[#F7A800] hover:bg-[#e09900] text-slate-950 text-xs font-bold text-center transition-colors block cursor-pointer"
                   >
-                    <img 
-                      src={prod.image || '/placeholder-product.svg'} 
-                      alt={prod.title} 
-                      className="w-10 h-10 object-contain rounded bg-white border border-slate-100 shrink-0" 
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs sm:text-sm font-semibold text-slate-800 truncate">{prod.title}</p>
-                      <p className="text-xs text-slate-950 font-bold">
-                        {currency} {prod.price.toLocaleString('bn-BD')}
-                        {prod.originalPrice && prod.originalPrice > prod.price && (
-                          <span className="ml-1.5 text-[11px] text-slate-400 line-through font-normal">
-                            {currency} {prod.originalPrice.toLocaleString('bn-BD')}
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    setIsSearchDropdownOpen(false);
-                    handleExecuteSearch();
-                  }}
-                  className="w-full py-2.5 px-3 bg-[#FDD305] hover:bg-[#e6be02] text-slate-950 text-xs font-bold text-center transition-colors block cursor-pointer"
-                >
-                  সকল ফলাফল দেখুন &rarr;
-                </button>
+                    সকল ফলাফল দেখুন ({searchSuggestions.length}টি) &rarr;
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -1851,7 +2037,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
               <div className="relative flex items-center justify-center">
                 <ShoppingBag className="w-5 h-5 sm:w-5.5 sm:h-5.5 text-slate-900 group-hover:scale-105 transition-transform" />
                 {totalCartCount > 0 && (
-                  <span className="absolute -top-1.5 -right-2 bg-slate-950 text-[#FDD305] text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-xs">
+                  <span className="absolute -top-1.5 -right-2 bg-slate-950 text-[#F7A800] text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-xs">
                     {totalCartCount}
                   </span>
                 )}
@@ -1874,10 +2060,11 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
           </div>
 
         </div>
+      </div>
 
         {/* Dynamic Category Row from Admin Panel */}
         {headerCategories.length > 0 && (
-          <div className="border-t border-amber-300/80 bg-[#f5cb05]">
+          <div className="border-t border-[#d99200]/40 bg-[#ee9f00]">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <nav className="flex items-center gap-4 sm:gap-6 md:gap-7 overflow-x-auto no-scrollbar py-2 text-xs sm:text-sm font-semibold whitespace-nowrap text-slate-900">
                 {headerCategories.map((catName) => {
@@ -1900,13 +2087,14 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
                           window.scrollTo({ top: 380, behavior: 'smooth' });
                         }, 150);
                       }}
-                      className={`transition-colors cursor-pointer pb-0.5 ${
+                      className={`inline-flex items-center gap-1.5 transition-all cursor-pointer pb-1 ${
                         isSelected
                           ? 'text-black font-black border-b-2 border-slate-950'
-                          : 'text-slate-900 hover:text-black'
+                          : 'text-slate-900 hover:text-black font-semibold'
                       }`}
                     >
-                      {catName}
+                      {getCategoryIcon(catName)}
+                      <span>{catName}</span>
                     </button>
                   );
                 })}
@@ -1916,9 +2104,169 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
         )}
       </header>
 
+      {/* ============================================================
+          MOBILE DEDICATED SEARCH OVERLAY (Matching Image 2)
+          ============================================================ */}
+      {isMobileSearchOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex flex-col lg:hidden animate-fadeIn">
+          {/* Mobile Search Header */}
+          <div className="bg-[#F7A800] text-slate-950 p-3 shadow-md space-y-2.5">
+            {/* Top Row: Store Logo & Action Buttons */}
+            <div className="flex items-center justify-between">
+              <div className="bg-white rounded-lg px-2 py-0.5 shadow-2xs border border-[#d99200]/50 flex items-center">
+                <img 
+                  src={displayStoreLogo} 
+                  alt={displayStoreName} 
+                  className="h-7 w-auto max-w-[130px] object-contain" 
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = '/uploads/file-1792215004226-886642061.jpg';
+                  }}
+                />
+              </div>
 
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMobileSearchOpen(false);
+                    setIsOrderTrackingOpen(true);
+                  }}
+                  className="flex items-center gap-1 bg-white/90 px-2.5 py-1 rounded-lg text-xs font-bold text-slate-900 shadow-2xs cursor-pointer"
+                >
+                  <Truck className="w-3.5 h-3.5" />
+                  <span>Order Track</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsMobileSearchOpen(false)}
+                  className="p-1.5 bg-black/10 hover:bg-black/20 text-slate-950 rounded-lg transition-colors cursor-pointer"
+                  title="Close Search"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
 
+            {/* Full-width Search Input Bar (Matching Image 2) */}
+            <form 
+              onSubmit={handleExecuteSearch}
+              className="relative flex items-center bg-white rounded-xl shadow-md border border-[#d99200]/50 p-1 pl-3.5 focus-within:ring-2 focus-within:ring-black/20"
+            >
+              <input
+                ref={mobileSearchInputRef}
+                type="text"
+                value={searchTerm}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSearchTerm(val);
+                }}
+                placeholder={`Search in ${displayStoreName}...`}
+                className="w-full py-1.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                autoFocus
+              />
 
+              {searchTerm.trim() && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchTerm('');
+                    mobileSearchInputRef.current?.focus();
+                  }}
+                  className="p-1.5 text-slate-400 hover:text-slate-700 transition-colors mr-1 cursor-pointer"
+                  title="Clear"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+
+              <button
+                type="submit"
+                className="bg-slate-950 hover:bg-slate-800 text-white p-2 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center shadow-xs"
+                title="Search"
+              >
+                <Search className="w-4 h-4" />
+              </button>
+            </form>
+          </div>
+
+          {/* Search Results Area */}
+          <div className="flex-1 bg-slate-950/40 p-3 overflow-y-auto" onClick={() => setIsMobileSearchOpen(false)}>
+            <div 
+              onClick={(e) => e.stopPropagation()} 
+              className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200 divide-y divide-slate-100 max-h-[75vh] flex flex-col"
+            >
+              {searchTerm.trim() ? (
+                <>
+                  <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100 text-xs font-semibold text-slate-600 flex justify-between items-center">
+                    <span>Found {searchSuggestions.length} {searchSuggestions.length === 1 ? 'result' : 'results'} for &quot;{searchTerm}&quot;</span>
+                    <span className="text-[10px] text-slate-400 font-normal">ট্যাপ করে বিস্তারিত দেখুন</span>
+                  </div>
+
+                  <div className="divide-y divide-slate-100 overflow-y-auto flex-1">
+                    {searchSuggestions.length > 0 ? (
+                      searchSuggestions.map((prod) => (
+                        <div
+                          key={prod.id}
+                          onClick={() => {
+                            setIsMobileSearchOpen(false);
+                            openProductDetail(prod);
+                          }}
+                          className="flex items-center gap-3 p-3 hover:bg-amber-50/70 active:bg-amber-100/70 transition-colors cursor-pointer group"
+                        >
+                          <img 
+                            src={prod.image || prod.coverImage || '/placeholder-product.svg'} 
+                            alt={prod.title} 
+                            className="w-12 h-12 object-contain rounded-lg bg-white border border-slate-100 p-0.5 shrink-0" 
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-slate-900 group-hover:text-amber-700 transition-colors line-clamp-1">
+                              {highlightMatch(prod.title, searchTerm)}
+                            </p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-sm font-bold text-slate-950">
+                                ৳{prod.price.toLocaleString('bn-BD')}
+                              </span>
+                              {prod.originalPrice && prod.originalPrice > prod.price && (
+                                <span className="text-xs text-slate-400 line-through">
+                                  ৳{prod.originalPrice.toLocaleString('bn-BD')}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-8 text-center space-y-1">
+                        <p className="text-sm font-bold text-slate-700">&quot;{searchTerm}&quot; এর জন্য কোনো পণ্য পাওয়া যায়নি</p>
+                        <p className="text-xs text-slate-400">অন্য কোনো নাম বা কি-ওয়ার্ড দিয়ে অনুসন্ধান করুন</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {searchSuggestions.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMobileSearchOpen(false);
+                        handleExecuteSearch();
+                      }}
+                      className="w-full py-3 px-4 bg-[#F7A800] hover:bg-[#e09900] active:bg-[#c98800] text-slate-950 text-xs font-bold text-center transition-colors block cursor-pointer"
+                    >
+                      সকল ফলাফল দেখুন ({searchSuggestions.length}টি) &rarr;
+                    </button>
+                  )}
+                </>
+              ) : (
+                <div className="p-6 text-center space-y-2">
+                  <Search className="w-8 h-8 text-slate-300 mx-auto" />
+                  <p className="text-xs text-slate-500 font-medium">পণ্য খুঁজতে নাম টাইপ করুন (যেমন: মধু, ঘি, তেল ইত্যাদি)</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ============================================================
           MAIN BODY CONTENT (ROUTED VIEWS)
@@ -1954,8 +2302,8 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
                       onClick={() => setActiveImageIndex(idx)}
                       className={`w-16 h-16 sm:w-20 sm:h-20 md:w-full md:h-20 lg:h-24 rounded-lg bg-white border-2 ${
                         activeImageIndex === idx 
-                          ? 'border-[#FDD305] ring-2 ring-amber-400 shadow-sm' 
-                          : 'border-slate-200 hover:border-amber-400'
+                          ? 'border-[#F7A800] ring-2 ring-[#F7A800] shadow-sm' 
+                          : 'border-slate-200 hover:border-[#F7A800]'
                       } p-1.5 overflow-hidden transition-all shrink-0 cursor-pointer flex items-center justify-center`}
                       aria-label={`View product image ${idx + 1}`}
                     >
@@ -2147,8 +2495,8 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
                               onClick={() => setSelectedVariant(v)}
                               className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border flex items-center gap-2 ${
                                 isSelected
-                                  ? 'bg-[#FDD305] text-slate-950 border-[#FDD305] shadow-sm ring-2 ring-amber-400 font-bold'
-                                  : 'bg-white text-slate-800 border-slate-300 hover:border-amber-400 hover:bg-slate-50'
+                                  ? 'bg-[#F7A800] text-slate-950 border-[#F7A800] shadow-sm ring-2 ring-[#F7A800] font-bold'
+                                  : 'bg-white text-slate-800 border-slate-300 hover:border-[#F7A800] hover:bg-slate-50'
                               }`}
                             >
                               <span>{v.name}</span>
@@ -2202,7 +2550,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
                         setIsCartOpen(false);
                         navigateTo('checkout');
                       }}
-                      className="w-full bg-[#FDD305] hover:bg-[#e6be02] active:scale-[0.99] text-slate-950 font-black py-3.5 px-4 rounded-xl text-sm sm:text-base tracking-wide transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
+                      className="w-full bg-[#F7A800] hover:bg-[#e09900] active:scale-[0.99] text-slate-950 font-black py-3.5 px-4 rounded-xl text-sm sm:text-base tracking-wide transition-all shadow-md shadow-[#F7A800]/25 cursor-pointer flex items-center justify-center gap-2"
                     >
                       <span>Buy Now</span>
                     </button>
@@ -2373,7 +2721,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
             <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
               যোগাযোগ করুন
             </h2>
-            <div className="w-12 h-1 bg-[#FDD305] mx-auto rounded-full"></div>
+            <div className="w-12 h-1 bg-[#F7A800] mx-auto rounded-full"></div>
             <p className="text-xs sm:text-sm text-slate-600 max-w-lg mx-auto pt-1 font-medium">
               যেকোনো পণ্য, অর্ডার বা তথ্যের জন্য আমাদের সাথে সরাসরি যোগাযোগ করুন।
             </p>
@@ -2464,7 +2812,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
           <div className="text-center pt-4">
             <button
               onClick={() => navigateTo('home')}
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-[4px] bg-[#FDD305] hover:bg-[#e6be02] text-slate-950 text-xs font-bold transition shadow-xs cursor-pointer"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#F7A800] hover:bg-[#e09900] active:scale-[0.98] text-slate-950 text-xs font-bold transition shadow-xs cursor-pointer"
             >
               <span>কেনাকাটা চালিয়ে যান</span>
               <ArrowRight className="w-3.5 h-3.5 text-slate-950" />
@@ -2714,8 +3062,8 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
             </div>
 
             <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-8 text-center space-y-4">
-              <div className="inline-flex items-center gap-2 bg-[#FDD305]/20 text-[#FDD305] border border-[#FDD305]/30 text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-widest backdrop-blur-xs">
-                <Sparkles className="w-3.5 h-3.5 text-[#FDD305]" />
+              <div className="inline-flex items-center gap-2 bg-[#F7A800]/20 text-[#F7A800] border border-[#F7A800]/30 text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-widest backdrop-blur-xs">
+                <Sparkles className="w-3.5 h-3.5 text-[#F7A800]" />
                 {aboutSettings.badge || 'ABOUT OUR BRAND'}
               </div>
 
@@ -2871,8 +3219,8 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
                         )}
                       </div>
 
-                      {/* Right Banner (Square ~1:1, ~33%) */}
-                      <div className="col-span-1 lg:col-span-4 flex">
+                      {/* Right Banner (Square ~1:1, hidden on mobile so only single top column is visible, shown on lg screens) */}
+                      <div className="hidden lg:flex lg:col-span-4">
                         {rightImage ? (
                           <div 
                             onClick={() => {
@@ -2896,7 +3244,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
                             </div>
                           </div>
                         ) : (
-                          <div className="w-full rounded-2xl bg-gradient-to-br from-[#FDD305] to-[#f59e0b] text-slate-950 p-8 flex flex-col justify-center items-center text-center h-[240px] sm:h-[320px] md:h-[380px] lg:h-[420px] border border-amber-300 shadow-sm">
+                          <div className="w-full rounded-2xl bg-gradient-to-br from-[#F7A800] to-[#e09900] text-slate-950 p-8 flex flex-col justify-center items-center text-center h-[240px] sm:h-[320px] md:h-[380px] lg:h-[420px] border border-[#d99200]/50 shadow-sm">
                             <h3 className="text-lg sm:text-xl font-black mb-2">Fast Nationwide Delivery</h3>
                             <p className="text-xs sm:text-sm text-slate-900 font-medium">Cash on delivery available across Bangladesh</p>
                           </div>
@@ -3026,7 +3374,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
                     <h2 className="text-2xl sm:text-3xl lg:text-4xl text-slate-900 font-bold tracking-tight">
                       পপুলার প্রোডাক্টস
                     </h2>
-                    <div className="w-16 h-1 bg-[#FDD305] mx-auto mt-2 rounded-full"></div>
+                    <div className="w-16 h-1 bg-[#F7A800] mx-auto mt-2 rounded-full"></div>
                     <p className="text-slate-600 text-xs sm:text-sm mt-1.5 font-medium">
                       আমাদের সর্বাধিক বিক্রিত এবং গ্রাহক প্রশংসিত প্রাকৃতিক পণ্যসমূহ
                     </p>
@@ -3089,7 +3437,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
                   <h2 className="text-2xl sm:text-3xl lg:text-4xl text-slate-900 font-bold tracking-tight">
                     {dailyCategoryData.categoryName}
                   </h2>
-                  <div className="w-16 h-1 bg-[#FDD305] mx-auto mt-2 rounded-full"></div>
+                  <div className="w-16 h-1 bg-[#F7A800] mx-auto mt-2 rounded-full"></div>
                   <p className="text-slate-600 text-xs sm:text-sm mt-1.5 font-medium">
                     আমাদের {dailyCategoryData.categoryName} ক্যাটাগরির সেরা পণ্যসমূহ
                   </p>
@@ -3123,7 +3471,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
                       navigateTo('shop');
                       scrollToTop();
                     }}
-                    className="inline-flex items-center gap-2 text-slate-950 bg-[#FDD305] hover:bg-[#e6be02] active:scale-95 px-6 py-2.5 rounded-full text-xs font-bold transition shadow-xs cursor-pointer group"
+                    className="inline-flex items-center gap-2 text-slate-950 bg-[#F7A800] hover:bg-[#e09900] active:scale-[0.98] px-6 py-2.5 rounded-full text-xs font-bold transition shadow-xs cursor-pointer group"
                   >
                     <span>সব পণ্য দেখুন ({products.length})</span>
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform text-slate-950" />
@@ -3168,7 +3516,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
       {/* ============================================================
           LUXURY FOOTER
           ============================================================ */}
-      <React.Suspense fallback={<div className="h-40 bg-[#FDD305]"></div>}>
+      <React.Suspense fallback={<div className="h-40 bg-[#F7A800]"></div>}>
         <FantineFooter 
           displayStoreLogo={displayStoreLogo}
           displayStoreName={displayStoreName}
@@ -3317,7 +3665,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
                     </div>
                     <div className="flex justify-between items-center font-serif text-sm sm:text-base font-bold text-slate-900 pt-2 border-t border-slate-100">
                       <span>Total:</span>
-                      <span className="text-[#f97316] text-lg font-black">{formatPrice(cartSubtotal)}</span>
+                      <span className="text-slate-950 text-lg font-black">{formatPrice(cartSubtotal)}</span>
                     </div>
                   </div>
 
@@ -3346,7 +3694,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
                         setIsCartOpen(false);
                         navigateTo('checkout');
                       }}
-                      className="w-full bg-[#FDD305] hover:bg-[#e6be02] active:scale-[0.99] text-slate-950 py-4 rounded-2xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all shadow-lg shadow-amber-400/25 cursor-pointer flex items-center justify-center gap-2"
+                      className="w-full bg-[#F7A800] hover:bg-[#e09900] active:scale-[0.99] text-slate-950 py-4 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all shadow-lg shadow-[#F7A800]/25 cursor-pointer flex items-center justify-center gap-2"
                     >
                       <span>PROCEED TO CHECKOUT</span>
                       <ArrowRight className="w-4 h-4 text-slate-950" />
@@ -3440,12 +3788,12 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
       )}
 
       {/* ============================================================
-          FLOATING SIDE CART WIDGET (Naturo BD Style with #FDD305 Primary)
+          FLOATING SIDE CART WIDGET (#F7A800 Brand Primary)
           ============================================================ */}
       <button
         type="button"
         onClick={() => setIsCartOpen(true)}
-        className="fixed right-0 top-1/2 -translate-y-1/2 z-40 bg-[#FDD305] hover:bg-[#e6be02] text-slate-950 rounded-l-xl px-2.5 py-3 shadow-2xl flex flex-col items-center gap-1 cursor-pointer transition-transform hover:-translate-x-1 border-l-2 border-y border-amber-400/60 select-none"
+        className="fixed right-0 top-1/2 -translate-y-1/2 z-40 bg-[#F7A800] hover:bg-[#e09900] text-slate-950 rounded-l-xl px-2.5 py-3 shadow-2xl flex flex-col items-center gap-1 cursor-pointer transition-transform hover:-translate-x-1 border-l-2 border-y border-[#d99200]/70 select-none"
         title="View Cart"
         aria-label="View Cart"
       >
@@ -3465,7 +3813,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
           <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-slate-100">
             {/* Modal Header */}
-            <div className="bg-[#FDD305] text-slate-950 px-5 py-4 flex items-center justify-between border-b border-amber-300">
+            <div className="bg-[#F7A800] text-slate-950 px-5 py-4 flex items-center justify-between border-b border-[#d99200]/50">
               <div className="flex items-center gap-2.5">
                 <Truck className="w-5 h-5 text-slate-950" />
                 <h3 className="text-base sm:text-lg font-bold text-slate-950">অর্ডার ট্র্যাকিং (Order Track)</h3>
@@ -3497,12 +3845,12 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
                     value={orderTrackQuery}
                     onChange={(e) => setOrderTrackQuery(e.target.value)}
                     placeholder="যেমন: 01712345678 বা #ORD-..."
-                    className="flex-1 px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#FDD305] focus:ring-1 focus:ring-[#FDD305]"
+                    className="flex-1 px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#F7A800] focus:ring-1 focus:ring-[#F7A800]"
                   />
                   <button
                     type="submit"
                     disabled={orderTrackLoading || !orderTrackQuery.trim()}
-                    className="bg-[#FDD305] hover:bg-[#e6be02] disabled:bg-slate-300 text-slate-950 px-4 sm:px-5 py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-colors cursor-pointer shrink-0 flex items-center gap-1.5 shadow-xs"
+                    className="bg-[#F7A800] hover:bg-[#e09900] disabled:bg-slate-300 text-slate-950 px-4 sm:px-5 py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-colors cursor-pointer shrink-0 flex items-center gap-1.5 shadow-xs"
                   >
                     {orderTrackLoading ? (
                       <RefreshCw className="w-4 h-4 animate-spin text-slate-950" />
@@ -3737,6 +4085,103 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
           </div>
         </div>
       )}
+
+      {/* ============================================================
+          MOBILE BOTTOM NAVIGATION DOCK (Matching Image 3)
+          ============================================================ */}
+      <nav 
+        aria-label="Mobile Bottom Navigation" 
+        className="fixed bottom-0 left-0 right-0 z-40 bg-white/98 backdrop-blur-md border-t border-slate-200/90 py-1.5 px-3 flex items-center justify-around shadow-[0_-4px_16px_rgba(0,0,0,0.06)] lg:hidden"
+      >
+        {/* 1. Home */}
+        <button
+          type="button"
+          onClick={() => {
+            setIsMobileSearchOpen(false);
+            handleHomeClick();
+          }}
+          className={`flex flex-col items-center justify-center py-1 px-2 min-w-[54px] transition-colors cursor-pointer ${
+            activeNav === 'home' && !isMobileSearchOpen ? 'text-[#F7A800] font-bold' : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <Home className="w-5 h-5 mb-0.5" />
+          <span className="text-[10px] font-semibold tracking-tight">Home</span>
+        </button>
+
+        {/* 2. Category */}
+        <button
+          type="button"
+          onClick={() => {
+            setIsMobileSearchOpen(false);
+            if (activeNav !== 'shop') {
+              navigateTo('shop');
+            }
+            setTimeout(() => {
+              window.scrollTo({ top: 380, behavior: 'smooth' });
+            }, 100);
+          }}
+          className={`flex flex-col items-center justify-center py-1 px-2 min-w-[54px] transition-colors cursor-pointer ${
+            activeNav === 'shop' && !isMobileSearchOpen && selectedCategoryCheckbox !== 'All' ? 'text-[#F7A800] font-bold' : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <LayoutGrid className="w-5 h-5 mb-0.5" />
+          <span className="text-[10px] font-semibold tracking-tight">Category</span>
+        </button>
+
+        {/* 3. Search */}
+        <button
+          type="button"
+          onClick={() => {
+            setIsMobileSearchOpen(prev => !prev);
+            if (!isMobileSearchOpen) {
+              setTimeout(() => mobileSearchInputRef.current?.focus(), 150);
+            }
+          }}
+          className={`flex flex-col items-center justify-center py-1 px-2 min-w-[54px] transition-colors cursor-pointer ${
+            isMobileSearchOpen ? 'text-[#F7A800] font-bold' : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          {isMobileSearchOpen ? (
+            <X className="w-5 h-5 mb-0.5 text-[#F7A800]" />
+          ) : (
+            <Search className="w-5 h-5 mb-0.5" />
+          )}
+          <span className="text-[10px] font-semibold tracking-tight">Search</span>
+        </button>
+
+        {/* 4. Cart */}
+        <button
+          type="button"
+          onClick={() => {
+            setIsMobileSearchOpen(false);
+            setIsCartOpen(true);
+          }}
+          className="flex flex-col items-center justify-center py-1 px-2 min-w-[54px] text-slate-600 hover:text-slate-900 transition-colors cursor-pointer relative"
+        >
+          <div className="relative">
+            <ShoppingBag className="w-5 h-5 mb-0.5" />
+            {totalCartCount > 0 && (
+              <span className="absolute -top-1.5 -right-2.5 bg-[#F7A800] text-slate-950 text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-xs border border-white">
+                {totalCartCount}
+              </span>
+            )}
+          </div>
+          <span className="text-[10px] font-semibold tracking-tight">Cart</span>
+        </button>
+
+        {/* 5. Account */}
+        <button
+          type="button"
+          onClick={() => {
+            setIsMobileSearchOpen(false);
+            setIsProfileOpen(true);
+          }}
+          className="flex flex-col items-center justify-center py-1 px-2 min-w-[54px] text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
+        >
+          <User className="w-5 h-5 mb-0.5" />
+          <span className="text-[10px] font-semibold tracking-tight">Account</span>
+        </button>
+      </nav>
 
     </div>
   );

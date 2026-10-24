@@ -143,7 +143,11 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
           }
         }, 1500);
         dbService.getGlobalViews().then(setViewsOverview).catch(() => {});
-        document.title = 'E-commerce Admin | Watch Store';
+        dbService.getEcomSettings().then((st) => {
+          document.title = `Admin Panel | ${st.storeName || 'SHOSTIR BAZAR'}`;
+        }).catch(() => {
+          document.title = 'Admin Panel | SHOSTIR BAZAR';
+        });
       } catch (err) {
         console.error('Failed to load dashboard data:', err);
       } finally {
@@ -390,12 +394,12 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
       <aside className="hidden lg:flex lg:flex-col lg:w-60 bg-slate-900 text-slate-400 border-r border-slate-800 shrink-0 sticky top-0 h-screen">
         {/* Title / Header */}
         <div className="h-16 flex items-center px-4 border-b border-slate-800 space-x-2.5 text-white">
-          <div className="h-8 w-8 rounded-lg bg-teal-500/20 text-teal-400 border border-teal-500/30 flex items-center justify-center font-bold shrink-0">
+          <div className="h-8 w-8 rounded-lg bg-[#F7A800]/20 text-[#F7A800] border border-[#F7A800]/30 flex items-center justify-center font-bold shrink-0">
             <ShoppingBag className="h-4.5 w-4.5" />
           </div>
           <div className="min-w-0">
             <h1 className="text-sm font-bold leading-tight text-white truncate">E-commerce Admin</h1>
-            <span className="text-xs text-teal-400 block font-medium truncate">Control Panel</span>
+            <span className="text-xs text-[#F7A800] block font-medium truncate">Control Panel</span>
           </div>
         </div>
 
@@ -421,7 +425,7 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
                 onClick={() => setActiveTab(item.id)}
                 className={`w-full inline-flex items-center px-3 py-2.5 rounded-xl text-sm font-medium cursor-pointer transition-all ${
                   isActive 
-                    ? 'bg-teal-600 text-white shadow-md shadow-teal-900/30 font-semibold' 
+                    ? 'bg-[#F7A800] text-slate-950 shadow-md shadow-[#F7A800]/25 font-bold' 
                     : 'hover:bg-slate-800 hover:text-slate-200'
                 }`}
               >
@@ -469,10 +473,10 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
               </div>
 
               <div className="h-16 flex items-center px-4 border-b border-slate-800 space-x-2.5 text-white">
-                <ShoppingBag className="h-6 w-6 text-teal-400 shrink-0" />
+                <ShoppingBag className="h-6 w-6 text-[#F7A800] shrink-0" />
                 <div className="min-w-0 pr-6">
                   <h1 className="text-xs font-bold leading-tight truncate">E-commerce Admin</h1>
-                  <span className="text-[10px] text-teal-400 block truncate">Control Panel</span>
+                  <span className="text-[10px] text-[#F7A800] block truncate">Control Panel</span>
                 </div>
               </div>
 
@@ -500,7 +504,7 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
                       }}
                       className={`w-full inline-flex items-center px-3 py-2 rounded-xl text-xs font-semibold cursor-pointer transition-all ${
                         isActive 
-                          ? 'bg-teal-600 text-white shadow-md' 
+                          ? 'bg-[#F7A800] text-slate-950 shadow-md shadow-[#F7A800]/25 font-bold' 
                           : 'hover:bg-slate-800 hover:text-slate-200'
                       }`}
                     >

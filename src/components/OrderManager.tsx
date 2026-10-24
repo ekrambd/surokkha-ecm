@@ -695,12 +695,12 @@ export default function OrderManager({
 
     const headers = ['Invoice', 'Name', 'Contact', 'Address', 'Amount', 'Note'];
     const rows = list.map(o => [
-      `"${o.id}"`,
-      `"${o.customerName.replace(/"/g, '""')}"`,
-      `"${o.phone}"`,
-      `"${o.address.replace(/"/g, '""')}"`,
-      `"${o.totalPrice || (o.price * o.quantity + o.deliveryCharge)}"`,
-      `"${(o.productTitle + ' x' + o.quantity).replace(/"/g, '""')}"`
+      `"${o.id || ''}"`,
+      `"${String(o.customerName || o.name || '').replace(/"/g, '""')}"`,
+      `"${String(o.phone || '').replace(/"/g, '""')}"`,
+      `"${String(o.address || '').replace(/"/g, '""')}"`,
+      `"${Number(o.totalPrice ?? o.totalAmount ?? (Number(o.price || 0) * Number(o.quantity || 1) + Number(o.deliveryCharge || 0))) || 0}"`,
+      `"${(String(o.productTitle || o.productName || 'Item') + ' x' + (o.quantity || 1)).replace(/"/g, '""')}"`
     ]);
 
     const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
@@ -733,13 +733,13 @@ export default function OrderManager({
       '"PARCEL"',
       '"NORMAL"',
       `"${o.quantity || 1}"`,
-      `"${o.customerName.replace(/"/g, '""')}"`,
-      `"${o.phone}"`,
-      `"${o.address.replace(/"/g, '""')}"`,
-      `"${o.district || 'Dhaka'}"`,
-      `"${o.thana || 'Dhaka'}"`,
-      `"${o.totalPrice || (o.price * o.quantity + o.deliveryCharge)}"`,
-      `"${(o.productTitle + ' - ' + o.id).replace(/"/g, '""')}"`
+      `"${String(o.customerName || o.name || '').replace(/"/g, '""')}"`,
+      `"${String(o.phone || '').replace(/"/g, '""')}"`,
+      `"${String(o.address || '').replace(/"/g, '""')}"`,
+      `"${String(o.district || 'Dhaka').replace(/"/g, '""')}"`,
+      `"${String(o.thana || 'Dhaka').replace(/"/g, '""')}"`,
+      `"${Number(o.totalPrice ?? o.totalAmount ?? (Number(o.price || 0) * Number(o.quantity || 1) + Number(o.deliveryCharge || 0))) || 0}"`,
+      `"${(String(o.productTitle || o.productName || 'Order') + ' - ' + (o.id || '')).replace(/"/g, '""')}"`
     ]);
 
     const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
@@ -796,7 +796,7 @@ export default function OrderManager({
           case 'contactPhone': val = o.phone; break;
           default: val = '';
         }
-        return `"${val.replace(/"/g, '""')}"`;
+        return `"${String(val ?? '').replace(/"/g, '""')}"`;
       });
     });
 
@@ -844,13 +844,16 @@ export default function OrderManager({
       const newOrder: BookOrder = {
         id: `ORD-${year}-${num}`,
         customerName: formData.customerName.trim(),
+        name: formData.customerName.trim(),
         phone: formData.phone.trim(),
         address: formData.address.trim() || 'Buy directly from the showroom',
         productTitle: formData.productTitle,
+        productName: formData.productTitle,
         price: formData.price,
         deliveryCharge: formData.deliveryCharge,
         quantity: formData.quantity,
         totalPrice: tot,
+        totalAmount: tot,
         orderType: formData.orderType,
         status: formData.status,
         createdAt: new Date().toISOString(),

@@ -4,6 +4,10 @@
 @theme {
   --font-sans: 'Hind Siliguri', 'Plus Jakarta Sans', 'Inter', 'Noto Sans Bengali', system-ui, -apple-system, sans-serif;
   --font-serif: 'Hind Siliguri', 'Plus Jakarta Sans', 'Noto Sans Bengali', sans-serif;
+  --color-brand: #F7A800;
+  --color-brand-hover: #e09900;
+  --color-brand-active: #c98800;
+  --color-brand-light: #fffbf2;
 }
 
 @layer base {

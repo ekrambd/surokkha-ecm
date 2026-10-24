@@ -460,7 +460,7 @@ export default function CheckoutPage({
             <button
               type="button"
               onClick={onNavigateShop}
-              className="px-6 py-2.5 bg-[#FDD305] hover:bg-[#e6be02] text-slate-950 text-xs sm:text-sm font-bold rounded-xl cursor-pointer shadow-sm transition"
+              className="px-6 py-2.5 bg-[#F7A800] hover:bg-[#e09900] text-slate-950 text-xs sm:text-sm font-bold rounded-xl cursor-pointer shadow-sm transition"
             >
               পণ্য দেখুন
             </button>
@@ -588,15 +588,15 @@ export default function CheckoutPage({
                           onClick={() => setSelectedDeliveryId(opt.id)}
                           className={`flex items-center justify-between p-3.5 rounded-xl border-2 transition-all cursor-pointer ${
                             isSelected 
-                              ? 'border-amber-400 bg-amber-50/40 shadow-xs ring-1 ring-amber-400' 
+                              ? 'border-[#F7A800] bg-[#fffbf2] shadow-xs ring-1 ring-[#F7A800]' 
                               : 'border-slate-200 bg-white hover:border-slate-300'
                           }`}
                         >
                           <div className="flex items-center gap-3">
                             <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
-                              isSelected ? 'border-amber-500' : 'border-slate-300'
+                              isSelected ? 'border-[#F7A800]' : 'border-slate-300'
                             }`}>
-                              {isSelected && <span className="w-2 h-2 rounded-full bg-amber-500" />}
+                              {isSelected && <span className="w-2 h-2 rounded-full bg-[#F7A800]" />}
                             </span>
                             <div>
                               <span className="text-xs sm:text-sm font-semibold text-slate-800 block">
@@ -651,7 +651,7 @@ export default function CheckoutPage({
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         required
-                        className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl focus:border-amber-400 focus:ring-1 focus:ring-amber-400 outline-none transition text-slate-900 placeholder:text-slate-400"
+                        className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl focus:border-[#F7A800] focus:ring-1 focus:ring-[#F7A800] outline-none transition text-slate-900 placeholder:text-slate-400"
                       />
                     </div>
 
@@ -713,7 +713,7 @@ export default function CheckoutPage({
                           }}
                           required
                           className={`w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border ${
-                            phoneError ? 'border-red-500 ring-1 ring-red-500/20' : 'border-slate-200 focus:border-amber-400 focus:ring-amber-400'
+                            phoneError ? 'border-red-500 ring-1 ring-red-500/20' : 'border-slate-200 focus:border-[#F7A800] focus:ring-[#F7A800]'
                           } rounded-xl focus:ring-1 outline-none transition text-slate-900 placeholder:text-slate-400 font-mono`}
                         />
                         {phone.length === 11 && !phoneError && (
@@ -759,7 +759,7 @@ export default function CheckoutPage({
                           }}
                           required
                           className={`w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border ${
-                            addressError ? 'border-red-500 ring-1 ring-red-500/20' : 'border-slate-200 focus:border-amber-400 focus:ring-amber-400'
+                            addressError ? 'border-red-500 ring-1 ring-red-500/20' : 'border-slate-200 focus:border-[#F7A800] focus:ring-[#F7A800]'
                           } rounded-xl focus:ring-1 outline-none transition text-slate-900 placeholder:text-slate-400 resize-none`}
                         />
                         {address.trim().length >= 10 && validateDeliveryAddress(address).isValid && !addressError && (
@@ -847,7 +847,7 @@ export default function CheckoutPage({
                           <button
                             type="button"
                             onClick={handleApplyCoupon}
-                            className="px-4 py-1.5 bg-[#FDD305] hover:bg-[#e6be02] text-slate-950 text-xs font-bold rounded-lg transition cursor-pointer shadow-xs"
+                            className="px-4 py-1.5 bg-[#F7A800] hover:bg-[#e09900] text-slate-950 text-xs font-bold rounded-lg transition cursor-pointer shadow-xs"
                           >
                             এপ্লাই
                           </button>
@@ -874,7 +874,7 @@ export default function CheckoutPage({
                   type="checkbox"
                   checked={agreeTerms}
                   onChange={(e) => setAgreeTerms(e.target.checked)}
-                  className="mt-0.5 w-4 h-4 text-slate-900 accent-[#FDD305] rounded cursor-pointer shrink-0"
+                  className="mt-0.5 w-4 h-4 text-slate-900 accent-[#F7A800] rounded cursor-pointer shrink-0"
                 />
                 <span className="leading-relaxed">
                   আমি{' '}
@@ -905,11 +905,11 @@ export default function CheckoutPage({
                 </span>
               </label>
 
-              {/* Big #FDD305 Primary CTA Button */}
+              {/* Big #F7A800 Primary CTA Button */}
               <button
                 type="submit"
                 disabled={isSubmitting || cart.length === 0}
-                className="w-full py-3.5 sm:py-4 px-6 bg-[#FDD305] hover:bg-[#e6be02] active:scale-[0.99] text-slate-950 font-black text-base sm:text-lg rounded-xl shadow-lg shadow-amber-400/25 transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full py-3.5 sm:py-4 px-6 bg-[#F7A800] hover:bg-[#e09900] active:scale-[0.99] text-slate-950 font-black text-base sm:text-lg rounded-xl shadow-lg shadow-[#F7A800]/25 transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 tracking-wide"
               >
                 {isSubmitting ? (
                   <span className="flex items-center gap-2 text-slate-950">
@@ -921,9 +921,24 @@ export default function CheckoutPage({
                 )}
               </button>
 
+              {/* Trust & Guarantee Badges */}
+              <div className="grid grid-cols-3 gap-2 pt-1 text-center">
+                <div className="bg-slate-50 border border-slate-200/80 rounded-lg py-2 px-1">
+                  <span className="text-[11px] font-bold text-slate-800 block">ক্যাশ অন ডেলিভারি</span>
+                  <span className="text-[10px] text-slate-500 block">পণ্য হাতে পেয়ে পেমেন্ট</span>
+                </div>
+                <div className="bg-slate-50 border border-slate-200/80 rounded-lg py-2 px-1">
+                  <span className="text-[11px] font-bold text-slate-800 block">১০০% আসল পণ্য</span>
+                  <span className="text-[10px] text-slate-500 block">নিখুঁত কোয়ালিটি নিশ্চিত</span>
+                </div>
+                <div className="bg-slate-50 border border-slate-200/80 rounded-lg py-2 px-1">
+                  <span className="text-[11px] font-bold text-slate-800 block">সহজ রিটার্ন</span>
+                  <span className="text-[10px] text-slate-500 block">দ্রুত সমাধান সুবিধা</span>
+                </div>
+              </div>
 
               {/* Reassurance Subtitle */}
-              <p className="text-center text-xs text-slate-500 font-medium pt-1">
+              <p className="text-center text-xs text-slate-500 font-medium pt-0.5">
                 আমাদের একজন কাস্টমার প্রতিনিধি আপনাকে কল করে আবার কনফার্ম হবে
               </p>
             </div>

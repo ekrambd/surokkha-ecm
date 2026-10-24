@@ -1221,12 +1221,13 @@ export default function ProductManager({
                         </div>
 
                         {/* Column Header Guide */}
-                        <div className="hidden sm:grid grid-cols-12 gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider px-2">
-                          <div className="col-span-2">ছবি (Image)</div>
-                          <div className="col-span-4">ওজন / ভেরিয়েন্টের নাম (e.g. ১ কেজি)</div>
-                          <div className="col-span-3">বিক্রয় মূল্য (Price ৳)</div>
-                          <div className="col-span-2">পূর্বের মূল্য (Reg. ৳)</div>
-                          <div className="col-span-1 text-right">মুছুন</div>
+                        <div className="hidden sm:flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider px-2">
+                          <div className="w-[72px] shrink-0">ছবি (Image)</div>
+                          <div className="flex-1 min-w-[130px]">ভেরিয়েন্টের নাম (যেমন: ১ কেজি)</div>
+                          <div className="w-28 shrink-0">বিক্রয় মূল্য (৳)</div>
+                          <div className="w-24 shrink-0">পূর্বের মূল্য (৳)</div>
+                          <div className="w-20 shrink-0">ওজন (kg)</div>
+                          <div className="w-8 shrink-0 text-center">মুছুন</div>
                         </div>
 
                         {variants.map((v, idx) => (

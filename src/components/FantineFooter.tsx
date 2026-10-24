@@ -46,7 +46,7 @@ export default function FantineFooter({
 
   return (
     <>
-      <footer className="bg-[#FDD305] text-slate-900 pt-12 pb-10 border-t border-amber-300">
+      <footer className="bg-[#F7A800] text-slate-950 pt-12 pb-10 border-t border-[#d99200]/50 shadow-inner">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
           
           {/* Column 1: Brand & Contact Info */}
@@ -253,11 +253,11 @@ export default function FantineFooter({
       <div className="fixed bottom-6 left-6 z-40 hidden sm:block">
         <button 
           onClick={scrollToTop}
-          className="w-10 h-10 bg-slate-950 hover:bg-slate-900 text-[#FDD305] rounded-full flex items-center justify-center shadow-lg border border-slate-800 transition-transform hover:scale-110 active:scale-95 cursor-pointer font-bold"
+          className="w-10 h-10 bg-slate-950 hover:bg-slate-900 text-[#F7A800] rounded-full flex items-center justify-center shadow-lg border border-slate-800 transition-transform hover:scale-110 active:scale-95 cursor-pointer font-bold"
           aria-label="Scroll to top"
           title="Scroll to top"
         >
-          <ArrowUp className="w-5 h-5 text-[#FDD305] font-bold" />
+          <ArrowUp className="w-5 h-5 text-[#F7A800] font-bold" />
         </button>
       </div>
     </>
