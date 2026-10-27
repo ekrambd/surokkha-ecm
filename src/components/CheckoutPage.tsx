@@ -15,7 +15,7 @@ import { Product, ProductVariant, BookOrder, EcomSettings, Coupon } from '../typ
 import { dbService, DEFAULT_DELIVERY_METHODS } from '../lib/dbService';
 import { trackEvent, createEventId } from '../lib/pixelGtmService';
 import { playOrderSuccessVibe } from '../lib/soundUtils';
-import { validateBDPhone, validateDeliveryAddress, sanitizeBDPhoneInput } from '../lib/validationUtils';
+import { validateBDPhone, validateDeliveryAddress, sanitizeBDPhoneInput, formatBDWhatsAppNumber } from '../lib/validationUtils';
 import { calculateDeliveryCharge } from '../lib/deliveryUtils';
 
 interface CartItem {
@@ -174,7 +174,7 @@ export default function CheckoutPage({
 
   const couponDiscountAmount = useMemo(() => {
     if (!appliedCoupon) return 0;
-    if (appliedCoupon.type === 'percent') {
+    if (appliedCoupon.type === 'percentage' || (appliedCoupon.type as any) === 'percent') {
       const disc = Math.round((cartSubtotal * appliedCoupon.discount) / 100);
       return appliedCoupon.maxDiscount ? Math.min(disc, appliedCoupon.maxDiscount) : disc;
     }
@@ -373,7 +373,17 @@ export default function CheckoutPage({
 
   // ORDER SUCCESS SCREEN
   if (orderSuccess) {
-    const contactWa = (ecomSettings?.whatsappNumber || '8801329458568').replace(/[^0-9]/g, '');
+    const rawTargetPhone = liveSettings?.whatsappNumber || 
+                           liveSettings?.socialLinks?.whatsapp || 
+                           liveSettings?.contactPhone || 
+                           liveSettings?.hotlinePhone || 
+                           ecomSettings?.whatsappNumber || 
+                           ecomSettings?.socialLinks?.whatsapp || 
+                           ecomSettings?.contactPhone || 
+                           ecomSettings?.hotlinePhone || 
+                           '';
+    const contactWa = formatBDWhatsAppNumber(rawTargetPhone);
+    const storeDisplayName = liveSettings?.storeName || liveSettings?.companyName || ecomSettings?.storeName || ecomSettings?.companyName || 'Store';
     return (
       <div className="min-h-screen bg-[#f7f6f2] py-8 sm:py-16 px-4 flex items-center justify-center font-sans animate-fadeIn">
         <div className="max-w-xl w-full bg-white rounded-3xl p-6 sm:p-10 shadow-xl border border-slate-200/80 text-center space-y-6">
@@ -408,17 +418,19 @@ export default function CheckoutPage({
           </div>
 
           {/* 1-Click WhatsApp Order Confirmation */}
-          <a
-            href={`https://wa.me/${contactWa}?text=${encodeURIComponent(
-              `Hello SHOSTIR BAZAR,\nআমি একটি অর্ডার করেছি!\nঅর্ডার আইডি: #${orderSuccess.id}\nসর্বমোট: ${(orderSuccess.totalAmount || orderSuccess.totalPrice || 0).toLocaleString()} TK\nনাম: ${orderSuccess.customerName}\nমোবাইল: ${orderSuccess.customerPhone || orderSuccess.phone}\nঠিকানা: ${orderSuccess.address}\nঅনুগ্রহ করে ডেলিভারি কনফার্ম করুন!`
-            )}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full py-3.5 px-6 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-sm sm:text-base rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer no-underline"
-          >
-            <MessageCircle className="w-5 h-5 fill-current" />
-            WhatsApp-এ অর্ডার কনফার্ম করুন
-          </a>
+          {contactWa && (
+            <a
+              href={`https://wa.me/${contactWa}?text=${encodeURIComponent(
+                `Hello ${storeDisplayName},\nআমি একটি অর্ডার করেছি!\nঅর্ডার আইডি: #${orderSuccess.id}\nসর্বমোট: ${(orderSuccess.totalAmount || orderSuccess.totalPrice || 0).toLocaleString()} TK\nনাম: ${orderSuccess.customerName}\nমোবাইল: ${orderSuccess.customerPhone || orderSuccess.phone}\nঠিকানা: ${orderSuccess.address}\nঅনুগ্রহ করে ডেলিভারি কনফার্ম করুন!`
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-3.5 px-6 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-sm sm:text-base rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer no-underline"
+            >
+              <MessageCircle className="w-5 h-5 fill-current" />
+              WhatsApp-এ অর্ডার কনফার্ম করুন
+            </a>
+          )}
 
           <button
             type="button"

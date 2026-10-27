@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-import { Product, ProductVariant, CartItem } from '../types';
+import { Product, ProductVariant, CartItem, EcomSettings, InstituteInfo } from '../types';
 
 interface AppState {
   // Admin Auth State
@@ -9,6 +9,12 @@ interface AppState {
   setAdminEmail: (email: string | null) => void;
   logoutAdmin: () => void;
   
+  // Settings Cache
+  ecomSettings: EcomSettings | null;
+  setEcomSettings: (settings: EcomSettings | null) => void;
+  instituteInfo: InstituteInfo | null;
+  setInstituteInfo: (info: InstituteInfo | null) => void;
+
   // Ecom Cart State
   cart: CartItem[];
   addToCart: (item: CartItem) => void;
@@ -24,6 +30,11 @@ export const useAppStore = create<AppState>()(
       setAdminEmail: (email) => set({ adminEmail: email }),
       logoutAdmin: () => set({ adminEmail: null }),
       
+      ecomSettings: null,
+      setEcomSettings: (settings) => set({ ecomSettings: settings }),
+      instituteInfo: null,
+      setInstituteInfo: (info) => set({ instituteInfo: info }),
+
       cart: [],
       addToCart: (item) =>
         set((state) => {

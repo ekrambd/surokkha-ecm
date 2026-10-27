@@ -478,7 +478,7 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
   const selectedDeliveryMethod = activeDeliveryMethods.find(m => m.id === selectedDeliveryMethodId) || activeDeliveryMethods[0];
   const subtotal = (displayPrice || 0) * quantity;
   const isProductFreeDelivery = product?.deliveryChargeEnabled === false || (product as any)?.freeDelivery === true;
-  const isFreeDelivery = isProductFreeDelivery || (Boolean(storeSettings?.freeDeliveryActive) && subtotal >= Number(storeSettings?.freeDeliveryMinAmount || 0));
+  const isFreeDelivery = isProductFreeDelivery || (Boolean((storeSettings as any)?.freeDeliveryEnabled || storeSettings?.freeDeliveryActive) && subtotal >= Number((storeSettings as any)?.freeDeliveryMinPurchase || (storeSettings as any)?.freeDeliveryMinAmount || 0));
 
   const deliveryCalc = useMemo(() => {
     return calculateDeliveryCharge({
@@ -532,8 +532,9 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
 
   const scrollToOrder = () => {
     const eventId = createEventId('initiate_checkout');
+    const itemName = selectedVariant ? `${displayTitle} (${selectedVariant.name})` : displayTitle;
     trackEvent('InitiateCheckout', {
-      content_name: chosenItemTitle,
+      content_name: itemName,
       content_ids: [product?.id || landingConfig?.productId || 'landing_product'],
       content_type: 'product',
       value: totalPrice || displayPrice,

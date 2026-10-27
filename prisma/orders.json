@@ -1,0 +1,41 @@
+[
+  {
+    "id": "ORD-2026-3712",
+    "customerName": "Rakibul Hasan",
+    "phone": "01315861003",
+    "address": "house no 10,adabor,dhaka",
+    "deliveryZone": "Inside Dhaka",
+    "deliveryFee": 70,
+    "deliveryCharge": 70,
+    "items": [
+      {
+        "product": {
+          "id": "prod-1792007690982",
+          "title": "সুন্দরবনের খলিশা ফুলের মধু।",
+          "price": 1200,
+          "regularPrice": 1250,
+          "image": "",
+          "category": "Honey",
+          "stock": 100,
+          "isAvailable": true
+        },
+        "quantity": 1
+      }
+    ],
+    "quantity": 1,
+    "totalPrice": 1270,
+    "totalAmount": 1270,
+    "productName": "সুন্দরবনের খলিশা ফুলের মধু। (x1)",
+    "productTitle": "সুন্দরবনের খলিশা ফুলের মধু। (x1)",
+    "status": "Pending",
+    "orderType": "storefront",
+    "paymentMethod": "Cash on Delivery",
+    "paymentGateway": "Cash on Delivery",
+    "createdAt": "2026-10-27T09:37:47.609Z",
+    "orderDate": "2026-10-27T09:37:47.609Z",
+    "_shardMeta": {
+      "shardIndex": 9,
+      "partition": "orders_2026_10"
+    }
+  }
+]

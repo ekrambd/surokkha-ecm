@@ -232,3 +232,27 @@ export function validateDeliveryAddress(rawAddress: string): { isValid: boolean;
     error: 'অনুগ্রহ করে বাসা/রোড নম্বর সহ সম্পূর্ণ ঠিকানা দিন (যেমন: বাসা নং ১০, আদাবর, ঢাকা) অথবা গ্রাম, থানা, জেলা উল্লেখ করুন (যেমন: মঙ্গলবাড়ি, ধামইরহাট, নওগাঁ)।'
   };
 }
+
+/**
+ * Normalizes a Bangladeshi phone/WhatsApp number to international format (880XXXXXXXXXX)
+ * suitable for wa.me links.
+ */
+export function formatBDWhatsAppNumber(input?: string): string {
+  if (!input) return '';
+  const digits = normalizeBanglaDigits(input).replace(/\D/g, '');
+  if (!digits) return '';
+
+  if (digits.startsWith('880')) {
+    return digits;
+  }
+  if (digits.startsWith('00880')) {
+    return digits.slice(2);
+  }
+  if (digits.startsWith('01')) {
+    return '88' + digits;
+  }
+  if (digits.startsWith('1') && digits.length === 10) {
+    return '880' + digits;
+  }
+  return digits;
+}

@@ -97,7 +97,7 @@ orderRouter.get('/track', (req, res) => {
 
   const cleanDigits = query.replace(/\D/g, '');
   const matched = storeOrders.filter(o => {
-    const orderPhone = (o.customerPhone || o.phone || '').replace(/\D/g, '');
+    const orderPhone = ((o as any).customerPhone || o.phone || '').replace(/\D/g, '');
     const isPhoneMatch = Boolean(cleanDigits && orderPhone && (orderPhone.endsWith(cleanDigits) || cleanDigits.endsWith(orderPhone)));
     const isIdMatch = Boolean(o.id && o.id.toLowerCase() === query.toLowerCase());
     return isPhoneMatch || isIdMatch;

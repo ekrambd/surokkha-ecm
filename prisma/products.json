@@ -475,7 +475,7 @@
     "continueSelling": true,
     "isUnlisted": false,
     "codAvailable": true,
-    "deliveryChargeEnabled": false,
+    "deliveryChargeEnabled": true,
     "deliveryChargeAmount": 0,
     "exclusiveDelivery": true,
     "addQrToImage": false,

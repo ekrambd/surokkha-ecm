@@ -77,9 +77,9 @@ export const checkoutRateLimiter = createRateLimiter({
   message: 'Order submission limit reached. Please wait a minute before placing another order.'
 });
 
-/** Anti brute-force limiter for admin & customer logins: Max 10 attempts per 5 minutes per IP */
+/** Anti brute-force limiter for admin & customer logins: higher limit in development, 10 attempts per 5 mins in production */
 export const authRateLimiter = createRateLimiter({
   windowMs: 5 * 60 * 1000,
-  max: 10,
+  max: process.env.NODE_ENV === 'development' ? 100 : 10,
   message: 'Too many login attempts. Please wait 5 minutes before trying again.'
 });
