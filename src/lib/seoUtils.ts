@@ -1,18 +1,86 @@
 import type { Product } from '../types';
 
+import type { Product } from '../types';
+
+const BENGALI_TO_LATIN: Record<string, string> = {
+  'ক': 'k', 'খ': 'kh', 'গ': 'g', 'ঘ': 'gh', 'ঙ': 'ng',
+  'চ': 'ch', 'ছ': 'chh', 'জ': 'j', 'ঝ': 'jh', 'ঞ': 'n',
+  'ট': 't', 'ঠ': 'th', 'ড': 'd', 'ঢ': 'dh', 'ণ': 'n',
+  'ত': 't', 'থ': 'th', 'দ': 'd', 'ধ': 'dh', 'ন': 'n',
+  'প': 'p', 'ফ': 'f', 'ব': 'b', 'ভ': 'bh', 'ম': 'm',
+  'য': 'j', 'র': 'r', 'ল': 'l', 'শ': 'sh', 'ষ': 'sh', 'স': 's', 'হ': 'h',
+  'ড়': 'r', 'ঢ়': 'rh', 'য়': 'y', 'ৎ': 't', 'ং': 'ng', 'ঃ': '', 'ঁ': '',
+  'া': 'a', 'ি': 'i', 'ী': 'i', 'ু': 'u', 'ূ': 'u', 'ৃ': 'ri',
+  'ে': 'e', 'ৈ': 'oi', 'ো': 'o', 'ৌ': 'ou',
+  'অ': 'o', 'আ': 'a', 'ই': 'i', 'ঈ': 'i', 'উ': 'u', 'ঊ': 'u', 'ঋ': 'ri',
+  'এ': 'e', 'ঐ': 'oi', 'ও': 'o', 'ঔ': 'ou'
+};
+
+/**
+ * Transliterates Bengali characters into clean English Latin characters.
+ */
+export function transliterateBengali(text: string): string {
+  let res = '';
+  for (const ch of text) {
+    res += BENGALI_TO_LATIN[ch] !== undefined ? BENGALI_TO_LATIN[ch] : ch;
+  }
+  return res;
+}
+
+/**
+ * Generates clean, professional, readable, SEO-optimized English slugs.
+ * Prevents giant percent-encoded URLs like %E0%A6%96%E0%A6%...
+ * Example:
+ *  "খেজুর বাদামের বরফি। Date nuts" -> "date-nuts" (or "khejur-badamer-borfi-date-nuts")
+ *  "সুন্দরবনের খলিশা ফুলের মধু" -> "sundarban-kholisha-modhu"
+ */
+export function generateProfessionalSlug(title: string): string {
+  if (!title) return '';
+
+  // 1. If title already has an English name (e.g. "Date nuts", "Gawa Ghee", "Almond"), prioritize it!
+  const englishWords = (title.match(/[a-zA-Z0-9]+/g) || [])
+    .filter(w => !['sku', 'fresh', 'premium', 'item', 'the', 'and', 'or'].includes(w.toLowerCase()));
+  
+  if (englishWords.length >= 1 && englishWords.join('-').length >= 3) {
+    return englishWords.join('-').toLowerCase();
+  }
+
+  // 2. Otherwise transliterate Bengali to clear readable Latin letters
+  const transliterated = transliterateBengali(title);
+  const clean = transliterated
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-{2,}/g, '-');
+
+  return clean || 'product';
+}
+
 export function slugifyProductText(value: string): string {
-  return value
-    .trim()
+  const trimmed = (value || '').trim();
+  // Check if string contains non-latin (like Bengali)
+  if (/[\u0980-\u09FF]/.test(trimmed)) {
+    return generateProfessionalSlug(trimmed);
+  }
+  return trimmed
     .toLowerCase()
     .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^\p{L}\p{M}\p{N}]+/gu, '-')
+    .replace(/[^a-z0-9-]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .replace(/-{2,}/g, '-');
 }
 
 export function getProductSlug(product: Pick<Product, 'id' | 'title' | 'slug'>): string {
-  return slugifyProductText(product.slug || product.title) || product.id;
+  if (product.slug && product.slug.trim()) {
+    // If slug is currently stored in raw Bengali, convert it to clean English slug
+    if (/[\u0980-\u09FF]/.test(product.slug)) {
+      return generateProfessionalSlug(product.slug);
+    }
+    return slugifyProductText(product.slug);
+  }
+  return generateProfessionalSlug(product.title) || product.id;
 }
 
 export function truncateSeoText(value: string, maxLength: number): string {

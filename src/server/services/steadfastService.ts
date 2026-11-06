@@ -14,10 +14,14 @@ export interface DispatchParams {
 }
 
 export class SteadfastCourierService {
+  private static readonly DEFAULT_API_KEY = 'w31xqya3s08mfpqgsj5n7vjxnmarxaqj';
+  private static readonly DEFAULT_SECRET_KEY = '5nwxokmj1o3vp0h5qk3idpvb';
+  private static readonly DEFAULT_BASE_URL = 'https://portal.packzy.com/api/v1';
+
   private static getConfig() {
-    const apiKey = process.env.STEADFAST_API_KEY;
-    const secretKey = process.env.STEADFAST_SECRET_KEY;
-    const baseUrl = (process.env.STEADFAST_BASE_URL || 'https://portal.packzy.com/api/v1').replace(/\/$/, '');
+    const apiKey = (process.env.STEADFAST_API_KEY || this.DEFAULT_API_KEY).trim();
+    const secretKey = (process.env.STEADFAST_SECRET_KEY || this.DEFAULT_SECRET_KEY).trim();
+    const baseUrl = (process.env.STEADFAST_BASE_URL || this.DEFAULT_BASE_URL).replace(/\/$/, '').trim();
     if (!apiKey || !secretKey) throw new Error('Steadfast credentials are not configured on the server');
     return { apiKey, secretKey, baseUrl };
   }
@@ -104,33 +108,48 @@ export class SteadfastCourierService {
     }
 
     try {
-      // Query Steadfast API fraud check / delivery ratio endpoint
-      const endpoint = `/fraud_check/${encodeURIComponent(cleanPhone)}`;
-      const data = await this.request(endpoint).catch(async () => {
-        return await this.request(`/check_delivery_ratio`, {
-          method: 'POST',
-          body: JSON.stringify({ phone: cleanPhone })
-        }).catch(() => null);
-      });
+      // 1. Try modern official score endpoint: /fraud_check/score/{phone}
+      let scoreData = await this.request(`/fraud_check/score/${encodeURIComponent(cleanPhone)}`).catch(() => null);
 
-      if (data && (data.total_parcels !== undefined || data.total_delivered !== undefined || data.delivery_ratio !== undefined || data.data)) {
-        const payload = data.data || data;
-        const totalParcels = Number(payload.total_parcels || payload.total_orders || payload.total || 0);
-        const deliveredParcels = Number(payload.total_delivered || payload.delivered || 0);
-        const returnedParcels = Number(payload.total_returned || payload.returned || payload.total_cancelled || 0);
-        const cancelledParcels = Number(payload.total_cancelled || payload.cancelled || 0);
-        const successRatio = totalParcels > 0 
-          ? Number(payload.delivery_ratio || ((deliveredParcels / totalParcels) * 100).toFixed(1))
-          : 0;
+      // 2. Fallback to legacy endpoint if score endpoint fails
+      if (!scoreData || scoreData.status === 404) {
+        scoreData = await this.request(`/fraud_check/${encodeURIComponent(cleanPhone)}`).catch(() => null);
+      }
+
+      if (scoreData) {
+        const payload = scoreData.data || scoreData;
+
+        // If score endpoint returns null for delivery_ratio (or volume_band is 'none'),
+        // it means this number has no finished parcels / no courier history on Steadfast.
+        const hasHistory = payload.delivery_ratio !== null && payload.delivery_ratio !== undefined;
+
+        // Extract delivery & cancellation ratio directly from Steadfast
+        const deliveryRatio = hasHistory
+          ? Number(payload.delivery_ratio)
+          : (payload.total_parcels ? Math.round((Number(payload.total_delivered || 0) / Number(payload.total_parcels)) * 100) : null);
+
+        const cancellationRatio = payload.cancellation_ratio !== undefined && payload.cancellation_ratio !== null
+          ? Number(payload.cancellation_ratio)
+          : (payload.total_parcels ? Math.round((Number(payload.total_cancelled || 0) / Number(payload.total_parcels)) * 100) : 0);
+
+        // Extract Volume Band / Range: e.g. "10+", "25+", "50+", "100+" or exact number
+        const volumeRange = payload.volume_range || (payload.volume_band !== 'none' && payload.volume_band ? payload.volume_band : (payload.total_parcels ? `${payload.total_parcels}` : '0'));
+        const totalReports = Number(payload.total_reports ?? (Array.isArray(payload.total_fraud_reports) ? payload.total_fraud_reports.length : 0));
+
+        const deliveredCount = payload.delivered_count ?? payload.total_delivered ?? null;
+        const cancelledCount = payload.cancelled_count ?? payload.total_cancelled ?? null;
 
         return {
           success: true,
           phone: cleanPhone,
-          totalParcels,
-          deliveredParcels,
-          returnedParcels,
-          cancelledParcels,
-          successRatio,
+          hasHistory,
+          deliveryRatio,
+          cancellationRatio,
+          volumeRange,
+          volumeBand: payload.volume_band || 'unknown',
+          totalReports,
+          deliveredCount,
+          cancelledCount,
           source: 'steadfast'
         };
       }
@@ -138,7 +157,7 @@ export class SteadfastCourierService {
       return {
         success: false,
         phone: cleanPhone,
-        message: 'No external courier records found for this number'
+        message: 'No records found for this number'
       };
     } catch (err: any) {
       return {

@@ -90,6 +90,12 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
         setOrders(orderList);
         setProducts(prodList);
         setCustomers(custList);
+        
+        // Populate global app store with real ecomSettings
+        try {
+          const { useAppStore } = await import('../store/useAppStore');
+          useAppStore.getState().setEcomSettings(settings);
+        } catch {}
 
         // Run auto-sync of Steadfast courier status in the background
         setTimeout(async () => {
@@ -160,6 +166,10 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
     const handleSettingsUpdate = async () => {
       try {
         const settings = await dbService.getEcomSettings();
+        try {
+          const { useAppStore } = await import('../store/useAppStore');
+          useAppStore.getState().setEcomSettings(settings);
+        } catch {}
         if (settings.storeName) {
           document.title = `E-commerce Admin | ${settings.storeName}`;
         }

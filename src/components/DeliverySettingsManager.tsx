@@ -620,7 +620,7 @@ export default function DeliverySettingsManager() {
                       </div>
                       <div>
                         <div className="font-extrabold text-slate-900 text-xs">{dm.title}</div>
-                        <div className="text-[11px] text-slate-500">{dm.mode || 'Weight based'}</div>
+                        <div className="text-[11px] text-slate-500">{dm.mode || dm.type || 'Fixed'}</div>
                       </div>
                     </div>
                   </td>
@@ -639,7 +639,7 @@ export default function DeliverySettingsManager() {
                   </td>
                   <td className="px-4 py-3.5 font-mono text-slate-900 font-bold">
                     <div>Tk {dm.deliveryCharge}</div>
-                    {(dm.type === 'Weight based' || dm.mode === 'Weight based' || settings.weightBasedDeliveryEnabled) && (
+                    {(dm.type === 'Weight based' || dm.mode === 'Weight based') && (
                       <div className="text-[10px] text-teal-700 font-semibold mt-0.5 flex items-center gap-1 font-sans">
                         <Scale className="w-3 h-3 text-teal-600 shrink-0" />
                         <span>+ Tk {dm.extraPerKgCharge ?? (dm.title.toLowerCase().includes('inside') ? 20 : 25)}/kg (&gt; {dm.baseWeightKg ?? 1}kg)</span>

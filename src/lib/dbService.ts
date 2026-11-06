@@ -302,7 +302,7 @@ export const createDefaultLandingForProduct = (product: Product): LandingPageDat
     heroHeadline: product.title || 'প্রিমিয়াম কোয়ালিটি ফুড প্রোডাক্ট',
     heroDescription: product.description || product.shortSummary || '১০০% খাঁটি ও স্বাস্থ্যকর খাদ্যপণ্য। কোনো ক্ষতিকর কেমিক্যাল বা কৃত্রিম উপাদান ছাড়া প্রস্তুত।',
     videoUrl: product.pdfUrl || '',
-    campaignBadgeText: '১০০% প্রিমিয়াম ও খাঁটি পণ্য',
+    campaignBadgeText: '',
     campaignBannerTitle: 'অর্ডার করতে নিচের বাটনে ক্লিক করুন',
     campaignCouponNote: 'পণ্য হাতে পেয়ে চেক করে সম্পূর্ণ মূল্য পরিশোধ করুন',
     campaignTickerText: 'সরাসরি ক্যাশ অন ডেলিভারিতে অর্ডার করুন!',

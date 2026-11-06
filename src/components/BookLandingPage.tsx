@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { 
   ShoppingCart, RefreshCw, Zap, 
   CheckCircle2, Clock, ChevronLeft, ChevronRight, Check,
-  MessageCircle, Settings, Trophy, Wrench, Shirt, ShieldCheck, Package, Copy
+  MessageCircle, Settings, Trophy, Wrench, Shirt, ShieldCheck, Package, Copy, Phone
 } from 'lucide-react';
 import { publicStoreService, readStorefrontCache, optimizeImageUrl } from '../lib/publicStoreService';
 import { DEFAULT_DELIVERY_METHODS, DEFAULT_LANDING_PAGE_SETTINGS, createDefaultLandingForProduct } from '../lib/constants';
@@ -251,7 +251,7 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
   const displayTitle = (landingConfig?.bookTitle && !landingConfig.bookTitle.includes('CASIO'))
     ? landingConfig.bookTitle 
     : (product?.title || fallbackProduct.title);
-  const displaySubtitle = product?.subtitle || product?.shortSummary || ((landingConfig?.bookSubtitle && !landingConfig.bookSubtitle.includes('CASIO')) ? landingConfig.bookSubtitle : fallbackProduct.subtitle);
+  const displaySubtitle = product?.subtitle || ((landingConfig?.bookSubtitle && !landingConfig.bookSubtitle.includes('CASIO')) ? landingConfig.bookSubtitle : '');
   const displayDesc = product?.description || product?.shortSummary || ((landingConfig?.heroDescription && !landingConfig.heroDescription.includes('CASIO')) ? landingConfig.heroDescription : fallbackProduct.description);
   const displayPrice = selectedVariant?.price || product?.price || landingConfig?.offerPrice || fallbackProduct.price;
   const regularPrice = selectedVariant?.regularPrice || product?.regularPrice || landingConfig?.regularPrice || (displayPrice ? Math.round(displayPrice * 1.25) : fallbackProduct.regularPrice);
@@ -271,9 +271,9 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
   };
   const embedVideoUrl = getYouTubeEmbedUrl(landingConfig?.videoUrl || product?.pdfUrl);
   
-  const campaignBadgeText = (landingConfig?.campaignBadgeText && !landingConfig.campaignBadgeText.includes('bike') && !landingConfig.campaignBadgeText.includes('R15'))
+  const campaignBadgeText = (landingConfig?.campaignBadgeText && !landingConfig.campaignBadgeText.includes('bike') && !landingConfig.campaignBadgeText.includes('R15') && !landingConfig.campaignBadgeText.includes('১০০% প্রিমিয়াম ও খাঁটি পণ্য'))
     ? landingConfig.campaignBadgeText
-    : '১০০% খাঁটি ও প্রিমিয়াম ফুড';
+    : '';
   const rawTicker = landingConfig?.campaignTickerText || landingConfig?.bannerDeliveryText;
   const campaignTickerText = (rawTicker && !rawTicker.includes('bike') && !rawTicker.includes('R15') && !rawTicker.includes('car'))
     ? rawTicker
@@ -726,11 +726,21 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
         {/* ========================================================== */}
         {/* 1. TOP GIVEAWAY BANNER & HERO SECTION                      */}
         {/* ========================================================== */}
-        <section className="text-center space-y-4 pt-2">
+        <section className="text-center space-y-3.5 pt-2">
           
-          {/* Top Pill Badge: '🏆 Winner will get this bike' */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#1c1611] border border-[#d49b38]/60 text-[#f5b842] text-xs font-bold tracking-wide shadow-md">
-            <span>{campaignBadgeText}</span>
+          {/* Top Product Title at the very top */}
+          <div className="space-y-2">
+            {/* Optional Campaign Badge (if specifically configured) */}
+            {campaignBadgeText && (
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#1c1611] border border-[#d49b38]/60 text-[#f5b842] text-xs font-bold tracking-wide shadow-md">
+                <span>{campaignBadgeText}</span>
+              </div>
+            )}
+
+            {/* Prominent Product Title at Top */}
+            <h1 className="text-xl sm:text-3xl font-black text-white leading-snug tracking-tight px-1">
+              {displayTitle}
+            </h1>
           </div>
 
           {/* Top Graphic Poster Banner (Hero Top Image) */}
@@ -765,15 +775,12 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
             </div>
           )}
 
-          {/* Main Hero Title: 'Old fashioned design, chance to win R15!' */}
-          <h1 className="text-2xl sm:text-3xl font-black text-white leading-snug tracking-tight px-2">
-            {displayTitle}
-          </h1>
-
-          {/* Subtitle / Pitch Copy */}
-          <p className="text-xs sm:text-sm text-[#d4c8bc] leading-relaxed max-w-lg mx-auto font-normal px-2">
-            {displayDesc}
-          </p>
+          {/* Detailed Pitch Copy */}
+          {displayDesc && displayDesc !== displaySubtitle && (
+            <p className="text-xs sm:text-sm text-[#d4c8bc] leading-relaxed max-w-lg mx-auto font-normal px-2">
+              {displayDesc}
+            </p>
+          )}
 
           {/* Lucky Draw Ticker Text */}
           {campaignTickerText && (
@@ -942,35 +949,7 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
 
 
 
-        {/* ========================================================== */}
-        {/* 5. SECTION: 'R15 lucky draw' / 'Order, win R15'       */}
-        {/* ========================================================== */}
-        <section className="text-center space-y-4 pt-3">
-          <div className="space-y-1">
-            <p className="text-xs font-bold text-[#e0562e] flex items-center justify-center gap-2">
-              <span className="w-6 h-[1px] bg-[#e0562e]"></span>
-              <span>{luckyDrawTag}</span>
-              <span className="w-6 h-[1px] bg-[#e0562e]"></span>
-            </p>
-            <h2 className="text-lg sm:text-2xl font-black text-white">
-              {luckyDrawTitle}
-            </h2>
-          </div>
 
-          {/* Step-by-Step Numbered List */}
-          <div className="space-y-3.5 text-left max-w-md mx-auto pt-1">
-            {luckyDrawSteps.map((stepText, idx) => (
-              <div key={idx} className="flex items-start gap-3">
-                <span className="w-6 h-6 rounded-full bg-[#e0562e] text-white font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
-                  {(idx + 1).toLocaleString('bn-BD')}
-                </span>
-                <p className="text-xs sm:text-sm text-[#d4c8bc] leading-snug">
-                  {stepText}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
 
         {/* ========================================================== */}
         {/* 6. SECTION: 'Color selection' & ORDER FORM (CHECKOUT)        */}
@@ -1426,19 +1405,30 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
           <button
             type="button"
             onClick={scrollToOrder}
-            className="flex-1 py-3 px-3 bg-[#e0562e] hover:bg-[#c9451f] text-white font-black text-xs sm:text-sm rounded-lg shadow-md flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
+            className="flex-1 py-3 px-2.5 bg-[#e0562e] hover:bg-[#c9451f] text-white font-black text-xs sm:text-sm rounded-lg shadow-md flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
           >
-            <ShoppingCart className="w-4 h-4" />
-            <span>order</span>
+            <ShoppingCart className="w-4 h-4 shrink-0" />
+            <span>অর্ডার করুন</span>
           </button>
+
+          {/* Call Now Button */}
+          {supportPhone && (
+            <a
+              href={`tel:${supportPhone}`}
+              className="flex-1 py-3 px-2.5 bg-[#1b4d3e] hover:bg-[#143a2f] text-white font-black text-xs sm:text-sm rounded-lg shadow-md flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer text-center"
+            >
+              <Phone className="w-4 h-4 shrink-0 fill-current" />
+              <span>সরাসরি কল</span>
+            </a>
+          )}
 
           {/* Green '💬 WhatsApp' Button */}
           <button
             type="button"
             onClick={handleWhatsAppClick}
-            className="flex-1 py-3 px-3 bg-[#25D366] hover:bg-[#20bd5a] text-white font-black text-xs sm:text-sm rounded-lg shadow-md flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
+            className="flex-1 py-3 px-2.5 bg-[#25D366] hover:bg-[#20bd5a] text-white font-black text-xs sm:text-sm rounded-lg shadow-md flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
           >
-            <MessageCircle className="w-4 h-4" />
+            <MessageCircle className="w-4 h-4 shrink-0" />
             <span>WhatsApp</span>
           </button>
         </div>

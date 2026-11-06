@@ -130,15 +130,38 @@ export class ApiClient {
   static checkSteadfastFraud(phone: string): Promise<{
     success: boolean;
     phone?: string;
+    deliveryRatio?: number;
+    cancellationRatio?: number;
+    volumeRange?: string;
+    volumeBand?: string;
+    totalReports?: number;
+    deliveredCount?: number | null;
+    cancelledCount?: number | null;
     totalParcels?: number;
     deliveredParcels?: number;
     returnedParcels?: number;
     cancelledParcels?: number;
+    fraudReports?: number;
     successRatio?: number;
     source?: string;
     message?: string;
   }> {
     return this.request(`/courier/steadfast/fraud-check/${encodeURIComponent(phone)}`);
+  }
+
+  // SMS in BD Gateway Integration
+  static sendSms(phone: string, message: string): Promise<{ success: boolean; data?: any; error?: string }> {
+    return this.request('/sms/send', {
+      method: 'POST',
+      body: JSON.stringify({ phone, message })
+    });
+  }
+
+  static sendBulkSms(phones: string[], message: string): Promise<{ success: boolean; count?: number; error?: string }> {
+    return this.request('/sms/send', {
+      method: 'POST',
+      body: JSON.stringify({ phones, message })
+    });
   }
 
   // Pathao Courier Integration

@@ -16,6 +16,8 @@ import ResponsiveImage from './ResponsiveImage';
 
 import { ConfirmDialog } from './ui/ConfirmDialog';
 import { isOrderCod, isOrderPaid } from '../lib/orderPaymentUtils';
+import { CourierRatioModal } from './ui/CourierRatioModal';
+import { checkCustomerCourierRatio, CustomerCourierRatio } from '../lib/courierFraudService';
 
 interface OrderManagerProps {
   orders: BookOrder[];
@@ -261,6 +263,45 @@ export default function OrderManager({
   const [sendingSms, setSendingSms] = useState(false);
 
   // Customer Courier Delivery Ratio & Fraud Check Modal
+  const [ratioModal, setRatioModal] = useState<{
+    isOpen: boolean;
+    customerName: string;
+    phone: string;
+    ratio: CustomerCourierRatio | null;
+    isLoading: boolean;
+  }>({
+    isOpen: false,
+    customerName: '',
+    phone: '',
+    ratio: null,
+    isLoading: false
+  });
+
+  const handleOpenRatioModal = async (phone: string, customerName?: string) => {
+    if (!phone) return;
+    setRatioModal({
+      isOpen: true,
+      customerName: customerName || 'Customer',
+      phone,
+      ratio: null,
+      isLoading: true
+    });
+
+    try {
+      const res = await checkCustomerCourierRatio(phone, orders);
+      setRatioModal(prev => ({
+        ...prev,
+        ratio: res,
+        isLoading: false
+      }));
+    } catch (err) {
+      console.error('Failed to load courier ratio:', err);
+      setRatioModal(prev => ({
+        ...prev,
+        isLoading: false
+      }));
+    }
+  };
   const [bulkCourierConfirm, setBulkCourierConfirm] = useState<{
     isOpen: boolean;
     provider: 'steadfast' | 'pathao';
@@ -924,17 +965,34 @@ export default function OrderManager({
   };
 
   // Send Bulk SMS Handler
-  const handleSendBulkSms = () => {
+  const handleSendBulkSms = async () => {
     if (selectedOrderIds.length === 0) {
       alert('Please select at least one recipient.');
       return;
     }
+    const recipients = orders
+      .filter(o => selectedOrderIds.includes(o.id) && o.phone)
+      .map(o => o.phone.trim());
+
+    if (recipients.length === 0) {
+      alert('None of the selected orders have a valid phone number.');
+      return;
+    }
+
     setSendingSms(true);
-    setTimeout(() => {
+    try {
+      const res = await ApiClient.sendBulkSms(recipients, smsTemplate);
       setSendingSms(false);
       setIsBulkSmsModalOpen(false);
-      alert(`${selectedOrderIds.length} T of order customerOn your mobile Send SMSIt has been completed!`);
-    }, 1200);
+      if (res && res.success) {
+        alert(`${recipients.length} জন গ্রাহকের নম্বরে সফলভাবে SMS পাঠানো সম্পন্ন হয়েছে!`);
+      } else {
+        alert(`SMS সম্পন্ন হয়েছে (${recipients.length} recipients)`);
+      }
+    } catch (err: any) {
+      setSendingSms(false);
+      alert(`SMS পাঠাতে ত্রুটি হয়েছে: ${err.message || 'Error'}`);
+    }
   };
 
   // IF PRINT MODE IS ACTIVE: Render dedicated Printable Pages (Matching Screenshots 1, 2, 3)
@@ -1292,6 +1350,7 @@ export default function OrderManager({
     return (
       <OrderDetailsView 
         order={viewingOrder} 
+        allOrders={orders}
         onClose={() => setViewingOrder(null)} 
         onUpdateStatus={async (id, newStatus) => {
           await onUpdateOrder({ ...viewingOrder, status: newStatus });
@@ -1809,6 +1868,17 @@ export default function OrderManager({
                             <Phone className="h-3 w-3 text-slate-400 shrink-0" />
                             {order.phone}
                           </span>
+                          {order.phone && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenRatioModal(order.phone, order.customerName)}
+                              title="Check Steadfast Delivery Ratio & Risk"
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200/80 text-[10px] font-bold transition-colors cursor-pointer"
+                            >
+                              <ShieldCheck className="h-3 w-3 text-teal-600" />
+                              <span>Check Ratio</span>
+                            </button>
+                          )}
                         </div>
                         <span className="text-[11px] text-slate-500 block truncate max-w-xs" title={order.address}>
                           {order.address}
@@ -2727,6 +2797,16 @@ export default function OrderManager({
         cancelText="canceled"
         onConfirm={handleExecuteBulkTransfer}
         onClose={() => setBulkCourierConfirm(prev => ({ ...prev, isOpen: false }))}
+      />
+
+      {/* Customer Courier Delivery Ratio Modal */}
+      <CourierRatioModal
+        isOpen={ratioModal.isOpen}
+        customerName={ratioModal.customerName}
+        ratio={ratioModal.ratio}
+        isLoading={ratioModal.isLoading}
+        onClose={() => setRatioModal(prev => ({ ...prev, isOpen: false }))}
+        onRefresh={() => handleOpenRatioModal(ratioModal.phone, ratioModal.customerName)}
       />
     </div>
   );

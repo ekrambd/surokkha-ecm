@@ -722,6 +722,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
   const [orderTrackSearched, setOrderTrackSearched] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isCategoryDrawerOpen, setIsCategoryDrawerOpen] = useState(false);
+  const [isFaqModalOpen, setIsFaqModalOpen] = useState(false);
   const [showNotificationToast, setShowNotificationToast] = useState<{ show: boolean; msg: string }>({ show: false, msg: '' });
 
   // Keyboard shortcut support (Cmd+K / Ctrl+K to toggle search, Escape to close)
@@ -2062,8 +2063,8 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
             <div className="flex-1" />
           )}
 
-          {/* Right Action Items: Search Icon, Order Track, Cart, Profile */}
-          <div className="flex items-center gap-2 sm:gap-4 md:gap-5 shrink-0 text-slate-900 justify-end">
+          {/* Right Action Items: Search Icon, Order Track, Cart, More (Hamburger Menu) */}
+          <div className="flex items-center gap-1.5 xs:gap-2 sm:gap-4 md:gap-5 shrink-0 text-slate-900 justify-end">
             {/* Search Icon (Both Mobile & Web) */}
             <button 
               type="button"
@@ -2076,7 +2077,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
                   }, 80);
                 }
               }}
-              className={`flex flex-col items-center justify-center transition-colors cursor-pointer group py-0.5 min-w-[44px] sm:min-w-[50px] shrink-0 ${
+              className={`flex flex-col items-center justify-center transition-colors cursor-pointer group py-0.5 px-1 min-w-[38px] xs:min-w-[42px] sm:min-w-[50px] shrink-0 ${
                 isSearchOpen ? 'text-[#F7A800]' : 'text-slate-700 hover:text-[#F7A800]'
               }`}
               title={isSearchOpen ? 'Close Search' : 'Search Products'}
@@ -2097,7 +2098,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
             <button 
               type="button"
               onClick={() => setIsOrderTrackingOpen(true)}
-              className="flex flex-col items-center justify-center text-slate-700 hover:text-[#F7A800] transition-colors cursor-pointer group py-0.5 min-w-[50px] sm:min-w-[56px] shrink-0"
+              className="flex flex-col items-center justify-center text-slate-700 hover:text-[#F7A800] transition-colors cursor-pointer group py-0.5 px-1 min-w-[42px] xs:min-w-[48px] sm:min-w-[56px] shrink-0"
               title="Order Track"
             >
               <div className="relative flex items-center justify-center">
@@ -2106,11 +2107,11 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
               <span className="text-[10px] sm:text-[11px] font-bold tracking-tight mt-0.5 whitespace-nowrap overflow-visible">Order Track</span>
             </button>
 
-            {/* 2. Cart */}
+            {/* 2. Cart (Desktop only, mobile has bottom bar) */}
             <button 
               type="button"
               onClick={() => setIsCartOpen(true)}
-              className="flex flex-col items-center justify-center text-slate-700 hover:text-[#F7A800] transition-colors cursor-pointer group py-0.5 min-w-[44px] sm:min-w-[50px] shrink-0"
+              className="hidden sm:flex flex-col items-center justify-center text-slate-700 hover:text-[#F7A800] transition-colors cursor-pointer group py-0.5 min-w-[44px] sm:min-w-[50px] shrink-0"
               title="Shopping Cart"
             >
               <div className="relative flex items-center justify-center">
@@ -2124,17 +2125,17 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
               <span className="text-[10px] sm:text-[11px] font-bold tracking-tight mt-0.5 whitespace-nowrap overflow-visible">Cart</span>
             </button>
 
-            {/* 3. Profile */}
+            {/* 3. More (Hamburger Menu) */}
             <button 
               type="button"
               onClick={() => setIsProfileOpen(true)}
-              className="flex flex-col items-center justify-center text-slate-700 hover:text-[#F7A800] transition-colors cursor-pointer group py-0.5 min-w-[44px] sm:min-w-[50px] shrink-0"
-              title="Profile & Menu"
+              className="flex flex-col items-center justify-center text-slate-700 hover:text-[#F7A800] transition-colors cursor-pointer group py-0.5 px-1 min-w-[38px] xs:min-w-[42px] sm:min-w-[50px] shrink-0"
+              title="More Menu"
             >
               <div className="relative flex items-center justify-center">
-                <User className="w-5 h-5 sm:w-5.5 sm:h-5.5 text-slate-700 group-hover:scale-105 transition-transform" />
+                <Menu className="w-5 h-5 sm:w-5.5 sm:h-5.5 text-slate-700 group-hover:scale-105 transition-transform" />
               </div>
-              <span className="text-[10px] sm:text-[11px] font-bold tracking-tight mt-0.5 whitespace-nowrap overflow-visible">Profile</span>
+              <span className="text-[10px] sm:text-[11px] font-bold tracking-tight mt-0.5 whitespace-nowrap overflow-visible">More</span>
             </button>
           </div>
 
@@ -2653,16 +2654,27 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
                       </button>
                     </div>
 
-                    {/* Button 3: Order on WhatsApp */}
-                    <a
-                      href={`https://wa.me/${whatsappNum}?text=${whatsappOrderMessage}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="w-full bg-[#16a34a] hover:bg-[#15803d] active:scale-[0.99] text-white font-bold py-3 px-4 rounded-xl text-xs sm:text-sm tracking-wide transition-all shadow-xs cursor-pointer flex items-center justify-center gap-2"
-                    >
-                      <MessageCircle className="w-4 h-4 fill-current" />
-                      <span>হোয়াটসঅ্যাপে অর্ডার করুন</span>
-                    </a>
+                    {/* Action Buttons: WhatsApp & Direct Call */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <a
+                        href={`https://wa.me/${whatsappNum}?text=${whatsappOrderMessage}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="w-full bg-[#16a34a] hover:bg-[#15803d] active:scale-[0.99] text-white font-bold py-2.5 px-3 rounded-xl text-xs sm:text-sm tracking-wide transition-all shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <MessageCircle className="w-4 h-4 fill-current" />
+                        <span>হোয়াটসঅ্যাপ অর্ডার</span>
+                      </a>
+                      {(hotline || displayPhone) && (
+                        <a
+                          href={`tel:${(hotline || displayPhone || '').replace(/[^\d+]/g, '')}`}
+                          className="w-full bg-[#1b4d3e] hover:bg-[#143a2f] active:scale-[0.99] text-white font-bold py-2.5 px-3 rounded-xl text-xs sm:text-sm tracking-wide transition-all shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
+                        >
+                          <Phone className="w-4 h-4 fill-current" />
+                          <span>সরাসরি কল করুন</span>
+                        </a>
+                      )}
+                    </div>
                   </div>
 
                   {/* Product Description */}
@@ -3266,12 +3278,12 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
                               if (leftLink.startsWith('http')) window.open(leftLink, '_blank');
                               else navigateTo('shop');
                             }}
-                            className="w-full relative rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-all duration-300 group bg-[#163e2b] h-[240px] sm:h-[320px] md:h-[380px] lg:h-[420px] cursor-pointer"
+                            className="w-full relative rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-all duration-300 group bg-slate-900 aspect-[16/9] sm:aspect-[21/9] lg:aspect-[16/7.5] cursor-pointer"
                           >
                             <img 
                               src={leftImage} 
                               alt="Promotional Banner" 
-                              className="w-full h-full object-cover object-center group-hover:scale-102 transition-transform duration-500 cursor-pointer"
+                              className="w-full h-full object-contain sm:object-cover object-center group-hover:scale-102 transition-transform duration-500 cursor-pointer bg-white"
                               onError={(e) => {
                                 e.currentTarget.onerror = null;
                                 e.currentTarget.src = '/placeholder-image.svg';
@@ -3325,7 +3337,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
                               if (rightLink.startsWith('http')) window.open(rightLink, '_blank');
                               else navigateTo('shop');
                             }}
-                            className="w-full relative rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-all duration-300 cursor-pointer group bg-slate-900 h-[240px] sm:h-[320px] md:h-[380px] lg:h-[420px]"
+                            className="w-full relative rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-all duration-300 cursor-pointer group bg-slate-900 aspect-square"
                           >
                             <img 
                               src={rightImage} 
@@ -4111,30 +4123,97 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
       )}
 
       {/* ============================================================
-          PROFILE & SUPPORT MODAL
+          MORE & NAVIGATION DRAWER / MODAL (About Us, FAQ, WhatsApp, Order Track)
           ============================================================ */}
       {isProfileOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-2xl max-w-sm w-full shadow-2xl p-6 space-y-4 border border-slate-100 text-center">
-            <div className="w-14 h-14 bg-amber-50 text-[#F7A800] rounded-full flex items-center justify-center mx-auto border border-amber-200">
-              <User className="w-7 h-7" />
+          <div className="bg-white rounded-3xl max-w-sm w-full shadow-2xl p-6 space-y-4 border border-slate-100 text-center animate-scaleUp">
+            <div className="w-14 h-14 bg-emerald-50 text-emerald-700 rounded-full flex items-center justify-center mx-auto border border-emerald-200">
+              <Menu className="w-7 h-7" />
             </div>
             <div>
               <h3 className="text-lg font-bold text-slate-900">{displayStoreName}</h3>
-              <p className="text-xs text-slate-500 mt-0.5">গ্রাহক সহায়তা ও একাউন্ট সেবা</p>
+              <p className="text-xs text-slate-500 mt-0.5">মেনু এবং গ্রাহক সহায়তা</p>
             </div>
 
             <div className="space-y-2 pt-2">
+              {/* 1. About Us */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsProfileOpen(false);
+                  navigateTo('about');
+                }}
+                className="w-full py-2.5 px-4 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-between border border-slate-200"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Building2 className="w-4 h-4 text-emerald-600" />
+                  <span>আমাদের সম্পর্কে (About Us)</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-400" />
+              </button>
+
+              {/* 2. FAQ */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsProfileOpen(false);
+                  setIsFaqModalOpen(true);
+                }}
+                className="w-full py-2.5 px-4 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-between border border-slate-200"
+              >
+                <div className="flex items-center gap-2.5">
+                  <HelpCircle className="w-4 h-4 text-amber-500" />
+                  <span>সাধারণ জিজ্ঞাসা (FAQ)</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-400" />
+              </button>
+
+              {/* 3. WhatsApp Direct Chat */}
+              <a
+                href={`https://wa.me/${whatsappNum}?text=${encodeURIComponent('Hello Shostir Bazar, I have a question about your products/order.')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setIsProfileOpen(false)}
+                className="w-full py-2.5 px-4 bg-emerald-50 hover:bg-emerald-100 active:bg-emerald-200 text-emerald-900 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-between border border-emerald-200"
+              >
+                <div className="flex items-center gap-2.5">
+                  <MessageCircle className="w-4 h-4 text-emerald-600 fill-current" />
+                  <span>হোয়াটসঅ্যাপ সাপোর্ট (WhatsApp)</span>
+                </div>
+                <span className="text-[10px] bg-emerald-600 text-white font-bold px-2 py-0.5 rounded-full">Live</span>
+              </a>
+
+              {/* 4. Order Track */}
               <button
                 type="button"
                 onClick={() => {
                   setIsProfileOpen(false);
                   setIsOrderTrackingOpen(true);
                 }}
-                className="w-full py-2.5 px-4 bg-slate-50 hover:bg-slate-100 text-slate-800 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-center gap-2 border border-slate-200"
+                className="w-full py-2.5 px-4 bg-slate-50 hover:bg-slate-100 text-slate-800 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-between border border-slate-200"
               >
-                <Truck className="w-4 h-4 text-[#F7A800]" />
-                <span>অর্ডার ট্র্যাকিং (Order Track)</span>
+                <div className="flex items-center gap-2.5">
+                  <Truck className="w-4 h-4 text-[#F7A800]" />
+                  <span>অর্ডার ট্র্যাকিং (Order Track)</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-400" />
+              </button>
+
+              {/* 5. Shop All Products */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsProfileOpen(false);
+                  navigateTo('shop');
+                }}
+                className="w-full py-2.5 px-4 bg-slate-50 hover:bg-slate-100 text-slate-800 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-between border border-slate-200"
+              >
+                <div className="flex items-center gap-2.5">
+                  <ShoppingBag className="w-4 h-4 text-blue-600" />
+                  <span>সকল পণ্য দেখুন (Shop)</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-400" />
               </button>
 
               {displayPhone && (
@@ -4142,22 +4221,10 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
                   href={`tel:${displayPhone}`}
                   className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-center gap-2"
                 >
-                  <Phone className="w-4 h-4 text-[#F7A800]" />
+                  <Phone className="w-4 h-4 text-slate-600" />
                   <span>সরাসরি কল করুন ({displayPhone})</span>
                 </a>
               )}
-
-              <button
-                type="button"
-                onClick={() => {
-                  setIsProfileOpen(false);
-                  navigateTo('shop');
-                }}
-                className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-center gap-2"
-              >
-                <ShoppingBag className="w-4 h-4 text-[#F7A800]" />
-                <span>সকল পণ্য দেখুন (Shop)</span>
-              </button>
 
               {onGoToLogin && (
                 <button
@@ -4176,10 +4243,99 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
             <button
               type="button"
               onClick={() => setIsProfileOpen(false)}
-              className="w-full py-2 bg-slate-900 text-white rounded-xl text-xs font-semibold hover:bg-slate-800 transition-colors cursor-pointer"
+              className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-xs font-semibold hover:bg-slate-800 transition-colors cursor-pointer shadow-sm"
             >
               বন্ধ করুন
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================
+          QUICK FAQ MODAL
+          ============================================================ */}
+      {isFaqModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-3xl max-w-lg w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-slate-100 animate-scaleUp text-left">
+            <div className="bg-white px-5 py-4 border-b border-slate-200 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-200">
+                  <HelpCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base text-slate-900">সাধারণ জিজ্ঞাসা (FAQ)</h3>
+                  <p className="text-[11px] text-slate-500">প্রয়োজনীয় সব তথ্যের উত্তর এক পলকে</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsFaqModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 overflow-y-auto space-y-3.5 text-xs text-slate-700">
+              <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-1.5">
+                <h4 className="font-bold text-slate-900 flex items-center gap-1.5">
+                  <Truck className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>১. ডেলিভারি হতে কত দিন সময় লাগে?</span>
+                </h4>
+                <p className="text-slate-600 leading-relaxed pl-5.5">
+                  ঢাকার ভেতরে সাধারণত ২৪ থেকে ৪৮ ঘণ্টার মধ্যে এবং ঢাকার বাইরে ২ থেকে ৩ কার্যদিবসের মধ্যে নির্ভরযোগ্য কুরিয়ারের মাধ্যমে ক্যাশ অন ডেলিভারিতে পার্সেল পৌঁছে দেওয়া হয়।
+                </p>
+              </div>
+
+              <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-1.5">
+                <h4 className="font-bold text-slate-900 flex items-center gap-1.5">
+                  <CreditCard className="w-4 h-4 text-blue-600 shrink-0" />
+                  <span>২. পেমেন্ট কিভাবে করতে হয়?</span>
+                </h4>
+                <p className="text-slate-600 leading-relaxed pl-5.5">
+                  আমরা সম্পূর্ণ <strong>ক্যাশ অন ডেলিভারি (Cash on Delivery)</strong> সুবিধা দিচ্ছি। পণ্য হাতে পেয়ে দেখে তারপর কুরিয়ার কর্মীকে মূল্য পরিশোধ করবেন। এছাড়াও বিকাশ ও নগদে অনলাইন পেমেন্ট সুবিধা রয়েছে।
+                </p>
+              </div>
+
+              <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-1.5">
+                <h4 className="font-bold text-slate-900 flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-teal-600 shrink-0" />
+                  <span>৩. পণ্যের কোয়ালিটি ও রিটার্ন পলিসি কেমন?</span>
+                </h4>
+                <p className="text-slate-600 leading-relaxed pl-5.5">
+                  আমাদের প্রতিটি পণ্য ১০০% অরিজিনাল ও প্রিমিয়াম কোয়ালিটি নিশ্চিত করে প্যাকেজিং করা হয়। কোনো প্রকার ত্রুটি থাকলে ডেলিভারি পাওয়ার সময় তাৎক্ষণিক চেক করে রিটার্ন বা এক্সচেঞ্জ করতে পারবেন।
+                </p>
+              </div>
+
+              <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-1.5">
+                <h4 className="font-bold text-slate-900 flex items-center gap-1.5">
+                  <MessageCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>৪. যেকোনো প্রয়োজনে যোগাযোগ করবেন কিভাবে?</span>
+                </h4>
+                <p className="text-slate-600 leading-relaxed pl-5.5">
+                  সরাসরি আমাদের অফিসিয়াল হোয়াটসঅ্যাপে মেসেজ দিতে পারেন অথবা হেল্পলাইন নম্বরে কল করে তাৎক্ষণিক সহায়তা পেতে পারেন।
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+              <a
+                href={`https://wa.me/${whatsappNum}?text=${encodeURIComponent('Hello, I have an additional question not covered in FAQ.')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors"
+              >
+                <MessageCircle className="w-3.5 h-3.5 fill-current" />
+                <span>সরাসরি হোয়াটসঅ্যাপে প্রশ্ন করুন</span>
+              </a>
+              <button
+                type="button"
+                onClick={() => setIsFaqModalOpen(false)}
+                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              >
+                বন্ধ করুন
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -4262,7 +4418,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
           <span className="text-[10px] font-semibold tracking-tight">Cart</span>
         </button>
 
-        {/* 5. Account */}
+        {/* 5. Sign In / More */}
         <button
           type="button"
           onClick={() => {
@@ -4272,9 +4428,31 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
           className="flex flex-col items-center justify-center py-1 px-2 min-w-[54px] text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
         >
           <User className="w-5 h-5 mb-0.5" />
-          <span className="text-[10px] font-semibold tracking-tight">Account</span>
+          <span className="text-[10px] font-semibold tracking-tight">Sign In</span>
         </button>
       </nav>
+
+      {/* Floating Quick Action Buttons on Mobile (Call + WhatsApp) */}
+      <div className="fixed bottom-18 right-3.5 z-40 lg:hidden flex flex-col gap-2.5 items-end">
+        {displayPhone && (
+          <a
+            href={`tel:${displayPhone.replace(/[^\d+]/g, '')}`}
+            aria-label="Call directly"
+            className="w-11 h-11 bg-[#1b4d3e] text-white rounded-full flex items-center justify-center shadow-lg hover:bg-[#143a2f] transition-transform active:scale-95 border-2 border-white/80"
+          >
+            <Phone className="w-5 h-5 fill-current" />
+          </a>
+        )}
+        <a
+          href={`https://wa.me/${whatsappNum}?text=${encodeURIComponent('Hello Shostir Bazar, I need customer support.')}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Chat on WhatsApp"
+          className="w-11 h-11 bg-[#25D366] text-white rounded-full flex items-center justify-center shadow-lg hover:bg-[#20ba5a] transition-transform active:scale-95 border-2 border-white/80"
+        >
+          <MessageCircle className="w-5 h-5 fill-current" />
+        </a>
+      </div>
 
       {/* ============================================================
           MOBILE CATEGORY DRAWER / SHEET

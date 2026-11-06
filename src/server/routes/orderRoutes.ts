@@ -9,6 +9,7 @@ import { shardService } from '../services/shardService';
 import { redundancyService } from '../services/redundancyService';
 import { prisma } from '../db';
 import { validateBDPhone, validateDeliveryAddress } from '../../lib/validationUtils';
+import { SmsInBdService } from '../services/smsService';
 
 export const orderRouter = Router();
 
@@ -326,6 +327,14 @@ orderRouter.post('/checkout', checkoutRateLimiter, async (req, res) => {
     saveOrdersToDisk(storeOrders);
     broadcastNewOrder(confirmedOrder);
 
+    // Asynchronously dispatch order confirmation SMS to customer via smsinbd
+    SmsInBdService.sendOrderConfirmationSms({
+      id: confirmedOrder.id,
+      customerName: confirmedOrder.customerName,
+      phone: confirmedOrder.phone,
+      totalAmount: confirmedOrder.totalPrice || confirmedOrder.totalAmount
+    }).catch(err => console.warn('Order confirmation SMS skipped/failed:', err));
+
     shardService.incrementCounter('orders_total', 1);
     globalCache.invalidateTag('orders');
     globalCache.invalidateTag('products');
@@ -383,6 +392,16 @@ orderRouter.post('/', checkoutRateLimiter, (req, res) => {
   storeOrders.unshift(newOrder);
   saveOrdersToDisk(storeOrders);
   broadcastNewOrder(newOrder);
+
+  // Asynchronously dispatch order confirmation SMS to customer via smsinbd
+  if (newOrder.phone && (newOrder.customerName || newOrder.name)) {
+    SmsInBdService.sendOrderConfirmationSms({
+      id: newOrder.id,
+      customerName: newOrder.customerName || newOrder.name || 'Customer',
+      phone: newOrder.phone,
+      totalAmount: newOrder.totalPrice || newOrder.totalAmount || newOrder.price
+    }).catch(err => console.warn('Order confirmation SMS skipped/failed:', err));
+  }
 
   // Increment distributed sharded order counter
   shardService.incrementCounter('orders_total', 1);

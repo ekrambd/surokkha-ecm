@@ -694,8 +694,10 @@ export default function ProductManager({
               <thead className="bg-slate-50 border-b border-slate-200/80 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
                 <tr>
                   <th className="py-3 px-4">Products and titles</th>
-                  <th className="py-3 px-4">category</th>
-                  <th className="py-3 px-4">Price</th>
+                  <th className="py-3 px-4">Category</th>
+                  <th className="py-3 px-4">Purchase Price</th>
+                  <th className="py-3 px-4">Selling Price</th>
+                  <th className="py-3 px-4">Margin / Profit</th>
                   <th className="py-3 px-4">Stock and status</th>
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
@@ -768,16 +770,27 @@ export default function ProductManager({
                       </div>
                     </td>
 
-                    {/* Price */}
+                    {/* Purchase Price */}
                     <td className="py-3 px-4 whitespace-nowrap">
-                      <div className="text-sm font-extrabold text-teal-700 flex items-center gap-1">
+                      {p.costPrice && p.costPrice > 0 ? (
+                        <div className="text-xs font-bold font-mono text-slate-700">
+                          Tk.{p.costPrice.toLocaleString('bn-BD')}
+                        </div>
+                      ) : (
+                        <span className="text-[11px] text-slate-400 italic">সেট নেই</span>
+                      )}
+                    </td>
+
+                    {/* Selling Price */}
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      <div className="text-sm font-extrabold text-teal-700 flex items-center gap-1 font-mono">
                         <span>Tk.{displayPrice.toLocaleString('bn-BD')}</span>
                         {hasVar && minVarPrice !== maxVarPrice && (
                           <span className="text-[11px] font-bold text-slate-500">- Tk.{maxVarPrice.toLocaleString('bn-BD')}</span>
                         )}
                       </div>
                       {displayRegPrice && displayRegPrice > displayPrice && (
-                        <div className="text-[11px] text-slate-400 line-through">
+                        <div className="text-[11px] text-slate-400 line-through font-mono">
                           Tk.{displayRegPrice.toLocaleString('bn-BD')}
                         </div>
                       )}
@@ -787,6 +800,33 @@ export default function ProductManager({
                             {p.variants!.length}T variant
                           </span>
                         </div>
+                      )}
+                    </td>
+
+                    {/* Margin / Profit */}
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      {p.costPrice && p.costPrice > 0 ? (
+                        (() => {
+                          const marginTk = displayPrice - p.costPrice;
+                          const marginPercent = Math.round((marginTk / displayPrice) * 100);
+                          const isProfit = marginTk >= 0;
+                          return (
+                            <div className="space-y-0.5">
+                              <span className={`inline-flex items-center gap-1 text-[11px] font-black font-mono px-2 py-0.5 rounded-md ${
+                                isProfit 
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                                  : 'bg-rose-50 text-rose-700 border border-rose-200'
+                              }`}>
+                                {isProfit ? '+' : ''}Tk.{marginTk.toLocaleString('bn-BD')}
+                              </span>
+                              <div className="text-[10px] font-bold text-slate-500 font-mono">
+                                ({marginPercent}% মার্জিন)
+                              </div>
+                            </div>
+                          );
+                        })()
+                      ) : (
+                        <span className="text-[11px] text-slate-400 font-mono">—</span>
                       )}
                     </td>
 

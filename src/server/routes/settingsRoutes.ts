@@ -3,6 +3,7 @@ import { storeSettings, updateStoreSettings } from '../data/store';
 import { SteadfastCourierService } from '../services/steadfastService';
 import { PathaoCourierService } from '../services/pathaoService';
 import { FacebookCapiService } from '../services/facebookCapiService';
+import { SmsInBdService } from '../services/smsService';
 import { requireAdmin } from '../middleware/adminAuth';
 import { cacheResponse } from '../middleware/cacheMiddleware';
 import { globalCache } from '../services/cacheEngine';
@@ -11,6 +12,31 @@ import { circuitBreakerRegistry } from '../services/circuitBreaker';
 export const settingsRouter = Router();
 export const courierRouter = Router();
 export const facebookRouter = Router();
+export const smsRouter = Router();
+
+// SMS Gateway Routes
+smsRouter.post('/send', requireAdmin, async (req, res) => {
+  try {
+    const { phone, message, phones } = req.body;
+    if (Array.isArray(phones) && phones.length > 0) {
+      const results = [];
+      for (const p of phones) {
+        const r = await SmsInBdService.sendSms({ phone: p, message });
+        results.push({ phone: p, ...r });
+      }
+      return res.json({ success: true, count: results.length, results });
+    }
+
+    if (!phone || !message) {
+      return res.status(400).json({ success: false, message: 'phone and message are required' });
+    }
+
+    const result = await SmsInBdService.sendSms({ phone, message });
+    return res.json(result);
+  } catch (err: any) {
+    return res.status(500).json({ success: false, message: err.message || 'SMS dispatch failed' });
+  }
+});
 
 // Settings Routes - Instant Fresh Data with no-cache
 const handleGetSettings = (_req: any, res: any) => {
