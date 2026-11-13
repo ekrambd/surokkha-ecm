@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { checkoutRateLimiter } from '../middleware/rateLimiter';
-import { storeOrders, storeProducts, storeSettings, saveOrdersToDisk } from '../data/store';
+import { storeOrders, storeProducts, storeSettings, saveOrdersToDisk, saveProductsToDisk } from '../data/store';
 import { BookOrder } from '../../types';
 import { cacheResponse } from '../middleware/cacheMiddleware';
 import { requireAdmin } from '../middleware/adminAuth';
@@ -325,6 +325,7 @@ orderRouter.post('/checkout', checkoutRateLimiter, async (req, res) => {
     // Save order
     storeOrders.unshift(confirmedOrder);
     saveOrdersToDisk(storeOrders);
+    saveProductsToDisk(storeProducts);
     broadcastNewOrder(confirmedOrder);
 
     // Asynchronously dispatch order confirmation SMS to customer via smsinbd
@@ -415,11 +416,92 @@ orderRouter.post('/', checkoutRateLimiter, (req, res) => {
   res.status(201).json(newOrder);
 });
 
-// PUT Update Order
+// PUT Update Order (Handles status updates, tracking, and automatic inventory return on Cancelled / Return)
 orderRouter.put('/:id', requireAdmin, (req, res) => {
   const { id } = req.params;
   const index = storeOrders.findIndex(o => o.id === id);
   if (index !== -1) {
+    const existingOrder = storeOrders[index];
+    const incomingStatus = req.body.status;
+    const isNowCancelledOrReturn = incomingStatus === 'Cancelled' || incomingStatus === 'Return';
+    const wasAlreadyCancelledOrReturn = existingOrder.status === 'Cancelled' || existingOrder.status === 'Return';
+
+    // 1. If transitioning to Cancelled or Return, restore inventory back to product stock (if not already restored)
+    if (isNowCancelledOrReturn && !wasAlreadyCancelledOrReturn && !existingOrder.inventoryRestored) {
+      const orderItems = existingOrder.items || [];
+      let productsModified = false;
+
+      // Map over items in the order
+      if (Array.isArray(orderItems) && orderItems.length > 0) {
+        orderItems.forEach(item => {
+          const productId = item.productId || item.product?.id || item.id;
+          const qty = Math.max(1, parseInt(item.quantity || 1, 10));
+          const targetProduct = storeProducts.find(p => p.id === productId);
+
+          if (targetProduct) {
+            if (typeof targetProduct.stock === 'number') {
+              targetProduct.stock += qty;
+              productsModified = true;
+            } else if (typeof (targetProduct as any).stockQuantity === 'number') {
+              (targetProduct as any).stockQuantity += qty;
+              productsModified = true;
+            }
+          }
+        });
+      } else if (existingOrder.productId) {
+        // Fallback for single-product orders
+        const targetProduct = storeProducts.find(p => p.id === existingOrder.productId);
+        const qty = Math.max(1, parseInt(String(existingOrder.quantity || 1), 10));
+        if (targetProduct) {
+          if (typeof targetProduct.stock === 'number') {
+            targetProduct.stock += qty;
+            productsModified = true;
+          } else if (typeof (targetProduct as any).stockQuantity === 'number') {
+            (targetProduct as any).stockQuantity += qty;
+            productsModified = true;
+          }
+        }
+      }
+
+      if (productsModified) {
+        saveProductsToDisk(storeProducts);
+        globalCache.invalidateTag('products');
+      }
+
+      req.body.inventoryRestored = true;
+    }
+
+    // 2. If moving BACK from Cancelled/Return to active status (e.g. Confirmed/Pending), re-deduct
+    if (!isNowCancelledOrReturn && wasAlreadyCancelledOrReturn && existingOrder.inventoryRestored) {
+      const orderItems = existingOrder.items || [];
+      let productsModified = false;
+
+      if (Array.isArray(orderItems) && orderItems.length > 0) {
+        orderItems.forEach(item => {
+          const productId = item.productId || item.product?.id || item.id;
+          const qty = Math.max(1, parseInt(item.quantity || 1, 10));
+          const targetProduct = storeProducts.find(p => p.id === productId);
+
+          if (targetProduct) {
+            if (typeof targetProduct.stock === 'number') {
+              targetProduct.stock = Math.max(0, targetProduct.stock - qty);
+              productsModified = true;
+            } else if (typeof (targetProduct as any).stockQuantity === 'number') {
+              (targetProduct as any).stockQuantity = Math.max(0, (targetProduct as any).stockQuantity - qty);
+              productsModified = true;
+            }
+          }
+        });
+      }
+
+      if (productsModified) {
+        saveProductsToDisk(storeProducts);
+        globalCache.invalidateTag('products');
+      }
+
+      req.body.inventoryRestored = false;
+    }
+
     storeOrders[index] = { ...storeOrders[index], ...req.body };
     saveOrdersToDisk(storeOrders);
 

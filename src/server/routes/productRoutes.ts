@@ -107,6 +107,23 @@ productRouter.put('/:id', (req, res) => {
   }
 });
 
+// PATCH Partial Update Product (e.g. quick toggle isAvailable, stock, etc.)
+productRouter.patch('/:id', (req, res) => {
+  const { id } = req.params;
+  const index = storeProducts.findIndex(p => p.id === id);
+  if (index !== -1) {
+    storeProducts[index] = { ...storeProducts[index], ...req.body, updatedAt: new Date().toISOString() };
+    saveProductsToDisk(storeProducts);
+
+    // Invalidate product caches
+    globalCache.invalidateTag('products');
+
+    res.json(storeProducts[index]);
+  } else {
+    res.status(404).json({ error: "Product not found" });
+  }
+});
+
 // DELETE Product - removes and invalidates cache
 productRouter.delete('/:id', (req, res) => {
   const { id } = req.params;

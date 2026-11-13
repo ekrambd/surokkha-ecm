@@ -66,14 +66,16 @@ export function OrderDetailsView({ order, allOrders = [], onClose, onUpdateStatu
       ratio: courierRatio,
       isLoading: !courierRatio
     });
-    if (!courierRatio) {
-      try {
-        const res = await checkCustomerCourierRatio(order.phone, allOrders, true);
-        setCourierRatio(res);
-        setRatioModal(prev => ({ ...prev, ratio: res, isLoading: false }));
-      } catch {
-        setRatioModal(prev => ({ ...prev, isLoading: false }));
-      }
+    try {
+      const res = await checkCustomerCourierRatio(order.phone, allOrders, true);
+      setCourierRatio(res);
+      setRatioModal({
+        isOpen: true,
+        ratio: res,
+        isLoading: false
+      });
+    } catch {
+      setRatioModal(prev => ({ ...prev, isLoading: false }));
     }
   };
 
@@ -415,6 +417,15 @@ export function OrderDetailsView({ order, allOrders = [], onClose, onUpdateStatu
         isLoading={ratioModal.isLoading}
         onClose={() => setRatioModal(prev => ({ ...prev, isOpen: false }))}
         onRefresh={handleCheckRatio}
+        onSearchPhone={async (customPhone) => {
+          setRatioModal(prev => ({ ...prev, isLoading: true }));
+          try {
+            const res = await checkCustomerCourierRatio(customPhone, allOrders, true);
+            setRatioModal(prev => ({ ...prev, ratio: res, isLoading: false }));
+          } catch {
+            setRatioModal(prev => ({ ...prev, isLoading: false }));
+          }
+        }}
       />
     </div>
   );

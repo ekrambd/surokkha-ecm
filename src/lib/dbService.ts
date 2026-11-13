@@ -1,7 +1,7 @@
 const db = null;
 const isFirebaseEnabled = false;
 const auth = null;
-import { BookOrder, Product, EcomSettings, Customer, PaymentGatewayItem, DeliveryMethodItem, Coupon, LandingPageData, InstituteInfo, Review, Brand, ContactMessage } from '../types';
+import { BookOrder, Product, EcomSettings, Customer, PaymentGatewayItem, DeliveryMethodItem, Coupon, LandingPageData, InstituteInfo, Review, Brand, ContactMessage, ModeratorUser, StaffSalaryPayment } from '../types';
 import { ApiClient } from '../services/apiClient';
 
 function stripIntegrationSecrets(settings: EcomSettings): EcomSettings {
@@ -1232,6 +1232,47 @@ export const dbService = {
     setLocalData('noor_registered_customers', updated);
   },
 
+  async bulkSaveCustomers(newCustomers: Customer[]): Promise<void> {
+    try {
+      await fetch('/api/customers/bulk', {
+        method: 'POST',
+        headers: getAdminAuthHeaders(),
+        body: JSON.stringify({ customers: newCustomers })
+      });
+    } catch (e) {
+      console.warn('Server bulk customers API failed, saving to local store:', e);
+    }
+
+    const current = getLocalData<Customer[]>('noor_registered_customers', []);
+    const phoneMap = new Map<string, Customer>();
+    current.forEach(c => {
+      const key = (c.phone || c.id || '').trim();
+      if (key) phoneMap.set(key, c);
+    });
+
+    newCustomers.forEach(nc => {
+      const key = (nc.phone || nc.id || '').trim();
+      if (key) {
+        const existing = phoneMap.get(key);
+        if (existing) {
+          phoneMap.set(key, {
+            ...existing,
+            ...nc,
+            totalOrders: Math.max(existing.totalOrders || 0, nc.totalOrders || 0),
+            totalSpent: Math.max(existing.totalSpent || 0, nc.totalSpent || 0),
+            points: Math.max(existing.points || 0, nc.points || 0)
+          });
+        } else {
+          phoneMap.set(key, nc);
+        }
+      }
+    });
+
+    const merged = Array.from(phoneMap.values());
+    setLocalData('noor_registered_customers', merged);
+    window.dispatchEvent(new Event('customers-updated'));
+  },
+
   async getOrdersByPhone(phone: string): Promise<BookOrder[]> {
     const cleanPhone = phone.trim().replace(/\s+/g, '');
     if (!cleanPhone) return [];
@@ -1702,6 +1743,114 @@ export const dbService = {
     const updated = current.filter(m => m.id !== id);
     setLocalData('noor_contact_messages', updated);
     window.dispatchEvent(new CustomEvent('contact-messages-updated', { detail: updated }));
+  },
+
+  // ==========================================
+  // STAFF / MODERATOR MANAGEMENT
+  // ==========================================
+  async getModerators(): Promise<ModeratorUser[]> {
+    try {
+      const data = await ApiClient.getModerators();
+      if (Array.isArray(data)) {
+        setLocalData('ecom_moderators', data);
+        return data;
+      }
+    } catch {}
+    return getLocalData<ModeratorUser[]>('ecom_moderators', []);
+  },
+
+  async saveModerator(mod: ModeratorUser): Promise<ModeratorUser> {
+    const isNew = !mod.id || mod.id.startsWith('new_');
+
+    try {
+      const saved = await ApiClient.saveModerator(mod);
+      if (saved) {
+        const current = await this.getModerators();
+        const updated = isNew ? [saved, ...current] : current.map(m => m.id === saved.id ? saved : m);
+        setLocalData('ecom_moderators', updated);
+        window.dispatchEvent(new CustomEvent('moderators-updated', { detail: updated }));
+        return saved;
+      }
+    } catch {}
+
+    // Local fallback
+    const current = await this.getModerators();
+    const finalMod = { ...mod, id: mod.id || `staff_${Date.now()}` };
+    const updated = isNew ? [finalMod, ...current] : current.map(m => m.id === finalMod.id ? finalMod : m);
+    setLocalData('ecom_moderators', updated);
+    window.dispatchEvent(new CustomEvent('moderators-updated', { detail: updated }));
+    return finalMod;
+  },
+
+  async deleteModerator(id: string): Promise<void> {
+    try {
+      await ApiClient.deleteModerator(id);
+    } catch {}
+    const current = await this.getModerators();
+    const updated = current.filter(m => m.id !== id);
+    setLocalData('ecom_moderators', updated);
+    window.dispatchEvent(new CustomEvent('moderators-updated', { detail: updated }));
+  },
+
+  async markStaffAttendance(moderatorId: string, date: string, status: 'present' | 'absent' | 'half_day' | 'leave', note?: string): Promise<void> {
+    try {
+      await ApiClient.markStaffAttendance(moderatorId, { date, status, note });
+    } catch {}
+
+    const current = await this.getModerators();
+    const target = current.find(m => m.id === moderatorId);
+    if (target) {
+      if (!target.attendance) target.attendance = {};
+      target.attendance[date] = {
+        date,
+        status,
+        note: note || '',
+        markedAt: new Date().toISOString()
+      };
+      setLocalData('ecom_moderators', current);
+      window.dispatchEvent(new CustomEvent('moderators-updated', { detail: current }));
+    }
+  },
+
+  async recordSalaryPayment(moderatorId: string, payment: Partial<StaffSalaryPayment>): Promise<void> {
+    try {
+      await ApiClient.recordSalaryPayment(moderatorId, payment);
+    } catch {}
+
+    const current = await this.getModerators();
+    const target = current.find(m => m.id === moderatorId);
+    if (target) {
+      if (!target.salaryPayments) target.salaryPayments = [];
+      const newPayment: StaffSalaryPayment = {
+        id: payment.id || `pay_${Date.now()}`,
+        month: payment.month || new Date().toISOString().slice(0, 7),
+        paymentDate: payment.paymentDate || new Date().toISOString().split('T')[0],
+        baseSalary: payment.baseSalary || target.baseSalary || 0,
+        commissionEarned: payment.commissionEarned || 0,
+        bonus: payment.bonus || 0,
+        deduction: payment.deduction || 0,
+        totalPayable: payment.totalPayable || 0,
+        amountPaid: payment.amountPaid || 0,
+        status: payment.status || 'paid',
+        paymentMethod: payment.paymentMethod || 'Cash',
+        transactionRef: payment.transactionRef || '',
+        note: payment.note || '',
+        createdAt: new Date().toISOString()
+      };
+      target.salaryPayments.push(newPayment);
+      setLocalData('ecom_moderators', current);
+      window.dispatchEvent(new CustomEvent('moderators-updated', { detail: current }));
+    }
+  },
+
+  async getModeratorStats(range: 'today' | 'last7days' | 'thismonth' | 'custom', startDate?: string, endDate?: string) {
+    try {
+      const params: Record<string, string> = { range };
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+      return await ApiClient.getModeratorStats(params);
+    } catch {}
+    return null;
   }
 };
 

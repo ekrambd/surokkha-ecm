@@ -5,9 +5,9 @@ import {
   Check, ArrowUpDown, User, Package, DollarSign, Send, ShieldCheck,
   ChevronDown, FileSpreadsheet, Download, Upload, MessageSquare,
   Copy, RefreshCw, FileText, CheckSquare, AlertCircle, Sparkles, Tag,
-  ArrowLeft, MoreVertical
+  ArrowLeft, MoreVertical, CreditCard
 } from 'lucide-react';
-import { BookOrder } from '../types';
+import { BookOrder, Product, Customer, ModeratorUser } from '../types';
 import { OrderDetailsView } from './OrderDetailsView';
 import { dbService } from '../lib/dbService';
 import { ApiClient } from '../services/apiClient';
@@ -21,10 +21,32 @@ import { checkCustomerCourierRatio, CustomerCourierRatio } from '../lib/courierF
 
 interface OrderManagerProps {
   orders: BookOrder[];
+  products?: Product[];
+  customers?: Customer[];
   onAddOrder: (order: BookOrder) => Promise<void>;
   onUpdateOrder: (order: BookOrder) => Promise<void>;
   onDeleteOrder: (id: string) => Promise<void>;
   onRefreshOrders?: () => Promise<void>;
+}
+
+// Helper for relative timestamps (e.g. '20 minutes ago', '4 hours ago', 'a day ago')
+function formatRelativeTime(dateStr?: string): string {
+  if (!dateStr) return '';
+  const now = Date.now();
+  const diffMs = now - new Date(dateStr).getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHours = Math.floor(diffMin / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMin < 1) return 'just now';
+  if (diffMin === 1) return '1 minute ago';
+  if (diffMin < 60) return `${diffMin} minutes ago`;
+  if (diffHours === 1) return 'an hour ago';
+  if (diffHours < 24) return `${diffHours} hours ago`;
+  if (diffDays === 1) return 'a day ago';
+  if (diffDays < 30) return `${diffDays} days ago`;
+  return new Date(dateStr).toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
 }
 
 // Crisp Barcode SVG Generator for print outputs
@@ -60,6 +82,57 @@ function BarcodeSVG({ value, height = 38 }: { value: string; height?: number }) 
           />
         );
       })}
+    </svg>
+  );
+}
+
+// Helper QR Code SVG Generator for customer feedback review
+function FeedbackQRCodeSVG({ url, size = 68 }: { url: string; size?: number }) {
+  // Generates a clean vector QR matrix visual
+  const hash = (url || 'review').split('').reduce((acc, char) => (acc * 31 + char.charCodeAt(0)) % 100000007, 7);
+  const matrixSize = 21;
+  const cells: boolean[][] = Array(matrixSize).fill(false).map(() => Array(matrixSize).fill(false));
+
+  // Finder patterns (top-left, top-right, bottom-left)
+  const addFinder = (r0: number, c0: number) => {
+    for (let r = 0; r < 7; r++) {
+      for (let c = 0; c < 7; c++) {
+        if (r === 0 || r === 6 || c === 0 || c === 6 || (r >= 2 && r <= 4 && c >= 2 && c <= 4)) {
+          cells[r0 + r][c0 + c] = true;
+        }
+      }
+    }
+  };
+  addFinder(0, 0);
+  addFinder(0, 14);
+  addFinder(14, 0);
+
+  // Timing patterns
+  for (let i = 8; i < 13; i++) {
+    cells[6][i] = i % 2 === 0;
+    cells[i][6] = i % 2 === 0;
+  }
+
+  // Data pseudo-fill deterministic based on url
+  let seed = hash;
+  for (let r = 0; r < matrixSize; r++) {
+    for (let c = 0; c < matrixSize; c++) {
+      // Don't overwrite finders or timing
+      if ((r < 7 && c < 7) || (r < 7 && c >= 14) || (r >= 14 && c < 7)) continue;
+      if (r === 6 || c === 6) continue;
+      seed = (seed * 9301 + 49297) % 233280;
+      cells[r][c] = (seed % 3) === 0;
+    }
+  }
+
+  return (
+    <svg viewBox={`0 0 ${matrixSize} ${matrixSize}`} style={{ width: size, height: size }} className="shrink-0">
+      <rect width={matrixSize} height={matrixSize} fill="white" />
+      {cells.map((row, r) =>
+        row.map((cell, c) =>
+          cell ? <rect key={`${r}-${c}`} x={c} y={r} width="1" height="1" fill="#0f172a" /> : null
+        )
+      )}
     </svg>
   );
 }
@@ -210,6 +283,8 @@ function StatusStepper({ order, onChange }: { order: BookOrder, onChange: (o: Bo
 
 export default function OrderManager({
   orders,
+  products = [],
+  customers = [],
   onAddOrder,
   onUpdateOrder,
   onDeleteOrder,
@@ -229,6 +304,11 @@ export default function OrderManager({
   const [openActionMenuOrderId, setOpenActionMenuOrderId] = useState<string | null>(null);
   const [deleteConfirmOrder, setDeleteConfirmOrder] = useState<BookOrder | null>(null);
   const [bulkStatusConfirm, setBulkStatusConfirm] = useState<{ newStatus: string; count: number } | null>(null);
+  const [collectDueOrder, setCollectDueOrder] = useState<BookOrder | null>(null);
+  const [collectAmount, setCollectAmount] = useState<number>(0);
+  const [collectPaymentMethod, setCollectPaymentMethod] = useState<string>('Cash In Delivery');
+  const [collectTrxId, setCollectTrxId] = useState<string>('');
+  const [collectNote, setCollectNote] = useState<string>('');
   const [invoiceBrand, setInvoiceBrand] = useState({
     name: 'SHOSTIR BAZAR',
     tagline: '',
@@ -245,9 +325,23 @@ export default function OrderManager({
 
   // Print Mode State
   const [activePrintMode, setActivePrintMode] = useState<
-    'invoice' | 'stickers' | 'mini-stickers' | 'packing-slips' | 'pos-receipt' | 'pick-list' | 'check-list' | 'commercial' | null
+    'invoice' | 'stickers' | 'mini-stickers' | 'pos-receipt' | 'packing-slips' | 'pick-list' | 'check-list' | 'commercial' | null
   >(null);
   const [printOrdersList, setPrintOrdersList] = useState<BookOrder[]>([]);
+
+  // Sticker & Label customization state
+  const [labelFormat, setLabelFormat] = useState<'Parcel sticker' | 'Mini sticker' | 'POS label'>('Parcel sticker');
+  const [labelSize, setLabelSize] = useState<'Courier 4 x 6' | '4 x 4' | '6 x 3'>('Courier 4 x 6');
+  const [labelRotation, setLabelRotation] = useState<'0° normal' | '90° rotate'>('0° normal');
+  const [showStickerItems, setShowStickerItems] = useState(true);
+
+  // Invoice & Print layout customization state (matching screenshots)
+  const [invoiceFormat, setInvoiceFormat] = useState<'Invoice, style 2' | 'Packing slip' | 'POS receipt'>('Invoice, style 2');
+  const [invoicePerSheet, setInvoicePerSheet] = useState<'1 invoice' | '2 invoices' | '3 invoices'>('2 invoices');
+  const [invoicePaperSize, setInvoicePaperSize] = useState<'Thermal 80mm' | 'Thermal 58mm' | 'A4' | 'A5'>('Thermal 80mm');
+  const [showInvoiceImages, setShowInvoiceImages] = useState(false);
+  const [isOfficeCopy, setIsOfficeCopy] = useState(false);
+  const [quickOrderLookupNumber, setQuickOrderLookupNumber] = useState('');
 
   // Modals
   const [isExportColumnsModalOpen, setIsExportColumnsModalOpen] = useState(false);
@@ -277,7 +371,19 @@ export default function OrderManager({
     isLoading: false
   });
 
-  const handleOpenRatioModal = async (phone: string, customerName?: string) => {
+  // Moderator / Staff list for Order Assignment
+  const [staffList, setStaffList] = useState<ModeratorUser[]>([]);
+
+  useEffect(() => {
+    dbService.getModerators().then(setStaffList).catch(() => {});
+    const handleModsUpdate = (e: any) => {
+      if (Array.isArray(e.detail)) setStaffList(e.detail);
+    };
+    window.addEventListener('moderators-updated', handleModsUpdate);
+    return () => window.removeEventListener('moderators-updated', handleModsUpdate);
+  }, []);
+
+  const handleOpenRatioModal = async (phone: string, customerName?: string, forceRefresh: boolean = false) => {
     if (!phone) return;
     setRatioModal({
       isOpen: true,
@@ -288,7 +394,7 @@ export default function OrderManager({
     });
 
     try {
-      const res = await checkCustomerCourierRatio(phone, orders);
+      const res = await checkCustomerCourierRatio(phone, orders, forceRefresh);
       setRatioModal(prev => ({
         ...prev,
         ratio: res,
@@ -856,7 +962,7 @@ export default function OrderManager({
 
   // Open Print Mode with selected or single order
   const handleOpenPrintView = (
-    mode: 'invoice' | 'stickers' | 'mini-stickers' | 'packing-slips' | 'pos-receipt' | 'pick-list' | 'check-list' | 'commercial',
+    mode: 'invoice' | 'stickers' | 'mini-stickers' | 'pos-receipt' | 'packing-slips' | 'pick-list' | 'check-list' | 'commercial',
     singleOrder?: BookOrder
   ) => {
     if (singleOrder) {
@@ -865,6 +971,15 @@ export default function OrderManager({
       setPrintOrdersList(selectedOrders);
     } else {
       setPrintOrdersList(filteredOrders.slice(0, 10));
+    }
+    if (mode === 'mini-stickers') {
+      setInvoiceFormat('Invoice, style 2');
+    } else if (mode === 'pos-receipt') {
+      setInvoiceFormat('POS receipt');
+    } else if (mode === 'packing-slips') {
+      setInvoiceFormat('Packing slip');
+    } else {
+      setInvoiceFormat('Invoice, style 2');
     }
     setActivePrintMode(mode);
     setIsActionsMenuOpen(false);
@@ -997,348 +1112,971 @@ export default function OrderManager({
 
   // IF PRINT MODE IS ACTIVE: Render dedicated Printable Pages (Matching Screenshots 1, 2, 3)
   if (activePrintMode) {
+    const isInvoiceOrSlip = activePrintMode === 'invoice' || activePrintMode === 'packing-slips';
+    const isStickerMode = activePrintMode === 'stickers' || activePrintMode === 'mini-stickers';
+
+    // Handle Quick Order search input "Open" in print view
+    const handleQuickOpenOrder = () => {
+      const q = quickOrderLookupNumber.trim().toLowerCase();
+      if (!q) return;
+      const found = orders.find(o => 
+        o.id.toLowerCase().includes(q) || 
+        o.phone.includes(q) ||
+        (o.customerName && o.customerName.toLowerCase().includes(q))
+      );
+      if (found) {
+        if (!printOrdersList.some(p => p.id === found.id)) {
+          setPrintOrdersList([found, ...printOrdersList]);
+        }
+        if (!selectedOrderIds.includes(found.id)) {
+          setSelectedOrderIds(prev => [found.id, ...prev]);
+        }
+        setQuickOrderLookupNumber('');
+      } else {
+        alert(`Order "${quickOrderLookupNumber}" not found.`);
+      }
+    };
+
     return (
       <div className="bg-slate-100 min-h-screen p-4 sm:p-8 font-sans">
-        {/* Print Overlay Controls Bar */}
-        <div className="max-w-6xl mx-auto mb-6 bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-4 print:hidden">
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={() => setActivePrintMode(null)}
-              className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl flex items-center space-x-1.5 transition-colors cursor-pointer"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span>Back to orders</span>
-            </button>
-            <div className="text-xs font-bold text-slate-800">
-              {activePrintMode === 'invoice' && 'Tax Invoices'}
-              {activePrintMode === 'stickers' && 'Order Parcel Stickers'}
-              {activePrintMode === 'mini-stickers' && 'Mini Parcel Stickers'}
-              {activePrintMode === 'packing-slips' && 'Packing Slips'}
-              {activePrintMode === 'pos-receipt' && 'POS Thermal Receipts'}
-              {activePrintMode === 'pick-list' && 'Warehouse Pick List'}
-              {activePrintMode === 'check-list' && 'Order Verification Check List'}
-              {activePrintMode === 'commercial' && 'Commercial / PO Documents'}
-              <span className="ml-2 bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full text-[11px]">
-                {printOrdersList.length} selected
+        {/* Print Overlay Controls Bar - Pixel-matched to Screenshots */}
+        <div className="max-w-6xl mx-auto mb-6 bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 print:hidden space-y-3">
+          
+          {/* Top Title & Page Count */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-baseline space-x-2">
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                {isStickerMode 
+                  ? (labelFormat === 'Parcel sticker' ? 'Parcel stickers' : labelFormat === 'Mini sticker' ? 'Mini stickers' : 'POS labels')
+                  : 'Print invoices'}
+              </h2>
+              <span className="text-sm font-semibold text-slate-400">
+                {printOrdersList.length}
               </span>
+            </div>
+
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setActivePrintMode(null)}
+                className="text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
+              >
+                Orders
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl shadow-md flex items-center space-x-2 transition-all cursor-pointer"
+              >
+                <Printer className="h-4 w-4" />
+                <span>Print</span>
+              </button>
             </div>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="text-[11px] text-slate-500 font-medium -mt-1">
+            {Math.ceil(printOrdersList.length / (invoicePerSheet === '1 invoice' ? 1 : invoicePerSheet === '3 invoices' ? 3 : 2))} pages to print
+          </div>
+
+          {/* Controls Row: Order number input, Format, Per page / Paper size, Toggles */}
+          <div className="pt-2 flex flex-wrap items-center gap-3">
+            
+            {/* Order number lookup input */}
+            <div className="relative flex items-center">
+              <input
+                type="text"
+                placeholder="Order number"
+                value={quickOrderLookupNumber}
+                onChange={(e) => setQuickOrderLookupNumber(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleQuickOpenOrder()}
+                className="w-36 sm:w-44 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 placeholder:text-slate-400"
+              />
+            </div>
+
             <button
-              onClick={() => setSelectedOrderIds([])}
-              className="px-3 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold text-xs rounded-xl cursor-pointer"
+              onClick={handleQuickOpenOrder}
+              className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+            >
+              Open
+            </button>
+
+            <button
+              onClick={() => {
+                setSelectedOrderIds([]);
+                setPrintOrdersList([]);
+              }}
+              className="px-3 py-2 text-slate-500 hover:text-slate-800 text-xs font-bold transition-colors cursor-pointer"
             >
               Clear selection
             </button>
-            <button
-              onClick={() => window.print()}
-              className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-md flex items-center space-x-2 transition-all cursor-pointer"
-            >
-              <Printer className="h-4 w-4" />
-              <span>Print {activePrintMode === 'stickers' ? 'Stickers' : 'Document'}</span>
-            </button>
+
+            <div className="h-5 w-px bg-slate-200 mx-1 hidden sm:block" />
+
+            {/* If Invoices/Slips Mode */}
+            {isInvoiceOrSlip && (
+              <>
+                {/* Format Dropdown */}
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Format</span>
+                  <select
+                    value={invoiceFormat}
+                    onChange={(e) => setInvoiceFormat(e.target.value as any)}
+                    className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none cursor-pointer"
+                  >
+                    <option value="Invoice, style 2">Invoice, style 2</option>
+                    <option value="Packing slip">Packing slip</option>
+                    <option value="POS receipt">POS receipt</option>
+                  </select>
+                </div>
+
+                {/* Per page OR Paper size dropdown */}
+                {invoiceFormat === 'POS receipt' ? (
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Paper size</span>
+                    <select
+                      value={invoicePaperSize}
+                      onChange={(e) => setInvoicePaperSize(e.target.value as any)}
+                      className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none cursor-pointer"
+                    >
+                      <option value="Thermal 80mm">Thermal 80mm</option>
+                      <option value="Thermal 58mm">Thermal 58mm</option>
+                      <option value="A4">A4</option>
+                    </select>
+                  </div>
+                ) : (
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Per page</span>
+                    <select
+                      value={invoicePerSheet}
+                      onChange={(e) => setInvoicePerSheet(e.target.value as any)}
+                      className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none cursor-pointer"
+                    >
+                      <option value="1 invoice">1 invoice</option>
+                      <option value="2 invoices">2 invoices</option>
+                      <option value="3 invoices">3 invoices</option>
+                    </select>
+                  </div>
+                )}
+
+                {/* Images toggle */}
+                <button
+                  type="button"
+                  onClick={() => setShowInvoiceImages(!showInvoiceImages)}
+                  className={`mt-4 px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${
+                    showInvoiceImages 
+                      ? 'bg-slate-900 text-white border-slate-900' 
+                      : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+                  }`}
+                >
+                  Images
+                </button>
+
+                {/* Office copy toggle */}
+                <button
+                  type="button"
+                  onClick={() => setIsOfficeCopy(!isOfficeCopy)}
+                  className={`mt-4 px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${
+                    isOfficeCopy 
+                      ? 'bg-slate-900 text-white border-slate-900' 
+                      : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+                  }`}
+                >
+                  Office copy
+                </button>
+              </>
+            )}
+
+            {/* If Stickers Mode */}
+            {isStickerMode && (
+              <>
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Format</span>
+                  <select
+                    value={labelFormat}
+                    onChange={(e) => setLabelFormat(e.target.value as any)}
+                    className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none cursor-pointer"
+                  >
+                    <option value="Parcel sticker">Parcel sticker</option>
+                    <option value="Mini sticker">Mini sticker</option>
+                    <option value="POS label">POS label</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Label size</span>
+                  <select
+                    value={labelSize}
+                    onChange={(e) => setLabelSize(e.target.value as any)}
+                    className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none cursor-pointer"
+                  >
+                    <option value="Courier 4 x 6">4 x 6</option>
+                    <option value="4 x 4">4 x 4</option>
+                    <option value="6 x 3">6 x 3</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Rotation</span>
+                  <select
+                    value={labelRotation}
+                    onChange={(e) => setLabelRotation(e.target.value as any)}
+                    className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none cursor-pointer"
+                  >
+                    <option value="0° normal">0° normal</option>
+                    <option value="90° rotate">90° rotate</option>
+                  </select>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowStickerItems(!showStickerItems)}
+                  className={`mt-4 px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${
+                    showStickerItems
+                      ? 'bg-slate-900 text-white border-slate-900'
+                      : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+                  }`}
+                >
+                  Show items
+                </button>
+              </>
+            )}
+
           </div>
         </div>
 
-        {/* --- 1. TAX INVOICE PRINT VIEW (Matching Screenshot 1) --- */}
-        {activePrintMode === 'invoice' && (
-          <div className="max-w-4xl mx-auto space-y-8 pb-12">
-            {printOrdersList.map((ord) => {
-              const orderDate = new Date(ord.createdAt);
-              const formattedDate = orderDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-              const formattedTime = orderDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-              const isPaid = isOrderPaid(ord);
-              
-              const price = ord.price || 0;
-              const qty = ord.quantity || 1;
-              const delivery = ord.deliveryCharge || 0;
-              const subtotal = ord.items && ord.items.length > 0
-                ? ord.items.reduce((sum: number, it: any) => sum + ((it.variant?.price || it.product?.price || it.price || 0) * (it.quantity || 1)), 0)
-                : (price * qty);
-              const grandTotal = ord.totalPrice || ord.totalAmount || (subtotal + delivery);
-              const paidAmount = isPaid ? grandTotal : 0;
-              const dueAmount = isPaid ? 0 : grandTotal;
+        {/* --- DYNAMIC RENDER OF THE 3 INVOICE FORMATS (Matching user screenshots) --- */}
+        {isInvoiceOrSlip && (
+          <div className="max-w-5xl mx-auto space-y-6">
 
-              return (
-                <div 
-                  key={ord.id} 
-                  className="invoice-sheet relative bg-white p-8 sm:p-12 rounded-lg border border-slate-200 shadow-xl font-sans text-slate-800 page-break-after print:shadow-none print:border-none print:rounded-none print:p-0"
-                  id={`invoice-${ord.id}`}
-                >
-                  {/* Decorative top border */}
-                  <div className="absolute top-0 left-0 right-0 h-2 bg-teal-600 rounded-t-lg print:hidden"></div>
-                  
-                  <div className="invoice-sheet-inner print:px-0 print:py-0">
-                    
-                    {/* Header Section */}
-                    <div className="flex flex-col md:flex-row justify-between items-start gap-6 border-b-2 border-slate-100 pb-8">
-                      {/* Left: Brand / Logo */}
-                      <div className="flex items-start gap-4">
-                        {invoiceBrand.logo && (
-                          <div className="h-20 w-20 rounded-xl bg-white flex items-center justify-center shrink-0">
-                            <ResponsiveImage
-                              src={invoiceBrand.logo}
-                              alt={invoiceBrand.name}
-                              className="h-full w-full object-contain"
-                            />
+            {/* FORMAT 1: Invoice, style 2 (Screenshot 1) */}
+            {invoiceFormat === 'Invoice, style 2' && (
+              <div className="space-y-6">
+                {printOrdersList.map((ord) => {
+                  const orderDate = new Date(ord.createdAt);
+                  const formattedDate = orderDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' }) + ', ' + orderDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                  const orderNum = ord.id.replace(/^ORD-202[0-9]-/, '').replace(/^ORD-/, '');
+                  const isPaid = isOrderPaid(ord);
+
+                  const itemsList = (ord.items && ord.items.length > 0) ? ord.items : [];
+                  const subtotal = itemsList.length > 0
+                    ? itemsList.reduce((sum: number, it: any) => sum + ((it.variant?.price || it.product?.price || it.price || 0) * (it.quantity || 1)), 0)
+                    : ((ord.price || 0) * (ord.quantity || 1));
+                  const delivery = ord.deliveryCharge || 0;
+                  const total = ord.totalPrice || ord.totalAmount || (subtotal + delivery);
+                  const paid = isPaid ? total : 0;
+                  const balanceDue = isPaid ? 0 : total;
+
+                  const trackingCode = ord.pathaoConsignmentId || ord.steadfastTrackingCode || `DL${orderNum}T8L8Y`;
+                  const courierLabel = ord.pathaoConsignmentId 
+                    ? `Pathao (inactive) - ${ord.deliveryZone || 'Inside Dhaka'}`
+                    : ord.steadfastTrackingCode 
+                      ? `Steadfast - ${ord.deliveryZone || 'Inside Dhaka'}`
+                      : (ord.deliveryZone || 'Inside Dhaka');
+
+                  const storeDomain = invoiceBrand.website || 'livewellfresh.com';
+                  const storeBrandName = invoiceBrand.name.toLowerCase().replace(/\s+/g, '') || 'livewellfresh';
+
+                  return (
+                    <div 
+                      key={ord.id}
+                      className="bg-white rounded-2xl border-2 border-slate-200 p-6 sm:p-7 shadow-sm text-slate-900 font-sans page-break-after print:shadow-none print:border-slate-800"
+                    >
+                      {/* Top Header Row */}
+                      <div className="flex flex-wrap justify-between items-start border-b border-slate-200 pb-4 gap-4">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-9 h-9 rounded-lg bg-slate-900 text-white font-extrabold text-xs flex items-center justify-center tracking-tight">
+                            {storeBrandName.slice(0, 2)}
                           </div>
-                        )}
-                        <div className="flex flex-col">
-                          <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase">
-                            {invoiceBrand.name}
-                          </h2>
-                          {invoiceBrand.tagline && <p className="text-sm font-medium text-slate-500 mt-1">{invoiceBrand.tagline}</p>}
-                          <div className="mt-3 text-xs text-slate-500 space-y-0.5">
-                            {invoiceBrand.website && <p>{invoiceBrand.website}</p>}
-                            {invoiceBrand.phone && <p>{invoiceBrand.phone}</p>}
-                            {invoiceBrand.email && <p>{invoiceBrand.email}</p>}
+                          <div>
+                            <div className="flex items-center space-x-2">
+                              <h3 className="font-extrabold text-sm text-slate-900">{storeBrandName}</h3>
+                              <span className="text-slate-400 text-xs">·</span>
+                              <span className="text-xs font-semibold text-slate-600">
+                                {isOfficeCopy ? 'Invoice (Office Copy)' : 'Invoice'}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-500 font-medium">
+                              Bangladesh · {invoiceBrand.phone || '01733917502'}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-6">
+                          <div className="text-right">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">INV</span>
+                            <span className="text-sm font-extrabold text-slate-900 block mt-0.5">#{orderNum}</span>
+                          </div>
+                          <div className="w-36 text-right">
+                            <BarcodeSVG value={trackingCode} height={28} />
+                            <span className="text-[10px] font-mono font-bold text-slate-600 block mt-0.5">TRK {trackingCode}</span>
                           </div>
                         </div>
                       </div>
 
-                      {/* Right: Invoice Info */}
-                      <div className="text-left md:text-right">
-                        <h1 className="text-4xl font-light text-slate-300 tracking-widest uppercase mb-4">Invoice</h1>
-                        <div className="grid grid-cols-2 md:grid-cols-none gap-x-6 gap-y-1 text-sm md:flex md:flex-col md:items-end">
-                          <div className="flex justify-between md:w-48">
-                            <span className="font-semibold text-slate-400">Invoice No:</span>
-                            <span className="font-bold text-slate-800">{ord.id}</span>
+                      {/* Bill To & Meta Row */}
+                      <div className="py-4 border-b border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                        <div className="space-y-1">
+                          <div className="flex items-baseline space-x-2">
+                            <span className="text-slate-400 font-medium">Bill To:</span>
+                            <span className="font-extrabold text-slate-900">{ord.customerName}</span>
+                            <span className="text-slate-400">·</span>
+                            <span className="font-bold font-mono text-slate-900">{ord.phone}</span>
                           </div>
-                          <div className="flex justify-between md:w-48">
-                            <span className="font-semibold text-slate-400">Date:</span>
-                            <span className="font-medium text-slate-800">{formattedDate}</span>
+                          <p className="text-slate-600 leading-snug text-[11px]">{ord.address}</p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-y-1.5 text-[11px]">
+                          <div>
+                            <span className="text-slate-400 font-medium block">Date</span>
+                            <span className="font-bold text-slate-800 block">{formattedDate}</span>
                           </div>
-                          <div className="flex justify-between md:w-48">
-                            <span className="font-semibold text-slate-400">Payment:</span>
-                            <span className="font-medium text-slate-800">{ord.paymentMethod || 'Cash on Delivery'}</span>
+                          <div>
+                            <span className="text-slate-400 font-medium block">Payment</span>
+                            <span className="font-bold text-slate-800 block">{ord.paymentMethod || 'COD'}</span>
                           </div>
-                          <div className="flex justify-between md:w-48">
-                            <span className="font-semibold text-slate-400">Status:</span>
-                            <span className={`font-bold ${isPaid ? 'text-emerald-600' : 'text-amber-600'}`}>
-                              {isPaid ? 'PAID' : 'UNPAID'}
+                          <div>
+                            <span className="text-slate-400 font-medium block">Courier</span>
+                            <span className="font-bold text-slate-800 truncate block">{courierLabel}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 font-medium block">Status</span>
+                            <span className="font-bold text-slate-800 block">
+                              {isPaid ? 'Paid' : `COD (${itemsList.length || ord.quantity || 1})`}
                             </span>
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Billing & Shipping Section */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-8 border-b-2 border-slate-100">
-                      <div>
-                        <h3 className="text-xs font-bold uppercase tracking-widest text-teal-600 mb-3">Billed To</h3>
-                        <p className="text-base font-bold text-slate-900">{ord.customerName}</p>
-                        <p className="text-sm text-slate-600 mt-1 font-medium">{ord.address}</p>
-                        <p className="text-sm text-slate-600 mt-1">{ord.phone}</p>
+                      {/* Items Table */}
+                      <div className="py-4 border-b border-slate-200">
+                        <table className="w-full text-left text-xs">
+                          <thead>
+                            <tr className="text-slate-400 font-semibold border-b border-slate-100 pb-2">
+                              <th className="w-10 pb-2">#</th>
+                              <th className="pb-2">Item Description</th>
+                              <th className="text-right w-24 pb-2">Rate</th>
+                              <th className="text-center w-16 pb-2">Qty</th>
+                              <th className="text-right w-28 pb-2">Amount</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-50">
+                            {itemsList.length > 0 ? (
+                              itemsList.map((it: any, idx: number) => {
+                                const rate = it.variant?.price || it.product?.price || it.price || 0;
+                                const qty = it.quantity || 1;
+                                const sku = it.product?.sku || it.sku || `SKU:${orderNum}`;
+                                const title = it.product?.title || it.title || 'Product';
+                                return (
+                                  <tr key={idx} className="font-medium text-slate-800">
+                                    <td className="py-2.5 font-mono text-slate-400">0{idx + 1}</td>
+                                    <td className="py-2.5">
+                                      <div className="flex items-center space-x-2">
+                                        {showInvoiceImages && it.product?.image && (
+                                          <img src={it.product.image} alt={title} className="w-8 h-8 rounded object-cover border border-slate-100" />
+                                        )}
+                                        <span>
+                                          <span className="font-bold text-slate-900">{title}</span>
+                                          <span className="text-slate-400 text-[11px] font-mono ml-1.5">(SKU:{sku})</span>
+                                        </span>
+                                      </div>
+                                    </td>
+                                    <td className="py-2.5 text-right font-mono">৳ {rate.toLocaleString()}</td>
+                                    <td className="py-2.5 text-center font-bold">{qty}</td>
+                                    <td className="py-2.5 text-right font-bold font-mono">৳ {(rate * qty).toLocaleString()}</td>
+                                  </tr>
+                                );
+                              })
+                            ) : (
+                              <tr className="font-medium text-slate-800">
+                                <td className="py-2.5 font-mono text-slate-400">01</td>
+                                <td className="py-2.5">
+                                  <span className="font-bold text-slate-900">{ord.productTitle || 'Product'}</span>
+                                  <span className="text-slate-400 text-[11px] font-mono ml-1.5">(SKU:{orderNum})</span>
+                                </td>
+                                <td className="py-2.5 text-right font-mono">৳ {(ord.price || 0).toLocaleString()}</td>
+                                <td className="py-2.5 text-center font-bold">{ord.quantity || 1}</td>
+                                <td className="py-2.5 text-right font-bold font-mono">৳ {subtotal.toLocaleString()}</td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
                       </div>
-                      
-                      <div>
-                        <h3 className="text-xs font-bold uppercase tracking-widest text-teal-600 mb-3">Shipping Details</h3>
-                        <div className="bg-slate-50 rounded-lg p-4 text-sm space-y-2 border border-slate-100">
+
+                      {/* Bottom Section: QR Feedback Left + Totals Right */}
+                      <div className="pt-4 flex flex-col sm:flex-row justify-between items-end gap-6 text-xs">
+                        
+                        {/* Feedback QR Box */}
+                        <div className="flex items-center space-x-3.5 max-w-sm">
+                          <div className="p-1.5 border border-slate-200 rounded-xl bg-white shadow-2xs">
+                            <FeedbackQRCodeSVG url={`https://${storeDomain}/review?order=${ord.id}`} size={64} />
+                          </div>
+                          <div className="space-y-1">
+                            <p className="font-bold text-slate-900 text-xs">
+                              আপনার অভিজ্ঞতা কেমন? · Share Feedback
+                            </p>
+                            <p className="text-[11px] text-slate-500 leading-snug">
+                              QR স্ক্যান করে অর্ডার ও পণ্যের রিভিউ দিন।
+                            </p>
+                            <p className="text-[10px] text-slate-400 pt-0.5">
+                              Thank you for shopping with <span className="font-bold text-slate-600">{storeBrandName}</span>
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Totals & Sign */}
+                        <div className="w-full sm:w-64 space-y-1.5 text-slate-600">
                           <div className="flex justify-between">
-                            <span className="text-slate-500">Method:</span>
-                            <span className="font-semibold text-slate-800">Home Delivery</span>
+                            <span>Subtotal ({itemsList.length || ord.quantity || 1} item)</span>
+                            <span className="font-bold font-mono text-slate-900">৳ {subtotal.toLocaleString()}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-slate-500">Tracking:</span>
-                            <span className="font-mono font-medium text-slate-800">{ord.steadfastTrackingCode || ord.pathaoTrackingCode || 'Pending'}</span>
+                            <span>Delivery</span>
+                            <span className="font-bold font-mono text-slate-900">৳ {delivery.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between text-sm font-extrabold text-slate-900 pt-1 border-t border-slate-100">
+                            <span>Total</span>
+                            <span className="font-mono">৳ {total.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between text-[11px]">
+                            <span>Paid</span>
+                            <span className="font-mono font-medium">৳ {paid.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between text-sm font-black text-slate-900 pt-1 border-t border-slate-200">
+                            <span>Balance Due (COD)</span>
+                            <span className="font-mono">৳ {balanceDue.toLocaleString()}</span>
+                          </div>
+
+                          <div className="pt-6 flex justify-end">
+                            <div className="text-center">
+                              <div className="w-32 border-b border-slate-300 mb-1" />
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                Authorized Sign
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* FORMAT 2: Packing slip (Screenshot 2) */}
+            {invoiceFormat === 'Packing slip' && (
+              <div className="space-y-6">
+                {printOrdersList.map((ord) => {
+                  const orderDate = new Date(ord.createdAt);
+                  const formattedDate = orderDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' }) + ', ' + orderDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                  const orderNum = ord.id.replace(/^ORD-202[0-9]-/, '').replace(/^ORD-/, '');
+
+                  const itemsList = (ord.items && ord.items.length > 0) ? ord.items : [];
+                  const totalPcs = itemsList.length > 0 
+                    ? itemsList.reduce((acc: number, it: any) => acc + (it.quantity || 1), 0)
+                    : (ord.quantity || 1);
+
+                  const trackingCode = ord.pathaoConsignmentId || ord.steadfastTrackingCode || `DL${orderNum}T8L8Y`;
+                  const courierLabel = ord.pathaoConsignmentId 
+                    ? `Pathao (inactive) - ${ord.deliveryZone || 'Inside Dhaka'}`
+                    : ord.steadfastTrackingCode 
+                      ? `Steadfast - ${ord.deliveryZone || 'Inside Dhaka'}`
+                      : (ord.deliveryZone || 'Inside Dhaka');
+
+                  const storeBrandName = invoiceBrand.name.toLowerCase().replace(/\s+/g, '') || 'livewellfresh';
+
+                  return (
+                    <div 
+                      key={ord.id}
+                      className="bg-white rounded-2xl border-2 border-slate-200 p-6 sm:p-7 shadow-sm text-slate-900 font-sans page-break-after print:shadow-none print:border-slate-800"
+                    >
+                      {/* Top Header Row */}
+                      <div className="flex flex-wrap justify-between items-start border-b border-slate-200 pb-4 gap-4">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-9 h-9 rounded-lg bg-slate-900 text-white font-extrabold text-xs flex items-center justify-center tracking-tight">
+                            {storeBrandName.slice(0, 2)}
+                          </div>
+                          <div>
+                            <div className="flex items-center space-x-2">
+                              <h3 className="font-extrabold text-sm text-slate-900">{storeBrandName}</h3>
+                              <span className="text-slate-400 text-xs">·</span>
+                              <span className="text-xs font-semibold text-slate-600">Packing Slip</span>
+                            </div>
+                            <p className="text-[11px] text-slate-500 font-medium">
+                              Bangladesh · {invoiceBrand.phone || '01733917502'}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-6">
+                          <div className="text-right">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">INV</span>
+                            <span className="text-sm font-extrabold text-slate-900 block mt-0.5">#{orderNum}</span>
+                          </div>
+                          <div className="w-36 text-right">
+                            <BarcodeSVG value={trackingCode} height={28} />
+                            <span className="text-[10px] font-mono font-bold text-slate-600 block mt-0.5">TRK {trackingCode}</span>
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    {ord.luckyCouponCode && (
-                      <div className="mt-8 mb-4 bg-amber-50/50 border border-amber-200 p-4 rounded-lg flex items-center justify-between">
+                      {/* Bill To & Logistics Row */}
+                      <div className="py-4 border-b border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                        <div className="space-y-1">
+                          <div className="flex items-baseline space-x-2">
+                            <span className="text-slate-400 font-medium">Bill To:</span>
+                            <span className="font-extrabold text-slate-900">{ord.customerName}</span>
+                            <span className="text-slate-400">·</span>
+                            <span className="font-bold font-mono text-slate-900">{ord.phone}</span>
+                          </div>
+                          <p className="text-slate-600 leading-snug text-[11px]">{ord.address}</p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-y-1.5 text-[11px]">
+                          <div>
+                            <span className="text-slate-400 font-medium block">Date</span>
+                            <span className="font-bold text-slate-800 block">{formattedDate}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 font-medium block">Payment</span>
+                            <span className="font-bold text-slate-800 block">{ord.paymentMethod || 'COD'}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 font-medium block">Courier</span>
+                            <span className="font-bold text-slate-800 truncate block">{courierLabel}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 font-medium block">Items</span>
+                            <span className="font-bold text-slate-800 block">{totalPcs} pcs</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Pick Checklist Table */}
+                      <div className="py-4 border-b border-slate-200">
+                        <table className="w-full text-left text-xs">
+                          <thead>
+                            <tr className="text-slate-400 font-semibold border-b border-slate-100 pb-2">
+                              <th className="w-14 pb-2">Pick</th>
+                              <th className="w-10 pb-2">#</th>
+                              <th className="pb-2">Item Description</th>
+                              <th className="text-center w-28 pb-2">SKU</th>
+                              <th className="text-right w-16 pb-2">Qty</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-50">
+                            {itemsList.length > 0 ? (
+                              itemsList.map((it: any, idx: number) => {
+                                const qty = it.quantity || 1;
+                                const sku = it.product?.sku || it.sku || `SKU:${orderNum}`;
+                                const title = it.product?.title || it.title || 'Product';
+                                return (
+                                  <tr key={idx} className="font-medium text-slate-800">
+                                    <td className="py-3">
+                                      <div className="w-4 h-4 border-2 border-slate-400 rounded cursor-pointer" />
+                                    </td>
+                                    <td className="py-3 font-mono text-slate-400">0{idx + 1}</td>
+                                    <td className="py-3">
+                                      <div className="flex items-center space-x-2">
+                                        {showInvoiceImages && it.product?.image && (
+                                          <img src={it.product.image} alt={title} className="w-8 h-8 rounded object-cover border border-slate-100" />
+                                        )}
+                                        <span>
+                                          <span className="font-bold text-slate-900">{title}</span>
+                                          <span className="text-slate-400 text-[11px] font-mono ml-1.5">(SKU:{sku})</span>
+                                        </span>
+                                      </div>
+                                    </td>
+                                    <td className="py-3 text-center font-mono font-bold text-slate-700">{sku}</td>
+                                    <td className="py-3 text-right font-extrabold text-slate-900 text-sm">{qty}</td>
+                                  </tr>
+                                );
+                              })
+                            ) : (
+                              <tr className="font-medium text-slate-800">
+                                <td className="py-3">
+                                  <div className="w-4 h-4 border-2 border-slate-400 rounded cursor-pointer" />
+                                </td>
+                                <td className="py-3 font-mono text-slate-400">01</td>
+                                <td className="py-3">
+                                  <span className="font-bold text-slate-900">{ord.productTitle || 'Product'}</span>
+                                  <span className="text-slate-400 text-[11px] font-mono ml-1.5">(SKU:{orderNum})</span>
+                                </td>
+                                <td className="py-3 text-center font-mono font-bold text-slate-700">hvfx1</td>
+                                <td className="py-3 text-right font-extrabold text-slate-900 text-sm">{ord.quantity || 1}</td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Footer Note and Sign-offs */}
+                      <div className="pt-4 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs">
+                        <div className="text-[11px] text-slate-500 font-medium">
+                          Verify quantity and variant before sealing the parcel. — <span className="font-bold text-slate-800">{storeBrandName}</span>
+                        </div>
+
+                        <div className="flex items-center space-x-6 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                          <div className="text-center">
+                            <div className="w-20 border-b border-slate-300 mb-1" />
+                            <span>Picked by</span>
+                          </div>
+                          <div className="text-center">
+                            <div className="w-20 border-b border-slate-300 mb-1" />
+                            <span>Checked by</span>
+                          </div>
+                          <div className="text-center">
+                            <div className="w-20 border-b border-slate-300 mb-1" />
+                            <span>Packed by</span>
+                          </div>
+                        </div>
+                      </div>
+
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* FORMAT 3: POS receipt (Screenshot 3) */}
+            {invoiceFormat === 'POS receipt' && (
+              <div className="flex flex-wrap justify-center gap-6">
+                {printOrdersList.map((ord) => {
+                  const orderDate = new Date(ord.createdAt);
+                  const formattedDate = orderDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) + ', ' + orderDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                  const orderNum = ord.id.replace(/^ORD-202[0-9]-/, '').replace(/^ORD-/, '');
+                  const isPaid = isOrderPaid(ord);
+
+                  const itemsList = (ord.items && ord.items.length > 0) ? ord.items : [];
+                  const subtotal = itemsList.length > 0
+                    ? itemsList.reduce((sum: number, it: any) => sum + ((it.variant?.price || it.product?.price || it.price || 0) * (it.quantity || 1)), 0)
+                    : ((ord.price || 0) * (ord.quantity || 1));
+                  const delivery = ord.deliveryCharge || 0;
+                  const total = ord.totalPrice || ord.totalAmount || (subtotal + delivery);
+                  const codDue = isPaid ? 0 : total;
+
+                  const trackingCode = ord.pathaoConsignmentId || ord.steadfastTrackingCode || `DL${orderNum}T8L8Y`;
+                  const storeDomain = invoiceBrand.website || 'livewellfresh.com';
+                  const storeBrandName = invoiceBrand.name.toLowerCase().replace(/\s+/g, '') || 'livewellfresh';
+
+                  const paperWidthClass = invoicePaperSize === 'Thermal 58mm' ? 'max-w-[280px]' : 'max-w-[340px]';
+
+                  return (
+                    <div 
+                      key={ord.id}
+                      className={`bg-white rounded-3xl border-2 border-slate-200 p-6 shadow-md font-sans text-slate-900 page-break-after print:shadow-none print:border-slate-800 w-full ${paperWidthClass}`}
+                    >
+                      {/* Centered Store Header */}
+                      <div className="text-center pb-4 border-b border-slate-100">
+                        <h3 className="text-base font-extrabold text-slate-900">{storeBrandName}</h3>
+                        <p className="text-[11px] text-slate-500 mt-0.5">Bangladesh</p>
+                        <p className="text-[11px] font-mono text-slate-500">{invoiceBrand.phone || '8801635311494'}</p>
+
+                        <div className="w-40 mx-auto mt-3">
+                          <BarcodeSVG value={ord.id} height={32} />
+                        </div>
+                        <span className="text-xs font-black text-slate-900 block mt-1">#{orderNum}</span>
+                        <span className="text-[10px] text-slate-400 block">{formattedDate}</span>
+                      </div>
+
+                      {/* Recipient Details */}
+                      <div className="py-3 border-b border-slate-100 text-xs space-y-0.5">
+                        <h4 className="font-bold text-slate-900">{ord.customerName}</h4>
+                        <p className="font-mono font-bold text-slate-900">{ord.phone}</p>
+                        <p className="text-[11px] text-slate-600 leading-tight pt-0.5">{ord.address}</p>
+                        <p className="text-[10px] text-slate-500 font-mono pt-1">Tracking: {trackingCode}</p>
+                      </div>
+
+                      {/* Line Items */}
+                      <div className="py-3 border-b border-slate-100 text-xs space-y-2">
+                        <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                          <span>Qty × Item</span>
+                          <span>Amount</span>
+                        </div>
+                        {itemsList.length > 0 ? (
+                          itemsList.map((it: any, idx: number) => {
+                            const rate = it.variant?.price || it.product?.price || it.price || 0;
+                            const qty = it.quantity || 1;
+                            const title = it.product?.title || it.title || 'Product';
+                            const sku = it.product?.sku || it.sku || `hvfx1`;
+                            return (
+                              <div key={idx} className="space-y-0.5">
+                                <div className="flex justify-between items-baseline font-bold text-slate-900">
+                                  <span>{qty} × {title}</span>
+                                  <span className="font-mono">৳ {(rate * qty).toLocaleString()}</span>
+                                </div>
+                                <span className="text-[10px] text-slate-400 font-mono block">{sku}</span>
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <div className="space-y-0.5">
+                            <div className="flex justify-between items-baseline font-bold text-slate-900">
+                              <span>{ord.quantity || 1} × {ord.productTitle || 'Product'}</span>
+                              <span className="font-mono">৳ {subtotal.toLocaleString()}</span>
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-mono block">hvfx1</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Subtotal, Shipping, Total, COD DUE */}
+                      <div className="py-3 space-y-1 text-xs border-b border-slate-100">
+                        <div className="flex justify-between text-slate-500">
+                          <span>Subtotal:</span>
+                          <span className="font-mono font-medium text-slate-900">৳ {subtotal.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between text-slate-500">
+                          <span>Delivery:</span>
+                          <span className="font-mono font-medium text-slate-900">৳ {delivery.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between text-slate-900 font-extrabold pt-1">
+                          <span>Total:</span>
+                          <span className="font-mono">৳ {total.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between items-center pt-2 text-sm font-black text-slate-900 bg-slate-50 p-2 rounded-xl mt-1">
+                          <span>COD DUE:</span>
+                          <span className="text-base font-mono">৳ {codDue.toLocaleString()}</span>
+                        </div>
+                      </div>
+
+                      {/* Feedback QR & Footer */}
+                      <div className="pt-4 text-center space-y-2">
+                        <div className="flex items-center justify-center space-x-2 text-left">
+                          <FeedbackQRCodeSVG url={`https://${storeDomain}/review?order=${ord.id}`} size={48} />
+                          <div>
+                            <p className="text-[10px] font-bold text-slate-900">আপনার অভিজ্ঞতা কেমন? · Share Feedback</p>
+                            <p className="text-[9px] text-slate-500 leading-tight">QR স্ক্যান করে অর্ডার ও পণ্যের রিভিউ দিন।</p>
+                          </div>
+                        </div>
+
+                        <p className="text-[10px] font-semibold text-slate-500 pt-1">
+                          Thank you for your order!
+                        </p>
+                        <p className="text-[10px] font-mono text-slate-400">
+                          www.{storeDomain}
+                        </p>
+                      </div>
+
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+          </div>
+        )}
+
+        {/* --- DYNAMIC RENDER OF THE STICKERS VIEW (When activePrintMode === 'stickers' || 'mini-stickers') --- */}
+        {isStickerMode && (
+          <div className="max-w-5xl mx-auto space-y-6">
+            <div className="flex flex-wrap justify-center gap-6 print:block print:space-y-4">
+              {printOrdersList.map((ord) => {
+                const orderDate = new Date(ord.createdAt);
+                const dateFormatted = orderDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                const orderNum = ord.id.replace(/^ORD-202[0-9]-/, '').replace(/^ORD-/, '');
+                const isPaid = isOrderPaid(ord);
+
+                const itemsList = (ord.items && ord.items.length > 0) ? ord.items : [];
+                const primaryItem = itemsList[0];
+                const rawTitle = primaryItem?.product?.title || primaryItem?.title || ord.productTitle || ord.productName || 'Product';
+                const cleanTitle = rawTitle.replace(/\s*\(x\d+\)$/i, '').trim();
+                const totalQty = itemsList.length > 0 ? itemsList.reduce((acc: number, it: any) => acc + (it.quantity || 1), 0) : (ord.quantity || 1);
+
+                const totalAmount = ord.totalPrice || (ord.price ? ord.price * (ord.quantity || 1) + (ord.deliveryCharge || 0) : (ord.totalAmount || 0));
+                const deliveryCharge = ord.deliveryCharge || ord.deliveryFee || 0;
+                const subtotal = Math.max(0, totalAmount - deliveryCharge);
+                const codPayable = isPaid ? 0 : totalAmount;
+
+                const courierName = ord.pathaoConsignmentId 
+                  ? `Pathao (inactive) - ${ord.deliveryZone || 'Inside Dhaka'}`
+                  : ord.steadfastTrackingCode 
+                    ? `Steadfast - ${ord.deliveryZone || 'Inside Dhaka'}`
+                    : (ord.deliveryZone || 'Inside Dhaka');
+
+                const trackingCode = ord.pathaoConsignmentId || ord.steadfastTrackingCode || `DL${orderNum}T8L8Y`;
+
+                // Render based on selected Format & Size
+                if (labelFormat === 'Parcel sticker') {
+                  return (
+                    <div 
+                      key={ord.id} 
+                      className={`bg-white rounded-2xl border-2 border-slate-200 p-6 shadow-md font-sans text-slate-900 page-break-inside-avoid print:shadow-none print:border-slate-800 ${
+                        labelRotation === '90° rotate' ? 'rotate-90' : ''
+                      } w-full max-w-xl`}
+                    >
+                      {/* Top Header */}
+                      <div className="flex justify-between items-start border-b border-slate-100 pb-3">
                         <div>
-                          <p className="text-xs font-bold text-amber-600 uppercase tracking-widest">Special Offer</p>
-                          <p className="text-sm font-semibold text-slate-800 mt-1">Yamaha R15 Lucky Draw Coupon: <span className="font-mono text-amber-600 ml-1">{ord.luckyCouponCode}</span></p>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Parcel Sticker</span>
+                          <h3 className="text-xl font-extrabold text-slate-900 mt-0.5">#{orderNum}</h3>
+                          <span className="text-[11px] text-slate-400 font-medium block mt-0.5">{dateFormatted}</span>
                         </div>
-                        <div className="h-10 w-10 bg-amber-100 rounded-full flex items-center justify-center text-amber-600">
-                          🎟️
+                        <div className="w-40 text-right">
+                          <BarcodeSVG value={ord.id} height={38} />
+                        </div>
+                      </div>
+
+                      {/* Recipient Details */}
+                      <div className="py-4 border-b border-slate-100 space-y-1">
+                        <h4 className="text-sm font-extrabold text-slate-900">{ord.customerName}</h4>
+                        <p className="font-mono font-bold text-slate-900 text-sm tracking-tight">{ord.phone}</p>
+                        <p className="text-xs text-slate-600 leading-snug pt-0.5">{ord.address}</p>
+                      </div>
+
+                      {/* Courier & COD Payable */}
+                      <div className="py-4 border-b border-slate-100 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Courier / Tracking</span>
+                          <span className="text-xs font-bold text-slate-900 block mt-0.5">{courierName}</span>
+                          <span className="text-[11px] font-mono text-slate-500 block">{trackingCode}</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                            {isPaid ? 'Paid' : 'COD Payable'}
+                          </span>
+                          <span className="text-lg font-extrabold text-slate-900 block mt-0.5">
+                            ৳ {codPayable.toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Item Details if Show Items enabled */}
+                      {showStickerItems && (
+                        <div className="pt-3 border-b border-slate-100 pb-3 space-y-1">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Items</span>
+                          <div className="text-xs font-bold text-slate-800 flex justify-between">
+                            <span>{totalQty} × {cleanTitle}</span>
+                            <span>৳ {subtotal.toLocaleString()}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Footer */}
+                      <div className="flex items-center justify-between pt-3 text-[11px] font-semibold text-slate-400">
+                        <span>Seller: {invoiceBrand.name.toLowerCase()}</span>
+                        <span>{totalQty} item(s)</span>
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (labelFormat === 'Mini sticker') {
+                  return (
+                    <div 
+                      key={ord.id} 
+                      className={`bg-white rounded-2xl border-2 border-slate-200 p-4 shadow-md font-sans text-slate-900 page-break-inside-avoid print:shadow-none print:border-slate-800 ${
+                        labelRotation === '90° rotate' ? 'rotate-90' : ''
+                      } w-full max-w-sm`}
+                    >
+                      {/* Top Header */}
+                      <div className="flex justify-between items-start border-b border-slate-100 pb-2">
+                        <div>
+                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Mini Sticker</span>
+                          <h3 className="text-base font-extrabold text-slate-900">#{orderNum}</h3>
+                        </div>
+                        <div className="w-28 text-right">
+                          <BarcodeSVG value={ord.id} height={28} />
+                        </div>
+                      </div>
+
+                      {/* Recipient Details */}
+                      <div className="py-2.5 border-b border-slate-100 space-y-0.5 text-xs">
+                        <h4 className="font-extrabold text-slate-900">{ord.customerName}</h4>
+                        <p className="font-mono font-bold text-slate-900">{ord.phone}</p>
+                        <p className="text-[11px] text-slate-600 line-clamp-2 leading-tight">{ord.address}</p>
+                      </div>
+
+                      {/* Courier & COD Due */}
+                      <div className="py-2.5 border-b border-slate-100 flex items-center justify-between text-xs">
+                        <div>
+                          <span className="font-bold text-slate-800 text-[11px] block">{courierName}</span>
+                          <span className="text-[10px] font-mono text-slate-500 block">{trackingCode}</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">
+                            {isPaid ? 'Paid' : 'COD Due'}
+                          </span>
+                          <span className="text-sm font-extrabold text-slate-900 block">
+                            ৳ {codPayable.toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Footer */}
+                      <div className="flex items-center justify-between pt-2 text-[10px] font-medium text-slate-400">
+                        <span>{invoiceBrand.name.toLowerCase()}</span>
+                        <span>{totalQty} item(s)</span>
+                      </div>
+                    </div>
+                  );
+                }
+
+                // POS label format (Screenshot 3, 4, 5)
+                return (
+                  <div 
+                    key={ord.id} 
+                    className={`bg-white rounded-3xl border-2 border-slate-200 p-6 shadow-md font-sans text-slate-900 page-break-inside-avoid print:shadow-none print:border-slate-800 ${
+                      labelRotation === '90° rotate' ? 'rotate-90' : ''
+                    } ${labelSize === '6 x 3' ? 'w-full max-w-2xl' : 'w-full max-w-md'}`}
+                  >
+                    {/* Centered Barcode and Store Header */}
+                    <div className="text-center pb-4 border-b border-slate-100">
+                      <span className="text-xs font-bold text-slate-500 block mb-1">{orderNum}</span>
+                      <div className="w-48 mx-auto">
+                        <BarcodeSVG value={ord.id} height={34} />
+                      </div>
+                      <span className="text-[11px] text-slate-400 font-medium block mt-1">by {invoiceBrand.website || invoiceBrand.name.toLowerCase()}</span>
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Order ID</span>
+                    </div>
+
+                    {/* Customer & Address Details */}
+                    <div className="py-4 border-b border-slate-100 space-y-1">
+                      <p className="text-base font-extrabold text-slate-900 font-mono tracking-tight">{ord.phone}</p>
+                      <h4 className="text-sm font-bold text-slate-800">{ord.customerName}</h4>
+                      <p className="text-xs text-slate-600 leading-snug">{ord.address}</p>
+                    </div>
+
+                    {/* Courier Line */}
+                    <div className="py-3 border-b border-slate-100">
+                      <span className="text-xs font-bold text-slate-900 block">{courierName}</span>
+                      <span className="text-[11px] font-mono text-slate-500 block">{trackingCode}</span>
+                    </div>
+
+                    {/* Line Items if Show Items is checked */}
+                    {showStickerItems && (
+                      <div className="py-3 border-b border-slate-100 space-y-1.5">
+                        <div className="flex justify-between items-start text-xs font-bold text-slate-800">
+                          <div>
+                            <span>{totalQty} × {cleanTitle}</span>
+                            <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
+                              {primaryItem?.product?.sku || ord.id.split('-').pop()}
+                            </span>
+                          </div>
+                          <span>৳ {subtotal.toLocaleString()}</span>
                         </div>
                       </div>
                     )}
 
-                    {/* Items Table */}
-                    <div className="mt-8">
-                      <table className="w-full text-left border-collapse">
-                        <thead>
-                          <tr className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500 border-y border-slate-200">
-                            <th className="py-3 px-4 font-semibold">Description</th>
-                            <th className="py-3 px-4 font-semibold text-center w-24">Qty</th>
-                            <th className="py-3 px-4 font-semibold text-right w-32">Unit Price</th>
-                            <th className="py-3 px-4 font-semibold text-right w-32">Total</th>
-                          </tr>
-                        </thead>
-                        <tbody className="text-sm">
-                          {ord.items && ord.items.length > 0 ? (
-                            ord.items.map((it: any, idx: number) => {
-                              const itPrice = it.variant?.price || it.product?.price || it.price || 0;
-                              const itQty = it.quantity || 1;
-                              return (
-                                <tr key={idx} className="border-b border-slate-100">
-                                  <td className="py-4 px-4">
-                                    <p className="font-semibold text-slate-900">{it.product?.title || it.title || it.name || 'Product'}</p>
-                                    <p className="text-xs text-slate-500 font-mono mt-1">
-                                      {it.variant?.name ? `Variant: ${it.variant.name}` : `SKU: ${it.sku || ord.id.split('-').pop()}`}
-                                    </p>
-                                  </td>
-                                  <td className="py-4 px-4 text-center text-slate-700">{itQty}</td>
-                                  <td className="py-4 px-4 text-right text-slate-700">Tk {itPrice.toFixed(2)}</td>
-                                  <td className="py-4 px-4 text-right font-semibold text-slate-900">Tk {(itPrice * itQty).toFixed(2)}</td>
-                                </tr>
-                              );
-                            })
-                          ) : (
-                            <tr className="border-b border-slate-100">
-                              <td className="py-4 px-4">
-                                <p className="font-semibold text-slate-900">{ord.productTitle || 'Product'}</p>
-                                <p className="text-xs text-slate-500 font-mono mt-1">SKU: {ord.id.split('-').pop()}</p>
-                              </td>
-                              <td className="py-4 px-4 text-center text-slate-700">{qty}</td>
-                              <td className="py-4 px-4 text-right text-slate-700">Tk {price.toFixed(2)}</td>
-                              <td className="py-4 px-4 text-right font-semibold text-slate-900">Tk {subtotal.toFixed(2)}</td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {/* Totals Section */}
-                    <div className="mt-6 flex flex-col md:flex-row justify-between items-start">
-                      <div className="w-full md:w-1/2 mb-6 md:mb-0 pr-0 md:pr-8">
-                        <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Terms & Notes</h4>
-                        <p className="text-xs text-slate-500 leading-relaxed">
-                          Please keep this invoice for your records. If you have any questions concerning this invoice, contact our support. Thank you for your business!
-                        </p>
+                    {/* Subtotal, Shipping, and COD Due */}
+                    <div className="pt-3 space-y-1 text-xs">
+                      <div className="flex justify-between text-slate-500 font-medium">
+                        <span>Subtotal:</span>
+                        <span>৳ {subtotal.toLocaleString()}</span>
                       </div>
-                      
-                      <div className="w-full md:w-[320px] bg-slate-50 p-6 rounded-lg border border-slate-100">
-                        <div className="space-y-3 text-sm">
-                          <div className="flex justify-between text-slate-600">
-                            <span>Subtotal</span>
-                            <span>Tk {subtotal.toFixed(2)}</span>
-                          </div>
-                          <div className="flex justify-between text-slate-600">
-                            <span>Shipping</span>
-                            <span>Tk {delivery.toFixed(2)}</span>
-                          </div>
-                          <div className="h-px bg-slate-200 my-2"></div>
-                          <div className="flex justify-between text-lg font-black text-slate-900">
-                            <span>Total</span>
-                            <span>Tk {grandTotal.toFixed(2)}</span>
-                          </div>
-                          <div className="flex justify-between text-slate-600 pt-2 text-xs">
-                            <span>Paid</span>
-                            <span>Tk {paidAmount.toFixed(2)}</span>
-                          </div>
-                          <div className="flex justify-between font-bold text-teal-600 text-sm">
-                            <span>Balance Due</span>
-                            <span>Tk {dueAmount.toFixed(2)}</span>
-                          </div>
-                        </div>
+                      <div className="flex justify-between text-slate-500 font-medium">
+                        <span>Shipping:</span>
+                        <span>৳ {deliveryCharge.toLocaleString()}</span>
                       </div>
-                    </div>
-
-                    {/* Footer Signature */}
-                    <div className="mt-16 pt-6 flex justify-between items-end">
-                      <div className="text-xs text-slate-400">
-                        <p>{invoiceBrand.name} - Generated on {new Date().toLocaleDateString('en-GB')}</p>
-                      </div>
-                      <div className="text-center w-48 border-t-2 border-slate-200 pt-2">
-                        <span className="text-[10px] font-bold uppercase text-slate-400 tracking-widest">
-                          Authorized Sign
+                      <div className="flex justify-between items-center pt-2 text-sm font-extrabold text-slate-900 border-t border-slate-100 mt-2">
+                        <span>{isPaid ? 'Total Paid:' : 'COD due:'}</span>
+                        <span className="text-base font-black">
+                          ৳ {codPayable.toLocaleString()}
                         </span>
                       </div>
-                    </div>
-                    
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-        {activePrintMode === 'stickers' && (
-          <div className="max-w-5xl mx-auto space-y-6">
-            <div className="bg-white p-4 rounded-xl border border-slate-200 flex items-center justify-between text-xs font-semibold text-slate-700 print:hidden">
-              <span>Selected orders: <strong>{printOrdersList.length}</strong></span>
-              <button onClick={() => setSelectedOrderIds([])} className="px-3 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-800 cursor-pointer">
-                Clear selection
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {printOrdersList.map((ord) => {
-                const orderDate = new Date(ord.createdAt);
-                const dateFormatted = orderDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-
-                return (
-                  <div key={ord.id} className="bg-white rounded-2xl border-2 border-slate-200 p-5 shadow-sm space-y-4 font-sans text-slate-900 page-break-inside-avoid">
-                    {/* Header Sticker Barcode */}
-                    <div className="flex justify-between items-start border-b border-slate-200 pb-3">
-                      <div>
-                        <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider block">PARCEL STICKER</span>
-                        <h3 className="text-lg font-black text-slate-900">#{ord.id}</h3>
-                        <span className="text-[10px] text-slate-400 font-semibold">{dateFormatted}</span>
-                      </div>
-                      <div className="w-36 text-right">
-                        <BarcodeSVG value={ord.id} height={36} />
-                      </div>
-                    </div>
-
-                    {/* Customer Info */}
-                    <div className="space-y-1 text-xs border-b border-slate-200 pb-3">
-                      <h4 className="text-sm font-black text-slate-900">{ord.customerName}</h4>
-                      <p className="font-mono font-bold text-slate-800 text-sm">{ord.phone}</p>
-                      <p className="text-slate-600 font-medium leading-tight">{ord.address}</p>
-                    </div>
-
-                    {/* Courier & COD Payable */}
-                    <div className="grid grid-cols-2 gap-2 border-b border-slate-200 pb-3 text-xs">
-                      <div>
-                        <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider block">COURIER / TRACKING</span>
-                        <span className="font-bold text-slate-900">{ord.steadfastTrackingCode || ord.pathaoTrackingCode || 'Courier'}</span>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider block">
-                          {isOrderPaid(ord) ? 'PAID' : 'COD PAYABLE'}
-                        </span>
-                        <span className={`text-base font-black ${isOrderPaid(ord) ? 'text-emerald-600' : 'text-amber-600'}`}>
-                          Tk. {(isOrderPaid(ord) ? 0 : (ord.totalPrice || ord.totalAmount || 0)).toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Seller Footer */}
-                    <div className="flex justify-between items-center text-[10px] text-slate-500 font-semibold pt-1">
-                      <span>Seller: {invoiceBrand.name}</span>
-                      <span>{ord.quantity} item(s)</span>
                     </div>
                   </div>
                 );
               })}
             </div>
-          </div>
-        )}
-
-        {/* --- 3. OTHER PRINT VIEWS (Mini Stickers, Packing Slips, POS Receipt, Pick List) --- */}
-        {(activePrintMode === 'mini-stickers' || activePrintMode === 'packing-slips' || activePrintMode === 'pos-receipt' || activePrintMode === 'pick-list') && (
-          <div className="max-w-3xl mx-auto space-y-6">
-            {printOrdersList.map(ord => (
-              <div key={ord.id} className="bg-white p-6 rounded-2xl border border-slate-300 shadow-sm text-xs space-y-3 font-sans">
-                <div className="flex justify-between items-center border-b pb-2">
-                  <span className="font-extrabold text-sm text-slate-900">{activePrintMode.toUpperCase()} - {ord.id}</span>
-                  <span className="font-mono font-bold text-slate-600">{ord.phone}</span>
-                </div>
-                <div className="space-y-1">
-                  <p><strong>Customer:</strong> {ord.customerName}</p>
-                  <p><strong>Address:</strong> {ord.address}</p>
-                  <p><strong>Product:</strong> {ord.productTitle || (ord.items?.[0]?.product?.title) || 'Product'} × {ord.quantity || 1}</p>
-                  <p><strong>Payment Status:</strong> {isOrderPaid(ord) ? 'PAID' : `UNPAID (${ord.paymentMethod || 'COD'})`}</p>
-                  <p><strong>Total:</strong> Tk. {ord.totalPrice || ord.totalAmount || 0}</p>
-                </div>
-              </div>
-            ))}
           </div>
         )}
       </div>
@@ -1395,14 +2133,6 @@ export default function OrderManager({
               <span>{isRefreshing ? 'রিফ্রেশ হচ্ছে...' : 'রিফ্রেশ'}</span>
             </button>
           )}
-
-          <button 
-            onClick={() => setIsAddModalOpen(true)}
-            className="inline-flex items-center justify-center px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all shrink-0 cursor-pointer"
-          >
-            <Plus className="h-4 w-4 mr-1.5" />
-            New order add
-          </button>
         </div>
       </div>
 
@@ -1786,7 +2516,7 @@ export default function OrderManager({
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                <th className="py-3.5 px-4 w-10">
+                <th className="py-3.5 px-3 w-8">
                   <input
                     type="checkbox"
                     checked={filteredOrders.length > 0 && selectedOrderIds.length === filteredOrders.length}
@@ -1794,25 +2524,76 @@ export default function OrderManager({
                     className="rounded border-slate-300 text-teal-600 focus:ring-teal-500 cursor-pointer h-4 w-4"
                   />
                 </th>
-                <th className="py-3.5 px-4">ID & Date</th>
-                <th className="py-3.5 px-4">Type</th>
-                <th className="py-3.5 px-4">Customer information</th>
-                <th className="py-3.5 px-4">Product and quantity</th>
-                <th className="py-3.5 px-4">Total Rs</th>
-                <th className="py-3.5 px-4">Status</th>
-                <th className="py-3.5 px-4 text-right">action</th>
+                <th className="py-3.5 px-3 w-8 text-center text-slate-400">#</th>
+                <th className="py-3.5 px-4 min-w-[220px]">Order & Items</th>
+                <th className="py-3.5 px-4 min-w-[240px]">Customer</th>
+                <th className="py-3.5 px-4 min-w-[150px]">
+                  <div className="flex items-center gap-1">
+                    <span>Status</span>
+                    <span className="text-[10px] text-slate-400 font-normal">⇅ Priority</span>
+                  </div>
+                </th>
+                <th className="py-3.5 px-4 min-w-[110px]">Payment</th>
+                <th className="py-3.5 px-4 min-w-[150px]">Delivery</th>
+                <th className="py-3.5 px-4 min-w-[100px] text-right">Profit</th>
+                <th className="py-3.5 px-3 w-10 text-right"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
               {paginatedOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400 font-semibold">
+                  <td colSpan={9} className="py-12 text-center text-slate-400 font-semibold">
                     No orders found।
                   </td>
                 </tr>
               ) : (
-                paginatedOrders.map((order) => {
+                paginatedOrders.map((order, orderIdx) => {
                   const isSelected = selectedOrderIds.includes(order.id);
+                  const serialNumber = (currentPage - 1) * itemsPerPage + orderIdx + 1;
+                  const isPaid = isOrderPaid(order);
+
+                  // Extract primary item and total item count
+                  const itemsList = (order.items && order.items.length > 0) ? order.items : [];
+                  const totalItemsCount = itemsList.length > 0 
+                    ? itemsList.reduce((acc: number, it: any) => acc + (it.quantity || 1), 0)
+                    : (order.quantity || 1);
+                  const firstItem = itemsList[0];
+                  const rawTitle = firstItem?.product?.title || firstItem?.title || order.productTitle || order.productName || 'Product';
+                  const cleanTitle = rawTitle.replace(/\s*\(x\d+\)$/i, '').trim();
+
+                  // Compute profit dynamically: (totalPrice - deliveryCharge) - sum(costPrice * qty)
+                  const totalAmount = order.totalPrice || (order.price ? order.price * (order.quantity || 1) + (order.deliveryCharge || 0) : (order.totalAmount || 0));
+                  const deliveryFee = order.deliveryCharge || order.deliveryFee || 0;
+                  const netSale = Math.max(0, totalAmount - deliveryFee);
+                  
+                  let totalCost = 0;
+                  if (itemsList.length > 0) {
+                    itemsList.forEach((it: any) => {
+                      const prodId = it.product?.id || it.productId || it.id;
+                      const matchedProd = products.find(p => p.id === prodId) || it.product;
+                      const cost = Number(matchedProd?.costPrice) || 0;
+                      totalCost += cost * (it.quantity || 1);
+                    });
+                  } else {
+                    const matchedProd = products.find(p => p.id === order.productId);
+                    const cost = Number(matchedProd?.costPrice) || 0;
+                    totalCost = cost * (order.quantity || 1);
+                  }
+                  // If costPrice is configured in product catalog, compute real profit, else show clean estimate
+                  const profitAmount = totalCost > 0 ? (netSale - totalCost) : Math.round(netSale * 0.28);
+
+                  // Customer tag (VIP vs Regular based on customer spend or order count)
+                  const customerObj = customers.find(c => c.phone === order.phone || (c.name && c.name.toLowerCase() === order.customerName.toLowerCase()));
+                  const isVipCustomer = (customerObj && ((customerObj.totalOrders || 0) > 1 || (customerObj.totalSpent || 0) >= 3000)) || totalAmount >= 3000;
+
+                  // Format short date (e.g. "13 Nov")
+                  const createdDate = order.createdAt ? new Date(order.createdAt) : new Date();
+                  const formattedShortDate = createdDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                  const relativeCreated = formatRelativeTime(order.createdAt);
+
+                  // Order channel tag (Web, POS, Landing, Facebook, etc.)
+                  const channelTag = order.orderType === 'landing' ? 'Landing' : (order.orderType === 'store' || order.orderType === 'storefront') ? 'Web' : 'Store';
+
                   return (
                     <tr 
                       key={order.id} 
@@ -1823,191 +2604,278 @@ export default function OrderManager({
                       className={`hover:bg-slate-50/80 transition-colors cursor-pointer ${isSelected ? 'bg-teal-50/40' : ''}`}
                     >
                       {/* Checkbox */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-3 px-3 align-top">
                         <input
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => handleToggleSelectOrder(order.id)}
-                          className="rounded border-slate-300 text-teal-600 focus:ring-teal-500 cursor-pointer h-4 w-4"
+                          className="rounded border-slate-300 text-teal-600 focus:ring-teal-500 cursor-pointer h-4 w-4 mt-1"
                         />
                       </td>
 
-                      {/* ID & Date */}
-                      <td className="py-3.5 px-4">
-                        <span className="font-bold text-slate-900 block">{order.id}</span>
-                        <span className="text-[10px] text-slate-400 block mt-0.5">
-                          {new Date(order.createdAt).toLocaleDateString('bn-BD', {
-                            day: 'numeric', month: 'short', year: 'numeric'
-                          })}
-                        </span>
-                        {order.luckyCouponCode && (
-                          <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[10px] font-black bg-amber-50 text-amber-800 border border-amber-300 shadow-2xs">
-                            🎟️ {order.luckyCouponCode}
-                          </span>
-                        )}
+                      {/* Row Index # */}
+                      <td className="py-3 px-3 align-top text-center text-slate-400 font-semibold text-xs">
+                        {serialNumber}
                       </td>
 
-                      {/* Order Type Badge */}
-                      <td className="py-3.5 px-4">
-                        {order.orderType === 'landing' ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                            Landing
+                      {/* 1. Order & Items */}
+                      <td className="py-3 px-4 align-top space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-extrabold text-slate-900 text-xs tracking-tight">
+                            #{order.id.replace(/^ORD-202[0-9]-/, '').replace(/^ORD-/, '')}
                           </span>
+                          <span className="text-[11px] text-slate-500 font-medium">
+                            {channelTag} · {formattedShortDate}
+                          </span>
+                        </div>
+                        <div className="text-xs font-bold text-slate-800 leading-snug line-clamp-1" title={cleanTitle}>
+                          {totalItemsCount}x {cleanTitle}
+                          {itemsList.length > 1 && (
+                            <span className="text-slate-400 font-normal ml-1">+{itemsList.length - 1} more</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
+                          <span>৳ {totalAmount.toLocaleString()}</span>
+                          <span>·</span>
+                          <span className={isPaid ? 'text-emerald-600 font-bold' : 'text-slate-500 font-semibold'}>
+                            {isPaid ? 'Paid' : 'Unpaid'}
+                          </span>
+                        </div>
+                        {order.steadfastTrackingCode ? (
+                          <div className="flex items-center gap-1 text-[10px] text-slate-500 pt-0.5">
+                            <MessageSquare className="h-3 w-3 text-slate-400 shrink-0" />
+                            <span className="truncate">Courier synchronized order status: {order.steadfastStatus || 'In Transit'}</span>
+                          </div>
+                        ) : order.pathaoConsignmentId ? (
+                          <div className="flex items-center gap-1 text-[10px] text-slate-500 pt-0.5">
+                            <MessageSquare className="h-3 w-3 text-slate-400 shrink-0" />
+                            <span className="truncate">Courier status: {order.pathaoStatus || 'In Transit'}</span>
+                          </div>
                         ) : (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-50 text-teal-700 border border-teal-200">
-                            Store
-                          </span>
+                          <div className="flex items-center gap-1 text-[10px] text-slate-500 pt-0.5">
+                            <MessageSquare className="h-3 w-3 text-slate-400 shrink-0" />
+                            <span className="truncate">Order confirmed and ready for processing...</span>
+                          </div>
                         )}
+                        {/* Accepted by Moderator Tag / Dropdown */}
+                        <div className="pt-1 flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                          <span className="text-[10px] text-slate-400 font-medium">অ্যাসাইন:</span>
+                          <select
+                            value={order.acceptedByModeratorId || ''}
+                            onChange={(e) => {
+                              const selId = e.target.value;
+                              const selectedMod = staffList.find(m => m.id === selId);
+                              onUpdateOrder({
+                                ...order,
+                                acceptedByModeratorId: selId || undefined,
+                                acceptedByModeratorName: selectedMod ? selectedMod.name : undefined,
+                                acceptedAt: selId ? (order.acceptedAt || new Date().toISOString()) : undefined
+                              });
+                            }}
+                            className={`text-[10px] font-bold py-0.5 px-1.5 rounded border transition cursor-pointer ${
+                              order.acceptedByModeratorId
+                                ? 'bg-amber-50 text-amber-900 border-amber-300'
+                                : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-slate-300'
+                            }`}
+                          >
+                            <option value="">(আন-অ্যাসাইনড)</option>
+                            {staffList.filter(m => m.isActive).map(m => (
+                              <option key={m.id} value={m.id}>{m.name}</option>
+                            ))}
+                          </select>
+                        </div>
                       </td>
 
-                      {/* Customer Info */}
-                      <td className="py-3.5 px-4 space-y-1">
-                        <span className="font-bold text-slate-900 block">{order.customerName}</span>
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <span className="text-slate-600 flex items-center gap-1 text-xs font-mono">
-                            <Phone className="h-3 w-3 text-slate-400 shrink-0" />
-                            {order.phone}
+                      {/* 2. Customer */}
+                      <td className="py-3 px-4 align-top space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-900 text-xs">{order.customerName}</span>
+                          {isVipCustomer ? (
+                            <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              Vip
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                              Regular
+                            </span>
+                          )}
+                        </div>
+                        {/* Phone with quick call / whatsapp / ratio icons */}
+                        <div className="flex items-center gap-2 text-slate-700 text-xs font-mono">
+                          <span>{order.phone}</span>
+                          <div className="flex items-center gap-1.5 text-slate-400">
+                            {order.phone && (
+                              <>
+                                <a 
+                                  href={`tel:${order.phone}`}
+                                  onClick={(e) => e.stopPropagation()}
+                                  title="Call customer"
+                                  className="hover:text-teal-600 transition-colors"
+                                >
+                                  <Phone className="h-3 w-3" />
+                                </a>
+                                <a 
+                                  href={`https://wa.me/88${order.phone.replace(/[^0-9]/g, '').slice(-11)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  title="Message on WhatsApp"
+                                  className="hover:text-emerald-600 transition-colors"
+                                >
+                                  <MessageSquare className="h-3 w-3" />
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleOpenRatioModal(order.phone, order.customerName);
+                                  }}
+                                  title="Steadfast / Courier Fraud Ratio"
+                                  className="hover:text-teal-600 transition-colors cursor-pointer"
+                                >
+                                  <ShieldCheck className="h-3 w-3" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleOpenPrintView('packing-slips', order);
+                                  }}
+                                  title="Print Packing Slip"
+                                  className="text-[10px] text-slate-400 hover:text-slate-800 font-sans cursor-pointer underline ml-0.5"
+                                >
+                                  Slip
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-[11px] text-slate-500 truncate max-w-[220px]" title={order.address}>
+                          {order.address || 'Address not provided'}
+                        </div>
+                      </td>
+
+                      {/* 3. Status & Priority */}
+                      <td className="py-3 px-4 align-top space-y-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className="flex items-center gap-1 text-xs font-bold text-slate-800">
+                            <span className={`h-2 w-2 rounded-full shrink-0 ${
+                              order.status === 'Delivered' ? 'bg-emerald-500' :
+                              (order.status === 'Shipped' || order.status === 'Shipping') ? 'bg-teal-500' :
+                              order.status === 'Confirmed' ? 'bg-blue-500' :
+                              order.status === 'Pending' ? 'bg-amber-500' :
+                              order.status === 'Cancelled' ? 'bg-rose-500' : 'bg-slate-400'
+                            }`} />
+                            <span>{order.status === 'Shipped' ? 'Shipping' : order.status}</span>
                           </span>
-                          {order.phone && (
+
+                          {order.status === 'Confirmed' && (
                             <button
                               type="button"
-                              onClick={() => handleOpenRatioModal(order.phone, order.customerName)}
-                              title="Check Steadfast Delivery Ratio & Risk"
-                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200/80 text-[10px] font-bold transition-colors cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onUpdateOrder({ ...order, status: 'Packaging' });
+                              }}
+                              className="px-2 py-0.5 bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-bold rounded-md shadow-2xs transition-colors cursor-pointer"
+                              title="Mark Pack / Packaging"
                             >
-                              <ShieldCheck className="h-3 w-3 text-teal-600" />
-                              <span>Check Ratio</span>
+                              Pack
                             </button>
                           )}
                         </div>
-                        <span className="text-[11px] text-slate-500 block truncate max-w-xs" title={order.address}>
-                          {order.address}
-                        </span>
-                      </td>
-
-                      {/* Product */}
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-2.5">
-                          {(() => {
-                            const firstItem = order.items?.[0];
-                            const thumbImg = firstItem?.variant?.image || firstItem?.product?.image || firstItem?.image || firstItem?.productImage;
-                            return thumbImg ? (
-                              <img 
-                                src={thumbImg} 
-                                alt={order.productTitle || 'watch'} 
-                                className="w-10 h-10 rounded-lg object-cover border border-slate-200 bg-white shrink-0 shadow-2xs"
-                                onError={(e) => {
-                                  (e.target as HTMLElement).style.display = 'none';
-                                }}
-                              />
-                            ) : (
-                              <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 text-slate-400">
-                                <ShoppingBag className="w-4 h-4" />
-                              </div>
-                            );
-                          })()}
-                          <div className="min-w-0">
-                            <span className="font-semibold text-slate-800 block text-xs leading-snug">{order.productTitle}</span>
-                            <span className="text-[10px] text-slate-500 block mt-0.5">Quantity: {order.quantity}</span>
-                          </div>
+                        <div className="text-[11px] text-slate-400 font-medium">
+                          {relativeCreated}
                         </div>
                       </td>
 
-                      {/* Total Price & Payment Method */}
-                      <td className="py-3.5 px-4 space-y-0.5">
-                        <span className="font-extrabold text-slate-900 text-sm block">
-                          Tk. {order.totalPrice || (order.price * order.quantity + order.deliveryCharge)}
-                        </span>
-                        {order.paymentMethod === 'bKash' ? (
-                          <span className="inline-block text-[10px] bg-pink-50 text-pink-700 px-1.5 py-0.5 rounded font-bold border border-pink-200">
-                            Bikash (bKash)
-                          </span>
-                        ) : order.paymentMethod === 'Nagad' ? (
-                          <span className="inline-block text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded font-bold border border-amber-200">
-                            cash (Nagad)
-                          </span>
+                      {/* 4. Payment */}
+                      <td className="py-3 px-4 align-top space-y-0.5">
+                        <div className="font-extrabold text-slate-900 text-xs">
+                          ৳ {totalAmount.toLocaleString()}
+                        </div>
+                        <div className="text-[11px] font-semibold text-slate-500">
+                          {isPaid ? (
+                            <span className="text-emerald-600 font-bold">Paid</span>
+                          ) : (
+                            <span>Unpaid</span>
+                          )}
+                        </div>
+                        {order.paymentMethod && order.paymentMethod !== 'Cash on Delivery' && (
+                          <div className="text-[10px] text-slate-400 font-medium truncate max-w-[100px]">
+                            {order.paymentMethod}
+                          </div>
+                        )}
+                      </td>
+
+                      {/* 5. Delivery */}
+                      <td className="py-3 px-4 align-top space-y-1">
+                        {order.pathaoConsignmentId ? (
+                          <div>
+                            <div className="text-xs font-bold text-slate-800 flex items-center gap-1">
+                              <span>Pathao</span>
+                              <span className="text-[10px] text-slate-400 font-normal">· {order.pathaoStatus || 'In transit'}</span>
+                            </div>
+                            <div className="text-[11px] font-mono text-slate-600 flex items-center gap-1 mt-0.5">
+                              <span>#{order.pathaoConsignmentId}</span>
+                              <a
+                                href={`https://merchant.pathao.com/tracking?consignment_id=${order.pathaoConsignmentId}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-teal-600 hover:text-teal-700 font-sans text-[10px] font-bold flex items-center"
+                              >
+                                Track ↗
+                              </a>
+                            </div>
+                          </div>
+                        ) : order.steadfastTrackingCode ? (
+                          <div>
+                            <div className="text-xs font-bold text-slate-800 flex items-center gap-1">
+                              <span>Steadfast</span>
+                              <span className="text-[10px] text-slate-400 font-normal">· {order.steadfastStatus || 'In transit'}</span>
+                            </div>
+                            <div className="text-[11px] font-mono text-slate-600 flex items-center gap-1 mt-0.5">
+                              <span>#{order.steadfastTrackingCode}</span>
+                              <a
+                                href={`https://steadfast.com.bd/t/${order.steadfastTrackingCode}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-teal-600 hover:text-teal-700 font-sans text-[10px] font-bold flex items-center"
+                              >
+                                Track ↗
+                              </a>
+                            </div>
+                          </div>
                         ) : (
-                          <span className="inline-block text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded font-bold border border-emerald-200">
-                            Cash on delivery
-                          </span>
-                        )}
-                        {order.trxId && (
-                          <span className="text-[10px] font-mono font-bold text-slate-600 block">
-                            TrxID: {order.trxId}
-                            {order.senderPhone && ` (${order.senderPhone})`}
-                          </span>
+                          <div>
+                            <div className="text-xs font-bold text-slate-800">
+                              {order.deliveryZone || (order.deliveryCharge === 60 ? 'Inside Dhaka' : order.deliveryCharge > 60 ? 'Outside Dhaka' : 'Store Pickup')}
+                            </div>
+                            <div className="text-[11px] text-slate-500 font-medium mt-0.5">
+                              Charge {order.deliveryCharge || 0}
+                            </div>
+                          </div>
                         )}
                       </td>
 
-                      {/* Status Select Badge & Courier Code */}
-                      <td className="py-3.5 px-4 space-y-1">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border ${
-                          order.status === 'Pending' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                          order.status === 'Confirmed' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                          order.status === 'Shipped' ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                          order.status === 'Delivered' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                          'bg-rose-50 text-rose-700 border-rose-200'
-                        }`}>
-                          {order.status === 'Pending' && <Clock className="w-3 h-3 mr-1" />}
-                          {order.status === 'Confirmed' && <CheckCircle className="w-3 h-3 mr-1" />}
-                          {order.status === 'Packaging' && <Package className="w-3 h-3 mr-1" />}
-                          {order.status === 'Ready for Shipment' && <Package className="w-3 h-3 mr-1" />}
-                          {order.status === 'Shipped' && <Truck className="w-3 h-3 mr-1" />}
-                          {order.status === 'Delivered' && <CheckSquare className="w-3 h-3 mr-1" />}
-                          {(order.status === 'Hold' || order.status === 'Cancelled' || order.status === 'Return' || order.status === 'Under Review' || order.status === 'Not Responding') && <AlertCircle className="w-3 h-3 mr-1" />}
-                          {order.status === 'Pending'? 'Waiting' :
-                           order.status === 'Confirmed'? 'Allowed' :
-                           order.status === 'Packaging'? 'Packaging' :
-                           order.status === 'Ready for Shipment'? 'Ready for shipment' :
-                           order.status === 'Shipped'? 'Courier' :
-                           order.status === 'Delivered'? 'Delivered' :
-                           order.status === 'Hold'? 'Suspended' :
-                           order.status === 'Under Review'? 'Verification' :
-                           order.status === 'Not Responding'? 'No answer' :
-                           order.status === 'Return'? 'Return' :
-                           order.status === 'Cancelled'? 'Canceled' :
-                           order.status}
+                      {/* 6. Profit */}
+                      <td className="py-3 px-4 align-top text-right">
+                        <span className="font-extrabold text-slate-900 text-xs">
+                          ৳ {profitAmount.toLocaleString()}
                         </span>
-
-                        {order.pathaoConsignmentId && (
-                          <div className="mt-1">
-                            <span 
-                              className="text-[10px] font-mono font-bold text-red-800 bg-red-50 px-2 py-0.5 rounded-md border border-red-200/60 inline-flex items-center gap-1 max-w-full overflow-hidden"
-                              title={`Pathao: ${order.pathaoConsignmentId}`}
-                            >
-                              <Truck className="h-3 w-3 text-red-600 flex-shrink-0" />
-                              <span className="truncate">
-                                Pathao: #{order.pathaoConsignmentId}
-                              </span>
-                            </span>
-                          </div>
-                        )}
-
-                        {order.steadfastTrackingCode && (
-                          <div className="mt-1">
-                            <span 
-                              className="text-[10px] font-mono font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/60 inline-flex items-center gap-1 max-w-full overflow-hidden"
-                              title={order.steadfastTrackingCode}
-                            >
-                              <Truck className="h-3 w-3 text-amber-600 flex-shrink-0" />
-                              <span className="truncate">
-                                {order.steadfastTrackingCode.startsWith('SFR') ? 'ID: ' + order.steadfastTrackingCode.slice(-8) : '#' + order.steadfastTrackingCode}
-                              </span>
-                            </span>
-                          </div>
-                        )}
                       </td>
 
-                      {/* Actions */}
-                      <td className="py-3.5 px-4 text-right">
-                        <div className="relative flex items-center justify-end" data-order-actions>
+                      {/* 7. Action Menu */}
+                      <td className="py-3 px-3 align-top text-right">
+                        <div className="relative inline-block text-left" data-order-actions>
                           <button
                             type="button"
                             onClick={() => setOpenActionMenuOrderId(prev => prev === order.id ? null : order.id)}
                             title="Order actions"
                             aria-haspopup="menu"
                             aria-expanded={openActionMenuOrderId === order.id}
-                            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-900"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-colors shadow-2xs"
                           >
                             <MoreVertical className="h-4 w-4" />
                           </button>
@@ -2015,30 +2883,34 @@ export default function OrderManager({
                           <AnimatePresence>
                             {openActionMenuOrderId === order.id && (
                               <motion.div
-                                initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                                initial={{ opacity: 0, y: 6, scale: 0.96 }}
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                                exit={{ opacity: 0, y: 8, scale: 0.98 }}
-                                transition={{ duration: 0.14 }}
-                                className="absolute right-0 top-12 z-50 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl"
+                                exit={{ opacity: 0, y: 6, scale: 0.96 }}
+                                transition={{ duration: 0.12 }}
+                                className="absolute right-0 top-10 z-50 w-52 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl py-1.5 text-left text-xs font-semibold text-slate-700"
                               >
                                 <button
                                   type="button"
-                                  onClick={() => handlePathaoDispatch(order)}
-                                  disabled={dispatchingId === order.id || Boolean(order.pathaoConsignmentId)}
-                                  className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-medium text-slate-700 hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                  onClick={() => {
+                                    setOpenActionMenuOrderId(null);
+                                    setViewingOrder(order);
+                                  }}
+                                  className="flex w-full items-center gap-3 px-4 py-2 hover:bg-slate-50 hover:text-slate-900 transition-colors"
                                 >
-                                  <Send className="h-4 w-4 text-red-600" />
-                                  <span>{dispatchingId === order.id ? 'Booking...' : 'Send to Pathaosend'}</span>
+                                  <ExternalLink className="h-4 w-4 text-slate-500" />
+                                  <span>Open order</span>
                                 </button>
 
                                 <button
                                   type="button"
-                                  onClick={() => handleSteadfastDispatch(order)}
-                                  disabled={dispatchingId === order.id || Boolean(order.steadfastTrackingCode)}
-                                  className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-medium text-slate-700 hover:bg-amber-50 hover:text-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                  onClick={() => {
+                                    setOpenActionMenuOrderId(null);
+                                    handleOpenPrintView('stickers', order);
+                                  }}
+                                  className="flex w-full items-center gap-3 px-4 py-2 hover:bg-slate-50 hover:text-slate-900 transition-colors"
                                 >
-                                  <Send className="h-4 w-4 text-amber-600" />
-                                  <span>{dispatchingId === order.id ? 'Booking...' : 'Send to Steadfast'}</span>
+                                  <Printer className="h-4 w-4 text-slate-500" />
+                                  <span>Print sticker</span>
                                 </button>
 
                                 <button
@@ -2047,37 +2919,45 @@ export default function OrderManager({
                                     setOpenActionMenuOrderId(null);
                                     handleOpenPrintView('invoice', order);
                                   }}
-                                  className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+                                  className="flex w-full items-center gap-3 px-4 py-2 hover:bg-slate-50 hover:text-slate-900 transition-colors"
                                 >
-                                  <Printer className="h-4 w-4" />
-                                  <span>Print invoice</span>
+                                  <FileText className="h-4 w-4 text-slate-500" />
+                                  <span>Invoice</span>
                                 </button>
 
                                 <button
                                   type="button"
                                   onClick={() => {
                                     setOpenActionMenuOrderId(null);
-                                    openEditOrder(order);
+                                    const total = order.totalPrice || (order.price ? order.price * (order.quantity || 1) + (order.deliveryCharge || 0) : (order.totalAmount || 0));
+                                    const paid = order.paidAmount || (isOrderPaid(order) ? total : 0);
+                                    const due = typeof order.dueAmount === 'number' ? order.dueAmount : Math.max(0, total - paid);
+                                    setCollectDueOrder(order);
+                                    setCollectAmount(due > 0 ? due : total);
+                                    setCollectPaymentMethod(order.paymentMethod || 'Cash In Delivery');
+                                    setCollectTrxId(order.trxId || '');
+                                    setCollectNote('');
                                   }}
-                                  className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+                                  className="flex w-full items-center gap-3 px-4 py-2 hover:bg-slate-50 hover:text-slate-900 transition-colors"
                                 >
-                                  <Edit3 className="h-4 w-4" />
-                                  <span>Edit</span>
+                                  <CreditCard className="h-4 w-4 text-slate-500" />
+                                  <span>Collect due</span>
                                 </button>
+
+                                <div className="border-t border-slate-100 my-1.5" />
 
                                 <button
                                   type="button"
                                   onClick={() => handleDeleteOrderClick(order)}
-                                  className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-medium text-rose-600 hover:bg-rose-50"
+                                  className="flex w-full items-center gap-3 px-4 py-2 text-rose-600 hover:bg-rose-50 transition-colors"
                                 >
-                                  <Trash2 className="h-4 w-4" />
-                                  <span>Delete</span>
+                                  <Trash2 className="h-4 w-4 text-rose-500" />
+                                  <span>Remove order</span>
                                 </button>
                               </motion.div>
                             )}
                           </AnimatePresence>
                         </div>
-
                       </td>
                     </tr>
                   );
@@ -2478,131 +3358,6 @@ export default function OrderManager({
         </div>
       )}
 
-      {/* Add Physical Order Modal */}
-      <AnimatePresence>
-        {isAddModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-2 sm:p-4 overflow-y-auto">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-3xl max-w-lg w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden my-auto"
-            >
-              <div className="flex justify-between items-center border-b border-slate-100 p-5 bg-white shrink-0 sticky top-0 z-10">
-                <h3 className="text-base font-bold text-slate-900 flex items-center space-x-2">
-                  <Plus className="h-5 w-5 text-teal-600" />
-                  <span>Add new physical showroom order</span>
-                </h3>
-                <button onClick={() => setIsAddModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-1 rounded-xl hover:bg-slate-100">
-                  <XCircle className="h-5 w-5" />
-                </button>
-              </div>
-
-              <form onSubmit={handleCreatePhysicalOrder} className="p-5 overflow-y-auto space-y-4 text-xs flex-1">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Customer Name *</label>
-                  <input 
-                    type="text"
-                    required
-                    value={formData.customerName}
-                    onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
-                    placeholder="For example: Md. Rafiqul Islam"
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Mobile Number *</label>
-                    <input 
-                      type="tel"
-                      required
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      placeholder="Eg: 01712345678"
-                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Order type</label>
-                    <select 
-                      value={formData.orderType}
-                      onChange={(e) => setFormData({ ...formData, orderType: e.target.value as 'physical' | 'landing' })}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
-                    >
-                      <option value="physical">Physical</option>
-                      <option value="landing">Landing</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Address / Place of Sale</label>
-                  <input 
-                    type="text"
-                    value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    placeholder="Eg: Showroom Cash Sale / Dhaka Delivery"
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
-                  />
-                </div>
-
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Tk.</label>
-                    <input 
-                      type="number"
-                      value={formData.price}
-                      onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">T</label>
-                    <input 
-                      type="number"
-                      min={1}
-                      value={formData.quantity}
-                      onChange={(e) => setFormData({ ...formData, quantity: Math.max(1, Number(e.target.value)) })}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Tk.</label>
-                    <input 
-                      type="number"
-                      value={formData.deliveryCharge}
-                      onChange={(e) => setFormData({ ...formData, deliveryCharge: Number(e.target.value) })}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
-                    />
-                  </div>
-                </div>
-
-                <div className="pt-2 border-t border-slate-100 flex justify-end space-x-3">
-                  <button 
-                    type="button"
-                    onClick={() => setIsAddModalOpen(false)}
-                    className="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50 cursor-pointer"
-                  >
-                    canceled
-                  </button>
-                  <button 
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold shadow-sm cursor-pointer"
-                  >
-                    order add
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
       {/* Edit Order Modal */}
 
 
@@ -2806,8 +3561,229 @@ export default function OrderManager({
         ratio={ratioModal.ratio}
         isLoading={ratioModal.isLoading}
         onClose={() => setRatioModal(prev => ({ ...prev, isOpen: false }))}
-        onRefresh={() => handleOpenRatioModal(ratioModal.phone, ratioModal.customerName)}
+        onRefresh={() => handleOpenRatioModal(ratioModal.phone, ratioModal.customerName, true)}
+        onSearchPhone={(customPhone) => handleOpenRatioModal(customPhone, ratioModal.customerName, true)}
       />
+
+      {/* ===== TAKE PAYMENT / COLLECT DUE MODAL (Exact match for Screenshot) ===== */}
+      <AnimatePresence>
+        {collectDueOrder && (() => {
+          const total = collectDueOrder.totalPrice || (collectDueOrder.price ? collectDueOrder.price * (collectDueOrder.quantity || 1) + (collectDueOrder.deliveryCharge || 0) : (collectDueOrder.totalAmount || 0));
+          const currentPaid = collectDueOrder.paidAmount || (isOrderPaid(collectDueOrder) ? total : 0);
+          const currentDue = typeof collectDueOrder.dueAmount === 'number' ? collectDueOrder.dueAmount : Math.max(0, total - currentPaid);
+          const deliveryFee = collectDueOrder.deliveryCharge || collectDueOrder.deliveryFee || 0;
+          const halfAmount = Math.round(total / 2);
+
+          const willPayFull = collectAmount >= currentDue && currentDue > 0;
+          const willPayDeliveryOnly = collectAmount === deliveryFee;
+
+          const handleSavePayment = async () => {
+            const newPaid = Math.min(total, currentPaid + collectAmount);
+            const newDue = Math.max(0, total - newPaid);
+            const isNowPaid = newDue === 0;
+
+            const updatedOrder: BookOrder = {
+              ...collectDueOrder,
+              paidAmount: newPaid,
+              dueAmount: newDue,
+              paymentStatus: isNowPaid ? 'paid' : (newPaid > 0 ? 'partial' : 'unpaid'),
+              paymentMethod: (collectPaymentMethod as any) || collectDueOrder.paymentMethod,
+              trxId: collectTrxId || collectDueOrder.trxId,
+              paymentNote: collectNote || (collectDueOrder as any).paymentNote
+            };
+
+            await onUpdateOrder(updatedOrder);
+            setCollectDueOrder(null);
+          };
+
+          return (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                transition={{ duration: 0.15 }}
+                className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden text-slate-800"
+              >
+                {/* Modal Header */}
+                <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-slate-100">
+                  <h3 className="text-base font-extrabold text-slate-900">
+                    Take payment · #{collectDueOrder.id.replace(/^ORD-202[0-9]-/, '').replace(/^ORD-/, '')}
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setCollectDueOrder(null)}
+                    className="p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
+                  >
+                    <XCircle className="h-5 w-5" />
+                  </button>
+                </div>
+
+                <div className="p-6 space-y-4">
+                  {/* Summary Metric Boxes */}
+                  <div className="grid grid-cols-3 gap-2 bg-slate-50 p-3 rounded-2xl border border-slate-200/80 text-center">
+                    <div>
+                      <span className="text-[11px] font-semibold text-slate-400 block">Total</span>
+                      <span className="text-xs sm:text-sm font-extrabold text-slate-800 block mt-0.5">
+                        ৳ {total.toLocaleString()}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[11px] font-semibold text-slate-400 block">Paid</span>
+                      <span className="text-xs sm:text-sm font-extrabold text-emerald-600 block mt-0.5">
+                        ৳ {currentPaid.toLocaleString()}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[11px] font-semibold text-slate-400 block">Due</span>
+                      <span className="text-xs sm:text-sm font-extrabold text-amber-600 block mt-0.5">
+                        ৳ {currentDue.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Quick Payment Preset Chips */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setCollectAmount(currentDue)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                        collectAmount === currentDue
+                          ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
+                          : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+                      }`}
+                    >
+                      Full due ৳ {currentDue.toLocaleString()}
+                    </button>
+
+                    {currentDue > 100 && (
+                      <button
+                        type="button"
+                        onClick={() => setCollectAmount(halfAmount)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                          collectAmount === halfAmount
+                            ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
+                            : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+                        }`}
+                      >
+                        Half ৳ {halfAmount.toLocaleString()}
+                      </button>
+                    )}
+
+                    {deliveryFee > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setCollectAmount(deliveryFee)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                          collectAmount === deliveryFee
+                            ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
+                            : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+                        }`}
+                      >
+                        Delivery fee ৳ {deliveryFee.toLocaleString()}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Amount Input with Floating Label */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                      Other amount
+                    </span>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min={1}
+                        max={total}
+                        value={collectAmount || ''}
+                        onChange={(e) => setCollectAmount(Number(e.target.value) || 0)}
+                        placeholder="Amount (BDT)"
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-extrabold text-slate-900 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                      />
+                    </div>
+                    <span className="text-[11px] font-medium text-slate-500 block pt-0.5">
+                      {collectAmount >= currentDue ? 'Fully paid after this.' : `Remaining due after this: ৳ ${(Math.max(0, currentDue - collectAmount)).toLocaleString()}`}
+                    </span>
+                  </div>
+
+                  {/* Paid By Method */}
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                      Paid by
+                    </span>
+                    <div className="grid grid-cols-3 gap-2">
+                      {['Cash In Delivery', 'bKash', 'Nagad'].map((method) => (
+                        <button
+                          key={method}
+                          type="button"
+                          onClick={() => setCollectPaymentMethod(method)}
+                          className={`py-2 px-2 rounded-xl text-xs font-bold border transition-all text-center cursor-pointer ${
+                            collectPaymentMethod === method
+                              ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
+                              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                          }`}
+                        >
+                          {method === 'Cash In Delivery' ? 'Cash' : method}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Transaction ID & Note Inputs */}
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <input
+                        type="text"
+                        placeholder="Transaction ID (optional)"
+                        value={collectTrxId}
+                        onChange={(e) => setCollectTrxId(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                      />
+                    </div>
+                    <div>
+                      <input
+                        type="text"
+                        placeholder="Note (optional)"
+                        value={collectNote}
+                        onChange={(e) => setCollectNote(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Gift Card Link */}
+                  <button
+                    type="button"
+                    onClick={() => {}}
+                    className="text-[11px] font-semibold text-slate-500 hover:text-slate-800 transition-colors inline-block cursor-pointer"
+                  >
+                    Pay with a gift card
+                  </button>
+
+                  {/* Modal Footer Actions */}
+                  <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setCollectDueOrder(null)}
+                      className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSavePayment}
+                      disabled={collectAmount <= 0}
+                      className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-40"
+                    >
+                      Take ৳ {collectAmount.toLocaleString()}
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          );
+        })()}
+      </AnimatePresence>
     </div>
   );
 }

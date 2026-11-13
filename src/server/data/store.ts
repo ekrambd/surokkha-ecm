@@ -1,9 +1,10 @@
 import fs from 'fs';
 import path from 'path';
-import { Product, BookOrder, EcomSettings } from '../../types';
+import { Product, BookOrder, EcomSettings, ModeratorUser } from '../../types';
 
 const PRODUCTS_STORAGE_FILE = path.join(process.cwd(), 'prisma', 'products.json');
 const SETTINGS_STORAGE_FILE = path.join(process.cwd(), 'prisma', 'settings.json');
+const MODERATORS_STORAGE_FILE = path.join(process.cwd(), 'prisma', 'moderators.json');
 
 // No fake seed products
 export const INITIAL_REAL_PRODUCTS: Product[] = [];
@@ -176,3 +177,39 @@ export const clearAllStoreData = () => {
   saveOrdersToDisk(storeOrders);
   return { success: true };
 };
+
+// ==========================================
+// MODERATORS & STAFF PERSISTENCE
+// ==========================================
+export function loadModeratorsFromDisk(): ModeratorUser[] {
+  try {
+    if (fs.existsSync(MODERATORS_STORAGE_FILE)) {
+      const raw = fs.readFileSync(MODERATORS_STORAGE_FILE, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+    }
+  } catch (err) {
+    console.warn('[store] Could not load moderators from disk:', err);
+  }
+  return [];
+}
+
+export function saveModeratorsToDisk(moderators: ModeratorUser[]): void {
+  try {
+    const dir = path.dirname(MODERATORS_STORAGE_FILE);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(MODERATORS_STORAGE_FILE, JSON.stringify(moderators, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('[store] Failed saving moderators to disk:', err);
+  }
+}
+
+export let storeModerators: ModeratorUser[] = loadModeratorsFromDisk();
+
+if (!fs.existsSync(MODERATORS_STORAGE_FILE)) {
+  saveModeratorsToDisk(storeModerators);
+}

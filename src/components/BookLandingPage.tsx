@@ -117,6 +117,52 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
     message: ''
   });
 
+  // Animated Typing Placeholder for Demo Address
+  const [animatedAddressPlaceholder, setAnimatedAddressPlaceholder] = useState('');
+  useEffect(() => {
+    const demoAddresses = [
+      'বাসা নং ১২, রোড ৫, ধানমন্ডি, ঢাকা',
+      'গ্রাম: মঙ্গলবাড়ি, থানা: ধামইরহাট, জেলা: নওগাঁ',
+      'ফ্ল্যাট ৪বি, হোল্ডিং ২৫, মিরপুর ১০, ঢাকা',
+      'গ্রাম: শ্রীপুর, ডাকঘর: শ্রীপুর, থানা: শ্রীপুর, জেলা: গাজীপুর',
+      'বাড়ি নং ৭, ব্লক সি, বনশ্রী, রামপুরা, ঢাকা',
+      'গ্রাম: কাশিমপুর, থানা: কোতোয়ালী, জেলা: চট্টগ্রাম'
+    ];
+
+    let currentIdx = 0;
+    let charIdx = 0;
+    let isDeleting = false;
+    let timer: NodeJS.Timeout;
+
+    const tick = () => {
+      const currentFullText = `যেমন: ${demoAddresses[currentIdx]}`;
+
+      if (!isDeleting) {
+        charIdx++;
+        setAnimatedAddressPlaceholder(currentFullText.slice(0, charIdx));
+        if (charIdx === currentFullText.length) {
+          isDeleting = true;
+          timer = setTimeout(tick, 2200); // Pause on full text
+          return;
+        }
+        timer = setTimeout(tick, 60); // Typing speed
+      } else {
+        charIdx--;
+        setAnimatedAddressPlaceholder(currentFullText.slice(0, charIdx));
+        if (charIdx <= 5) { // Keep "যেমন: " prefix
+          isDeleting = false;
+          currentIdx = (currentIdx + 1) % demoAddresses.length;
+          timer = setTimeout(tick, 450); // Pause before next sentence
+          return;
+        }
+        timer = setTimeout(tick, 30); // Deleting speed
+      }
+    };
+
+    timer = setTimeout(tick, 300);
+    return () => clearTimeout(timer);
+  }, []);
+
   useEffect(() => {
     let isCancelled = false;
 
@@ -372,7 +418,9 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
   const cleanWhatsAppNumber = whatsAppPhone.replace(/\D/g, '').replace(/^0/, '880');
 
   // Dynamic Vintage / Story Section Data
-  const vintageTag = (landingConfig?.vintageTag && !landingConfig.vintageTag.includes('vintage')) ? landingConfig.vintageTag : 'খাঁটি ও প্রাকৃতিক খাদ্য';
+  const vintageTag = (landingConfig?.vintageTag && !landingConfig.vintageTag.includes('vintage') && !landingConfig.vintageTag.includes('খাঁটি ও প্রাকৃতিক খাদ্য')) 
+    ? landingConfig.vintageTag 
+    : '';
   const vintageTitle = (landingConfig?.vintageTitle && !landingConfig.vintageTitle.includes('clocks')) ? landingConfig.vintageTitle : 'সুস্থতা ও দীর্ঘস্থায়ী শক্তির প্রাকৃতিক সমাধান';
   const vintageDescription = (landingConfig?.vintageDescription && !landingConfig.vintageDescription.includes('স্মার্টওয়াচের')) ? landingConfig.vintageDescription : (product?.shortSummary || 'স্বাস্থ্যকর জীবনযাপনের জন্য খাঁটি ও বিশুদ্ধ প্রাকৃতিক পুষ্টি উপাদান। যা আপনার প্রতিদিনের শক্তিবর্ধনে সহায়ক।');
 
@@ -720,16 +768,16 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
   return (
     <div className="min-h-screen bg-[#110e0a] text-slate-100 font-sans pb-28 sm:pb-20 selection:bg-[#e0562e] selection:text-white">
       
-      {/* Container wrapper matching bestwatchbd layout */}
-      <div className="max-w-xl mx-auto px-4 sm:px-6 pt-3 space-y-7">
+      {/* Container wrapper: Mobile uses compact max-w-xl; Tablet/Desktop expands to wide full-width layout (max-w-6xl) */}
+      <div className="max-w-xl md:max-w-5xl lg:max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 md:pt-6 space-y-7 md:space-y-12">
 
         {/* ========================================================== */}
-        {/* 1. TOP GIVEAWAY BANNER & HERO SECTION                      */}
+        {/* 1. TOP TITLE, GRID IMAGES & DESCRIPTION                    */}
         {/* ========================================================== */}
-        <section className="text-center space-y-3.5 pt-2">
+        <section className="text-center space-y-4 pt-2">
           
           {/* Top Product Title at the very top */}
-          <div className="space-y-2">
+          <div className="space-y-2 max-w-3xl mx-auto">
             {/* Optional Campaign Badge (if specifically configured) */}
             {campaignBadgeText && (
               <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#1c1611] border border-[#d49b38]/60 text-[#f5b842] text-xs font-bold tracking-wide shadow-md">
@@ -738,32 +786,48 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
             )}
 
             {/* Prominent Product Title at Top */}
-            <h1 className="text-xl sm:text-3xl font-black text-white leading-snug tracking-tight px-1">
+            <h1 className="text-xl sm:text-3xl md:text-4xl font-black text-white leading-snug tracking-tight px-1">
               {displayTitle}
             </h1>
           </div>
 
-          {/* Top Graphic Poster Banner (Hero Top Image) */}
-          <div className="relative rounded-2xl overflow-hidden border border-[#b8863b]/30 shadow-2xl bg-[#16120e]">
-            <img 
-              src={heroTopImage || '/placeholder-image.svg'} 
-              alt={displayTitle} 
-              loading="eager"
-              fetchPriority="high"
-              decoding="async"
-              onError={(e) => {
-                const target = e.currentTarget;
-                if (!target.src.endsWith('/placeholder-image.svg')) {
-                  target.src = '/placeholder-image.svg';
-                }
-              }}
-              className="w-full h-auto max-h-[480px] object-cover mx-auto"
-            />
+          {/* 4-Image Grid (Responsive 2x2 on mobile, 4 columns on desktop) */}
+          <div className="pt-1 max-w-5xl mx-auto">
+            <div className={`grid gap-3 sm:gap-4 ${
+              galleryImages.length === 1 
+                ? 'grid-cols-1 max-w-md mx-auto' 
+                : galleryImages.length === 2 
+                  ? 'grid-cols-2 max-w-2xl mx-auto' 
+                  : galleryImages.length === 3 
+                    ? 'grid-cols-3 max-w-4xl mx-auto' 
+                    : 'grid-cols-2 sm:grid-cols-4'
+            }`}>
+              {galleryImages.slice(0, 4).map((imgSrc, idx) => (
+                <div 
+                  key={idx}
+                  className="relative rounded-2xl overflow-hidden border border-[#b8863b]/40 shadow-xl bg-[#17130e] aspect-square flex items-center justify-center group"
+                >
+                  <img 
+                    src={imgSrc || '/placeholder-image.svg'} 
+                    alt={`${displayTitle} - ${idx + 1}`} 
+                    loading="lazy"
+                    decoding="async"
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      if (!target.src.endsWith('/placeholder-image.svg')) {
+                        target.src = '/placeholder-image.svg';
+                      }
+                    }}
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Embedded YouTube Video (9:16 Mobile & 16:9 Desktop) */}
+          {/* Embedded YouTube Video if available */}
           {embedVideoUrl && (
-            <div className="relative rounded-2xl overflow-hidden border border-[#b8863b]/30 shadow-2xl bg-black aspect-[9/16] md:aspect-video w-full max-w-sm md:max-w-none mx-auto my-3">
+            <div className="relative rounded-2xl overflow-hidden border border-[#b8863b]/30 shadow-2xl bg-black aspect-[9/16] md:aspect-video w-full max-w-sm md:max-w-2xl mx-auto my-3">
               <iframe
                 src={embedVideoUrl}
                 title="Product Video Review"
@@ -775,176 +839,14 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
             </div>
           )}
 
-          {/* Detailed Pitch Copy */}
-          {displayDesc && displayDesc !== displaySubtitle && (
-            <p className="text-xs sm:text-sm text-[#d4c8bc] leading-relaxed max-w-lg mx-auto font-normal px-2">
-              {displayDesc}
-            </p>
-          )}
-
-          {/* Lucky Draw Ticker Text */}
-          {campaignTickerText && (
-            <p className="text-xs sm:text-sm font-bold text-[#f5b842] leading-tight">
-              {campaignTickerText}
-            </p>
-          )}
-
-          {/* Price & Discount Row */}
-          <div className="flex items-center justify-center gap-3 pt-1">
-            {regularPrice > displayPrice && (
-              <span className="text-sm sm:text-base text-slate-400 line-through font-mono font-medium">
-                Tk.{regularPrice.toLocaleString('bn-BD')}
-              </span>
-            )}
-            <span className="text-2xl sm:text-3xl font-black text-white font-mono tracking-tight">
-              {displayPrice.toLocaleString('bn-BD')} only
-            </span>
-            {discountPercent > 0 && (
-              <span className="bg-[#e4a836] text-[#1a140d] font-black text-xs px-2.5 py-0.5 rounded-md shadow-xs">
-                {discountPercent}% discount
-              </span>
-            )}
-          </div>
-
-          {/* Primary CTA Button: '🛒 Order now' */}
-          <div className="pt-2">
-            <button
-              type="button"
-              onClick={scrollToOrder}
-              className="w-full max-w-md mx-auto py-3.5 px-6 bg-[#e0562e] hover:bg-[#c9451f] text-white font-black text-sm sm:text-base rounded-xl shadow-lg shadow-[#e0562e]/30 transition-all transform active:scale-98 cursor-pointer flex items-center justify-center gap-2"
-            >
-              <ShoppingCart className="w-4 h-4" />
-              <span>Order now</span>
-            </button>
-          </div>
-        </section>
-
-        {/* ========================================================== */}
-        {/* 2. SECTION: 'Whose eyes still get stuck on the clocks of yesteryear' */}
-        {/* ========================================================== */}
-        <section className="text-center space-y-4 pt-4">
-          <div className="space-y-1">
-            {vintageTag && (
-              <p className="text-xs sm:text-sm font-bold text-[#e0562e] tracking-wide">
-                {vintageTag}
+          {/* Detailed Pitch Copy / Description below Grid Images */}
+          {displayDesc && (
+            <div className="pt-2 max-w-3xl mx-auto px-2">
+              <p className="text-sm sm:text-base md:text-lg text-[#e6ded5] leading-relaxed font-normal whitespace-pre-line text-center md:text-left bg-[#16120e] p-5 sm:p-6 rounded-2xl border border-[#2e261e] font-sans antialiased tracking-wide">
+                {displayDesc}
               </p>
-            )}
-            <h2 className="text-lg sm:text-2xl font-black text-white px-2">
-              {vintageTitle}
-            </h2>
-            {vintageDescription && (
-              <p className="text-xs text-[#b8aba0] max-w-md mx-auto leading-relaxed pt-1">
-                {vintageDescription}
-              </p>
-            )}
-          </div>
-
-          {/* Dynamic Feature Cards with Dashed Amber Border */}
-          <div className="space-y-3 pt-1 text-left">
-            {vintageFeatures.map((feat, idx) => (
-              <div 
-                key={feat.id || idx}
-                className="bg-[#17130e] border border-dashed border-[#b8863b]/70 rounded-2xl p-3.5 sm:p-4 flex items-center gap-3.5 shadow-sm"
-              >
-                <div className="w-10 h-10 rounded-xl bg-[#251d14] border border-[#b8863b]/30 flex items-center justify-center text-[#e0562e] shrink-0">
-                  {renderFeatureIcon(feat.icon)}
-                </div>
-                <div>
-                  <h3 className="text-xs sm:text-sm font-bold text-[#e0562e]">{feat.title}</h3>
-                  <p className="text-[11px] sm:text-xs text-[#c9bcb0]">{feat.subtitle}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ========================================================== */}
-        {/* 3. SECTION: 'Gallery' / 'Premium from every angle' */}
-        {/* ========================================================== */}
-        <section className="text-center space-y-3 pt-3">
-          <div className="space-y-1">
-            <p className="text-xs font-bold text-[#e0562e] flex items-center justify-center gap-2">
-              <span className="w-6 h-[1px] bg-[#e0562e]"></span>
-              <span>{gallerySectionTag}</span>
-              <span className="w-6 h-[1px] bg-[#e0562e]"></span>
-            </p>
-            <h2 className="text-lg sm:text-2xl font-black text-white">
-              {gallerySectionTitle}
-            </h2>
-          </div>
-
-          {/* Interactive Image Slider */}
-          <div 
-            className="relative rounded-2xl overflow-hidden border border-[#b8863b]/40 shadow-xl bg-[#17130e] max-w-md mx-auto aspect-square flex items-center justify-center group"
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-          >
-            <img 
-              src={galleryImages[galleryIndex] || displayImage || '/placeholder-image.svg'} 
-              alt="Watch Gallery" 
-              loading="lazy"
-              decoding="async"
-              onError={(e) => {
-                const target = e.currentTarget;
-                if (!target.src.endsWith('/placeholder-image.svg')) {
-                  target.src = '/placeholder-image.svg';
-                }
-              }}
-              className="w-full h-full object-cover transition-all duration-300"
-            />
-
-            {/* Slider Navigation Arrows */}
-            {galleryImages.length > 1 && (
-              <>
-                <button
-                  type="button"
-                  onClick={handlePrevSlide}
-                  className="absolute left-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center transition-all cursor-pointer shadow-md"
-                  aria-label="Previous image"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={handleNextSlide}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center transition-all cursor-pointer shadow-md"
-                  aria-label="Next image"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </>
-            )}
-          </div>
-
-          {/* Pagination Dots */}
-          {galleryImages.length > 1 && (
-            <div className="flex items-center justify-center gap-2 pt-1">
-              {galleryImages.map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setGalleryIndex(i)}
-                  className={`h-2 rounded-full transition-all cursor-pointer ${
-                    galleryIndex === i ? 'w-5 bg-[#e0562e]' : 'w-2 bg-[#4a3f33]'
-                  }`}
-                  aria-label={`Slide ${i + 1}`}
-                />
-              ))}
             </div>
           )}
-
-          {/* Order CTA under Slider */}
-          <div className="pt-2">
-            <button
-              type="button"
-              onClick={scrollToOrder}
-              className="w-full max-w-md mx-auto py-3.5 px-6 bg-[#e0562e] hover:bg-[#c9451f] text-white font-black text-sm rounded-xl shadow-md transition-all transform active:scale-98 cursor-pointer flex items-center justify-center gap-2"
-            >
-              <ShoppingCart className="w-4 h-4" />
-              <span>Order now</span>
-            </button>
-          </div>
         </section>
 
 
@@ -955,99 +857,100 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
         {/* 6. SECTION: 'Color selection' & ORDER FORM (CHECKOUT)        */}
         {/* ========================================================== */}
         <section id="order-form-section" className="scroll-mt-12 text-center space-y-4 pt-3">
-          {variants.length > 1 ? (
-            /* Multi-Variant Mode (e.g. Silver, Black) */
-            <div className="space-y-3">
-              <div className="space-y-1">
+          <div className="max-w-md lg:max-w-4xl mx-auto">
+            {variants.length > 1 ? (
+              /* Multi-Variant Mode (e.g. Silver, Black) */
+              <div className="space-y-3 mb-4">
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-[#e0562e] flex items-center justify-center gap-2">
+                    <span className="w-6 h-[1px] bg-[#e0562e]"></span>
+                    <span>{colorSectionTag}</span>
+                    <span className="w-6 h-[1px] bg-[#e0562e]"></span>
+                  </p>
+                  <h2 className="text-base sm:text-xl font-black text-white px-2">
+                    {colorSectionTitle}
+                  </h2>
+                </div>
+
+                {/* Variant Selector Pills */}
+                <div className="flex flex-wrap items-center justify-center gap-2.5 max-w-md mx-auto pt-1">
+                  {variants.map((v, idx) => {
+                    const isSelected = (selectedVariant?.id === v.id) || (!selectedVariant && idx === 0);
+                    return (
+                      <button
+                        key={v.id || idx}
+                        type="button"
+                        onClick={() => setSelectedVariant(v)}
+                        className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2.5 cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#181d24] text-white border-2 border-[#f5b842] shadow-lg ring-2 ring-[#f5b842]/30 scale-102'
+                            : 'bg-[#17130e] text-[#c9bcb0] border border-[#2e261e] hover:border-[#b8863b]/50'
+                        }`}
+                      >
+                        {v.image && (
+                          <img 
+                            src={v.image} 
+                            alt={v.name} 
+                            onError={(e) => {
+                              const target = e.currentTarget;
+                              if (!target.src.endsWith('/placeholder-image.svg')) {
+                                target.src = '/placeholder-image.svg';
+                              }
+                            }}
+                            className="w-6 h-6 object-contain rounded" 
+                          />
+                        )}
+                        <span>{v.name}</span>
+                        {isSelected && <Check className="w-4 h-4 text-[#f5b842] stroke-[3]" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              /* Single Variant: Clean Product Title & Highlight Badge */
+              <div className="space-y-2.5 max-w-md lg:max-w-xl mx-auto px-2 mb-4">
                 <p className="text-xs font-bold text-[#e0562e] flex items-center justify-center gap-2">
                   <span className="w-6 h-[1px] bg-[#e0562e]"></span>
-                  <span>{colorSectionTag}</span>
+                  <span>{colorSectionTag || 'colorselection'}</span>
                   <span className="w-6 h-[1px] bg-[#e0562e]"></span>
                 </p>
-                <h2 className="text-base sm:text-xl font-black text-white px-2">
-                  {colorSectionTitle}
-                </h2>
-              </div>
 
-              {/* Variant Selector Pills */}
-              <div className="flex flex-wrap items-center justify-center gap-2.5 max-w-md mx-auto pt-1">
-                {variants.map((v, idx) => {
-                  const isSelected = (selectedVariant?.id === v.id) || (!selectedVariant && idx === 0);
-                  return (
-                    <button
-                      key={v.id || idx}
-                      type="button"
-                      onClick={() => setSelectedVariant(v)}
-                      className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2.5 cursor-pointer ${
-                        isSelected
-                          ? 'bg-[#181d24] text-white border-2 border-[#f5b842] shadow-lg ring-2 ring-[#f5b842]/30 scale-102'
-                          : 'bg-[#17130e] text-[#c9bcb0] border border-[#2e261e] hover:border-[#b8863b]/50'
-                      }`}
-                    >
-                      {v.image && (
-                        <img 
-                          src={v.image} 
-                          alt={v.name} 
-                          onError={(e) => {
-                            const target = e.currentTarget;
-                            if (!target.src.endsWith('/placeholder-image.svg')) {
-                              target.src = '/placeholder-image.svg';
-                            }
-                          }}
-                          className="w-6 h-6 object-contain rounded" 
-                        />
-                      )}
-                      <span>{v.name}</span>
-                      {isSelected && <Check className="w-4 h-4 text-[#f5b842] stroke-[3]" />}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ) : (
-            /* Single Variant: Clean Product Title & Highlight Badge */
-            <div className="space-y-2.5 max-w-md mx-auto px-2">
-              <p className="text-xs font-bold text-[#e0562e] flex items-center justify-center gap-2">
-                <span className="w-6 h-[1px] bg-[#e0562e]"></span>
-                <span>{colorSectionTag || 'colorselection'}</span>
-                <span className="w-6 h-[1px] bg-[#e0562e]"></span>
-              </p>
-
-              <div className="bg-gradient-to-r from-[#1c150c] via-[#17130e] to-[#120e0a] border border-[#b8863b]/40 rounded-2xl p-3.5 sm:p-4 shadow-xl flex items-center justify-between gap-3 text-left">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-12 h-12 rounded-xl bg-[#0f0c08] border border-[#382d22] p-1 shrink-0 flex items-center justify-center">
-                    <img
-                      src={selectedVariant?.image || displayImage || '/placeholder-image.svg'}
-                      alt={selectedVariant?.name || displayTitle}
-                      onError={(e) => {
-                        const target = e.currentTarget;
-                        if (!target.src.endsWith('/placeholder-image.svg')) {
-                          target.src = '/placeholder-image.svg';
-                        }
-                      }}
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="text-sm sm:text-base font-black text-white truncate">
-                      {displayTitle}
-                    </h3>
-                    <div className="flex items-center gap-2 flex-wrap pt-0.5">
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#f5b842] bg-[#f5b842]/10 px-2 py-0.5 rounded-md border border-[#f5b842]/20">
-                        ✨ {selectedVariant?.tag || 'Original Premium Collection'}
-                      </span>
-                      <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
-                        ⚡ In-stock ready delivery
-                      </span>
+                <div className="bg-gradient-to-r from-[#1c150c] via-[#17130e] to-[#120e0a] border border-[#b8863b]/40 rounded-2xl p-3.5 sm:p-4 shadow-xl flex items-center justify-between gap-3 text-left">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-12 h-12 rounded-xl bg-[#0f0c08] border border-[#382d22] p-1 shrink-0 flex items-center justify-center">
+                      <img
+                        src={selectedVariant?.image || displayImage || '/placeholder-image.svg'}
+                        alt={selectedVariant?.name || displayTitle}
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          if (!target.src.endsWith('/placeholder-image.svg')) {
+                            target.src = '/placeholder-image.svg';
+                          }
+                        }}
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="text-sm sm:text-base font-black text-white truncate">
+                        {displayTitle}
+                      </h3>
+                      <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#f5b842] bg-[#f5b842]/10 px-2 py-0.5 rounded-md border border-[#f5b842]/20">
+                          ✨ {selectedVariant?.tag || 'Original Premium Collection'}
+                        </span>
+                        <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                          ⚡ In-stock ready delivery
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Order Placement Form */}
-          <div className="bg-[#17130e] border border-[#b8863b]/40 rounded-2xl p-4 sm:p-6 text-left max-w-md mx-auto shadow-2xl space-y-4">
+            {/* Order Placement Form - Responsive Width (compact on mobile, comfortable on desktop) */}
+            <div className="bg-[#17130e] border border-[#b8863b]/40 rounded-2xl p-4 sm:p-6 md:p-8 text-left max-w-md lg:max-w-xl mx-auto shadow-2xl space-y-4">
             
             {orderSuccess ? (
               <div className="text-center space-y-4 py-4">
@@ -1157,7 +1060,7 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
                       type="tel"
                       inputMode="numeric"
                       required
-                      placeholder="যেমন: 01315861003"
+                      placeholder="01XXXXXXXXX"
                       value={customerPhone}
                       onKeyDown={(e) => {
                         if (['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
@@ -1226,7 +1129,7 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
                     <textarea
                       required
                       rows={2}
-                      placeholder="যেমন: বাসা নং ১০, আদাবর, ঢাকা অথবা গ্রাম: মঙ্গলবাড়ি, থানা: ধামইরহাট, জেলা: নওগাঁ"
+                      placeholder={animatedAddressPlaceholder || "যেমন: বাসা নং ১২, রোড ৫, ধানমন্ডি, ঢাকা"}
                       value={customerAddress}
                       onChange={(e) => {
                         setCustomerAddress(e.target.value);
@@ -1383,6 +1286,7 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
                 </p>
               </form>
             )}
+          </div>
           </div>
         </section>
 

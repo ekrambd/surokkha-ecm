@@ -236,4 +236,42 @@ export class ApiClient {
       body: JSON.stringify(payload)
     });
   }
+
+  // Moderator / Staff Endpoints
+  static getModerators(): Promise<any[]> {
+    return this.request<any[]>('/moderators');
+  }
+
+  static saveModerator(mod: any): Promise<any> {
+    const isNew = !mod.id;
+    return this.request<any>(isNew ? '/moderators' : `/moderators/${mod.id}`, {
+      method: isNew ? 'POST' : 'PUT',
+      body: JSON.stringify(mod)
+    });
+  }
+
+  static deleteModerator(id: string): Promise<{ success: boolean }> {
+    return this.request<{ success: boolean }>(`/moderators/${id}`, {
+      method: 'DELETE'
+    });
+  }
+
+  static markStaffAttendance(moderatorId: string, payload: { date: string; status: string; note?: string }): Promise<any> {
+    return this.request(`/moderators/${moderatorId}/attendance`, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }
+
+  static recordSalaryPayment(moderatorId: string, payload: any): Promise<any> {
+    return this.request(`/moderators/${moderatorId}/salary`, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }
+
+  static getModeratorStats(params?: Record<string, string>): Promise<any> {
+    const query = params ? `?${new URLSearchParams(params).toString()}` : '';
+    return this.request(`/moderators/stats${query}`);
+  }
 }

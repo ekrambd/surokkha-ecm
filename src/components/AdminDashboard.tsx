@@ -1,20 +1,22 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { 
-  Users, LogOut, Menu, X, Check, ShoppingBag, ShoppingCart, ClipboardList, Package, LayoutDashboard, User, Code, Truck, CreditCard, Tag, Boxes, Store, Globe, Layout, Layers, Bell, Coins, Send, Sparkles, Eye, Bookmark, Camera, Zap, Volume2, VolumeX, RefreshCw
+  Users, LogOut, Menu, X, Check, ShoppingBag, ShoppingCart, ClipboardList, Package, LayoutDashboard, User, Code, Truck, CreditCard, Tag, Boxes, Store, Globe, Layout, Layers, Bell, Coins, Send, Sparkles, Eye, Bookmark, Camera, Zap, Volume2, VolumeX, RefreshCw, Shield
 } from 'lucide-react';
 import { dbService, subscribeToOrders } from '../lib/dbService';
 import { playCuteAdminOrderTone, initAudioUnlock } from '../lib/soundUtils';
 import { showDesktopOrderNotification, requestNotificationPermission } from '../lib/pushNotifications';
 import { ApiClient } from '../services/apiClient';
-import { BookOrder, ActiveTab, Product, Customer } from '../types';
+import { BookOrder, ActiveTab, Product, Customer, ModeratorUser, StaffPermission } from '../types';
 import DashboardOverview from './DashboardOverview';
 import ProfileSettings from './ProfileSettings';
 import { lazy, Suspense } from 'react';
 const OrderManager = lazy(() => import('./OrderManager'));
 const ProductManager = lazy(() => import('./ProductManager'));
+const PosManager = lazy(() => import('./PosManager'));
 const CustomerManager = lazy(() => import('./CustomerManager'));
 const CouponManager = lazy(() => import('./CouponManager'));
 const StockInventoryManager = lazy(() => import('./StockInventoryManager'));
+const ModeratorManager = lazy(() => import('./ModeratorManager'));
 const CategoryManager = lazy(() => import('./CategoryManager'));
 const BrandManager = lazy(() => import('./BrandManager'));
 const LandingPageManager = lazy(() => import('./LandingPageManager'));
@@ -39,6 +41,8 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
   const [orders, setOrders] = useState<BookOrder[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [moderators, setModerators] = useState<ModeratorUser[]>([]);
+  const [currentSessionUser, setCurrentSessionUser] = useState<{ role: 'admin' | 'moderator'; permissions?: StaffPermission[]; name?: string } | null>(null);
   const [viewsOverview, setViewsOverview] = useState<{ websiteViews: number; landingViews: number; totalProductViews: number }>({ websiteViews: 0, landingViews: 0, totalProductViews: 0 });
   const [loading, setLoading] = useState(true);
 
@@ -67,11 +71,12 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
   useEffect(() => {
     async function loadInitial() {
       try {
-        const [orderList, prodList, custList, settings] = await Promise.all([
+        const [orderList, prodList, custList, settings, modList] = await Promise.all([
           dbService.getBookOrders(),
           dbService.getProducts(),
           dbService.getCustomers(),
-          dbService.getEcomSettings()
+          dbService.getEcomSettings(),
+          dbService.getModerators()
         ]);
         
         // Update Favicon based on settings
@@ -90,6 +95,23 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
         setOrders(orderList);
         setProducts(prodList);
         setCustomers(custList);
+        setModerators(modList);
+
+        // Fetch auth session to determine role and permissions
+        try {
+          const authRes = await fetch('/api/auth/me', { headers: { 'Authorization': `Bearer ${localStorage.getItem('admin_token') || ''}` } });
+          if (authRes.ok) {
+            const authData = await authRes.json();
+            if (authData.user) {
+              setCurrentSessionUser(authData.user);
+              // If moderator, automatically switch activeTab to their first permitted tab if dashboard is disallowed
+              if (authData.user.role === 'moderator' && authData.user.permissions?.length > 0) {
+                const firstPerm = authData.user.permissions[0];
+                setActiveTab(firstPerm as ActiveTab);
+              }
+            }
+          }
+        } catch {}
         
         // Populate global app store with real ecomSettings
         try {
@@ -97,18 +119,23 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
           useAppStore.getState().setEcomSettings(settings);
         } catch {}
 
-        // Run auto-sync of Steadfast courier status in the background
+        // Run auto-sync of Steadfast courier status in the background only when credentials are valid
         setTimeout(async () => {
           try {
+            const settings = await dbService.getEcomSettings();
+            // If Steadfast API key is not configured or in dev placeholder, skip background polling to prevent circuit breaker trips
+            const hasSteadfastApi = Boolean(settings.steadfastApiKey && settings.steadfastApiKey.length > 5);
+            if (!hasSteadfastApi) return;
+
             const inTransit = orderList.filter(o => o.steadfastTrackingCode && o.status !== 'Delivered' && o.status !== 'Cancelled');
             if (inTransit.length > 0) {
-              const settings = await dbService.getEcomSettings();
               const earnRate = settings.pointsEarnRate || 10;
               
               for (const order of inTransit) {
                 try {
                   const result = await ApiClient.getSteadfastStatus(order.steadfastTrackingCode!);
-                  const normalized = result.status.toLowerCase();
+                  if (!result || !result.status) continue;
+                  const normalized = String(result.status).toLowerCase();
                   const newStatus = normalized === 'delivered'
                     ? 'Delivered'
                     : normalized.includes('cancelled')
@@ -139,15 +166,15 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
                       }
                     }
                   }
-                } catch (singleErr) {
-                  console.warn('Auto steadfast sync failed for order:', order.id, singleErr);
+                } catch {
+                  // Silently ignore background polling errors to keep console clean
                 }
               }
             }
-          } catch (syncErr) {
-            console.error('Error running steadfast auto-sync:', syncErr);
+          } catch {
+            // Silently handle sync error
           }
-        }, 1500);
+        }, 3000);
         dbService.getGlobalViews().then(setViewsOverview).catch(() => {});
         dbService.getEcomSettings().then((st) => {
           document.title = `Admin Panel | ${st.storeName || 'SHOSTIR BAZAR'}`;
@@ -219,12 +246,17 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
     const handleSync = () => {
       dbService.getProducts().then(setProducts);
       dbService.getCustomers().then(setCustomers);
+      dbService.getModerators().then(setModerators);
     };
     window.addEventListener('ecom-products-updated', handleSync);
+    window.addEventListener('customers-updated', handleSync);
+    window.addEventListener('moderators-updated', handleSync);
 
     return () => {
       unsubOrders();
       window.removeEventListener('ecom-products-updated', handleSync);
+      window.removeEventListener('customers-updated', handleSync);
+      window.removeEventListener('moderators-updated', handleSync);
       window.removeEventListener('ecom-settings-updated', handleSettingsUpdate);
       if (toastTimer.current) clearTimeout(toastTimer.current);
     };
@@ -329,14 +361,15 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
     setCustomers(updatedCust);
   };
 
-  const menuItems = [
+  const allMenuItems = [
     { id: 'dashboard' as const, label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'header_manage' as any, isHeader: true, label: 'E-commerce Management' },
+    { id: 'pos' as const, label: 'Point of Sale (POS)', icon: ShoppingCart },
     { id: 'inventory' as const, label: 'Inventory', icon: Boxes },
     { id: 'products' as const, label: 'Products', icon: Package },
     { id: 'orders' as const, label: 'Orders', icon: ShoppingBag },
     { id: 'customers' as const, label: 'Customers', icon: Users },
     { id: 'coupons' as const, label: 'Coupons', icon: Tag },
+    { id: 'moderators' as const, label: 'Staff & Moderators', icon: Shield },
     { id: 'header_store' as any, isHeader: true, label: 'Store Setup' },
     { id: 'flash_sale' as const, label: 'Flash Sale', icon: Zap },
     { id: 'category_management' as const, label: 'Categories', icon: Layers },
@@ -349,8 +382,20 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
     { id: 'profile' as const, label: 'Profile Settings', icon: User },
   ];
 
+  // If logged in as moderator, filter out tabs that are not in their permissions
+  const isRootAdmin = !currentSessionUser || currentSessionUser.role === 'admin';
+  const menuItems = allMenuItems.filter(item => {
+    if (item.isHeader) return isRootAdmin;
+    if (isRootAdmin) return true;
+    // Moderator restricted view
+    const perms = currentSessionUser?.permissions || [];
+    if (item.id === 'moderators') return false; // Only root admin can manage staff
+    if (item.id === 'dashboard') return perms.includes('orders');
+    return perms.includes(item.id as StaffPermission);
+  });
+
   return (
-    <div className="admin-panel min-h-screen bg-slate-50 flex font-sans text-slate-800 text-[16px]">
+    <div className="admin-panel h-screen w-screen overflow-hidden bg-slate-50 flex font-sans text-slate-800 text-[16px]">
 
       {/* ===== New Order Toast Notification ===== */}
       <AnimatePresence>
@@ -409,7 +454,9 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
           </div>
           <div className="min-w-0">
             <h1 className="text-sm font-bold leading-tight text-white truncate">E-commerce Admin</h1>
-            <span className="text-xs text-[#F7A800] block font-medium truncate">Control Panel</span>
+            <span className="text-xs text-[#F7A800] block font-medium truncate">
+              {currentSessionUser?.role === 'moderator' ? `মডারেটর (${currentSessionUser.name || 'Staff'})` : 'Control Panel'}
+            </span>
           </div>
         </div>
 
@@ -540,9 +587,9 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
       </AnimatePresence>
 
       {/* Core Body Container */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Top Header */}
-        <header className="sticky top-0 z-30 h-16 sm:h-20 bg-white/95 backdrop-blur-md border-b border-slate-100 px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+        {/* Top Header / Appbar (Strictly fixed at top) */}
+        <header className="shrink-0 z-30 h-16 sm:h-20 bg-white/95 backdrop-blur-md border-b border-slate-100 px-4 sm:px-6 lg:px-8 flex items-center justify-between shadow-2xs">
           <div className="flex items-center space-x-2">
             <button
               onClick={() => setSidebarOpen(true)}
@@ -605,6 +652,14 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
                     onNavigateTab={(tab) => setActiveTab(tab)}
                   />
                 )}
+                {activeTab === 'pos' && (
+                  <PosManager 
+                    products={products}
+                    customers={customers}
+                    onAddOrder={handleAddOrder}
+                    onNavigateTab={(tab) => setActiveTab(tab)}
+                  />
+                )}
                 {activeTab === 'products' && (
                   <ProductManager 
                     products={products}
@@ -616,6 +671,8 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
                 {activeTab === 'orders' && (
                   <OrderManager 
                     orders={orders}
+                    products={products}
+                    customers={customers}
                     onAddOrder={handleAddOrder}
                     onUpdateOrder={handleUpdateOrder}
                     onDeleteOrder={handleDeleteOrder}
@@ -624,6 +681,14 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
                 )}
                 {activeTab === 'inventory' && (
                   <StockInventoryManager />
+                )}
+                {activeTab === 'moderators' && (
+                  <ModeratorManager 
+                    moderators={moderators}
+                    orders={orders}
+                    onRefresh={() => dbService.getModerators().then(setModerators)}
+                    isRootAdmin={isRootAdmin}
+                  />
                 )}
                 {activeTab === 'customers' && (
                   <CustomerManager 

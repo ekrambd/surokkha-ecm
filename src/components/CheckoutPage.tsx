@@ -55,6 +55,52 @@ export default function CheckoutPage({
   const [phoneError, setPhoneError] = useState('');
   const [addressError, setAddressError] = useState('');
 
+  // Animated Typing Placeholder for Demo Address
+  const [animatedAddressPlaceholder, setAnimatedAddressPlaceholder] = useState('');
+  useEffect(() => {
+    const demoAddresses = [
+      'বাসা নং ১২, রোড ৫, ধানমন্ডি, ঢাকা',
+      'গ্রাম: মঙ্গলবাড়ি, থানা: ধামইরহাট, জেলা: নওগাঁ',
+      'ফ্ল্যাট ৪বি, হোল্ডিং ২৫, মিরপুর ১০, ঢাকা',
+      'গ্রাম: শ্রীপুর, ডাকঘর: শ্রীপুর, থানা: শ্রীপুর, জেলা: গাজীপুর',
+      'বাড়ি নং ৭, ব্লক সি, বনশ্রী, রামপুরা, ঢাকা',
+      'গ্রাম: কাশিমপুর, থানা: কোতোয়ালী, জেলা: চট্টগ্রাম'
+    ];
+
+    let currentIdx = 0;
+    let charIdx = 0;
+    let isDeleting = false;
+    let timer: NodeJS.Timeout;
+
+    const tick = () => {
+      const currentFullText = `যেমন: ${demoAddresses[currentIdx]}`;
+
+      if (!isDeleting) {
+        charIdx++;
+        setAnimatedAddressPlaceholder(currentFullText.slice(0, charIdx));
+        if (charIdx === currentFullText.length) {
+          isDeleting = true;
+          timer = setTimeout(tick, 2200);
+          return;
+        }
+        timer = setTimeout(tick, 60);
+      } else {
+        charIdx--;
+        setAnimatedAddressPlaceholder(currentFullText.slice(0, charIdx));
+        if (charIdx <= 5) {
+          isDeleting = false;
+          currentIdx = (currentIdx + 1) % demoAddresses.length;
+          timer = setTimeout(tick, 450);
+          return;
+        }
+        timer = setTimeout(tick, 30);
+      }
+    };
+
+    timer = setTimeout(tick, 300);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Dynamic Store Settings & Delivery Methods from Admin Panel
   const [liveSettings, setLiveSettings] = useState<EcomSettings>(ecomSettings);
 
@@ -681,7 +727,7 @@ export default function CheckoutPage({
                         <input
                           type="tel"
                           inputMode="numeric"
-                          placeholder="যেমন: 01315861003"
+                          placeholder="01XXXXXXXXX"
                           value={phone}
                           onKeyDown={(e) => {
                             if (['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
@@ -752,7 +798,7 @@ export default function CheckoutPage({
                       <div className="relative">
                         <textarea
                           rows={3}
-                          placeholder="যেমন: বাসা নং ১০, আদাবর, ঢাকা অথবা গ্রাম: মঙ্গলবাড়ি, থানা: ধামইরহাট, জেলা: নওগাঁ"
+                          placeholder={animatedAddressPlaceholder || "যেমন: বাসা নং ১২, রোড ৫, ধানমন্ডি, ঢাকা"}
                           value={address}
                           onChange={(e) => {
                             setAddress(e.target.value);

@@ -20,6 +20,7 @@ import { contactRouter } from './routes/contactRoutes';
 import { landingRouter } from './routes/landingRoutes';
 import { instituteRouter } from './routes/instituteRoutes';
 import { imageRouter } from './routes/imageCDN';
+import { moderatorRouter } from './routes/moderatorRoutes';
 
 import { globalCache } from './services/cacheEngine';
 import { shardService } from './services/shardService';
@@ -127,6 +128,7 @@ app.use('/api/brands', brandRouter);
 app.use('/api/contact-messages', contactRouter);
 app.use('/api/landing-pages', landingRouter);
 app.use('/api/institute', instituteRouter);
+app.use('/api/moderators', moderatorRouter);
 app.use('/cdn', imageRouter);
 
 // Local media static file serving

@@ -24,6 +24,9 @@ export interface CustomerCourierRatio {
   cancellationRatio?: number;
   fraudReports?: number;
   totalReports?: number;
+  volumeBand?: string;
+  fraudCategories?: string[];
+  reasons?: string[];
   successRatio: number; // e.g. 100 (%)
   returnRatio: number;  // e.g. 0 (%)
   riskLevel: 'safe' | 'medium' | 'high' | 'new';
@@ -122,7 +125,12 @@ export async function checkCustomerCourierRatio(
   let extDeliveryRatio: number | null = null;
   let extCancellationRatio: number | null = null;
   let extVolumeRange: string = '0';
+  let extVolumeBand: string = '';
+  let extDeliveredCount: number | null = null;
+  let extCancelledCount: number | null = null;
   let extReports = 0;
+  let extFraudCategories: string[] = [];
+  let extReasons: string[] = [];
   let hasSteadfastRecord = false;
   let source: 'steadfast' | 'internal' | 'combined' = 'internal';
 
@@ -134,8 +142,13 @@ export async function checkCustomerCourierRatio(
         hasSteadfastRecord = true;
         extDeliveryRatio = Number(extRes.deliveryRatio ?? 100);
         extCancellationRatio = extRes.cancellationRatio !== undefined && extRes.cancellationRatio !== null ? Number(extRes.cancellationRatio) : (100 - extDeliveryRatio);
-        extVolumeRange = extRes.volumeRange || (extRes.totalParcels ? `${extRes.totalParcels}` : '0');
+        extVolumeRange = extRes.volumeRange || (extRes.totalParcels ? `${extRes.totalParcels}` : '10+');
+        extVolumeBand = extRes.volumeBand || '';
+        extDeliveredCount = extRes.deliveredCount !== undefined ? extRes.deliveredCount : null;
+        extCancelledCount = extRes.cancelledCount !== undefined ? extRes.cancelledCount : null;
         extReports = Number(extRes.totalReports ?? extRes.fraudReports ?? 0);
+        extFraudCategories = (extRes as any).fraudCategories || [];
+        extReasons = (extRes as any).reasons || [];
         source = 'steadfast';
       } else {
         // Phone has 0 parcel history in Steadfast
@@ -223,7 +236,7 @@ export async function checkCustomerCourierRatio(
       name: 'Steadfast',
       code: 'SF',
       badge: hasSteadfastRecord ? 'অফিসিয়াল API' : 'রেকর্ড নেই',
-      delivered: hasSteadfastRecord ? (Number(extVolumeRange) || (successRatio > 0 ? 1 : 0)) : 0,
+      delivered: hasSteadfastRecord ? (extDeliveredCount !== null ? extDeliveredCount : (Number(extVolumeRange) || (successRatio > 0 ? 1 : 0))) : 0,
       total: hasSteadfastRecord ? (Number(extVolumeRange) || (successRatio > 0 ? 1 : 0)) : 0,
       successRate: sfSuccess,
       returned: sfReturned,
@@ -269,13 +282,16 @@ export async function checkCustomerCourierRatio(
     phone,
     totalParcels: totalParcelsDisplay,
     volumeRange: extVolumeRange,
-    deliveredParcels: hasSteadfastRecord ? (deliveredCount ?? (successRatio > 0 ? (Number(extVolumeRange) || 1) : 0)) : storeDeliveredCount,
-    returnedParcels: hasSteadfastRecord ? (cancelledCount ?? (returnRatio > 0 ? 1 : 0)) : storeCancelledCount,
-    cancelledParcels: hasSteadfastRecord ? (cancelledCount ?? (returnRatio > 0 ? 1 : 0)) : storeCancelledCount,
+    deliveredParcels: hasSteadfastRecord ? (extDeliveredCount !== null ? extDeliveredCount : (successRatio > 0 ? (Number(extVolumeRange) || 1) : 0)) : storeDeliveredCount,
+    returnedParcels: hasSteadfastRecord ? (extCancelledCount !== null ? extCancelledCount : (returnRatio > 0 ? 1 : 0)) : storeCancelledCount,
+    cancelledParcels: hasSteadfastRecord ? (extCancelledCount !== null ? extCancelledCount : (returnRatio > 0 ? 1 : 0)) : storeCancelledCount,
     deliveryRatio: successRatio,
     cancellationRatio: returnRatio,
     fraudReports: extReports,
     totalReports: extReports,
+    volumeBand: extVolumeBand,
+    fraudCategories: extFraudCategories,
+    reasons: extReasons,
     successRatio,
     returnRatio,
     riskLevel,

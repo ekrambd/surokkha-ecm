@@ -99,6 +99,8 @@ export interface Product {
   rating?: number;
   reviewsCount?: number;
   tags?: string[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface HeroBannerItem {
@@ -572,6 +574,74 @@ export interface BookOrder {
   courierMerchant?: string;
   giftWrapSelected?: boolean;
   giftWrapPrice?: number;
+  inventoryRestored?: boolean;
+  paidAmount?: number;
+  dueAmount?: number;
+  paymentStatus?: 'paid' | 'unpaid' | 'partial' | string;
+  paymentNote?: string;
+  acceptedByModeratorId?: string;
+  acceptedByModeratorName?: string;
+  acceptedAt?: string;
+}
+
+export type StaffPermission = 
+  | 'orders' 
+  | 'pos' 
+  | 'inventory' 
+  | 'products' 
+  | 'customers' 
+  | 'coupons' 
+  | 'flash_sale' 
+  | 'category_management' 
+  | 'brand_management' 
+  | 'landing_setup' 
+  | 'payment_settings' 
+  | 'delivery_settings' 
+  | 'courier_settings' 
+  | 'pixel_settings' 
+  | 'profile';
+
+export type AttendanceStatus = 'present' | 'absent' | 'half_day' | 'leave';
+
+export interface StaffAttendanceRecord {
+  date: string; // YYYY-MM-DD
+  status: AttendanceStatus;
+  note?: string; // custom leave reason or note
+  markedAt?: string;
+}
+
+export interface StaffSalaryPayment {
+  id: string;
+  month: string; // YYYY-MM
+  paymentDate: string; // YYYY-MM-DD
+  baseSalary: number;
+  commissionEarned: number;
+  bonus?: number;
+  deduction?: number;
+  totalPayable: number;
+  amountPaid: number;
+  status: 'paid' | 'unpaid' | 'partial';
+  paymentMethod?: string;
+  transactionRef?: string;
+  note?: string;
+  createdAt: string;
+}
+
+export interface ModeratorUser {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string;
+  password?: string;
+  role: 'admin' | 'moderator';
+  permissions: StaffPermission[];
+  isActive: boolean;
+  baseSalary: number;
+  commissionPerOrder: number;
+  attendance?: Record<string, StaffAttendanceRecord>; // key: YYYY-MM-DD
+  salaryPayments?: StaffSalaryPayment[];
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface Coupon {
@@ -617,7 +687,7 @@ export interface Brand {
   updatedAt?: string;
 }
 
-export type ActiveTab = 'dashboard' | 'products' | 'orders' | 'customers' | 'coupons' | 'inventory' | 'category_management' | 'brand_management' | 'flash_sale' | 'highlight_spotlight' | 'about_settings' | 'landing_setup' | 'payment_settings' | 'delivery_settings' | 'pixel_settings' | 'courier_settings' | 'profile' | 'points';
+export type ActiveTab = 'dashboard' | 'pos' | 'products' | 'orders' | 'customers' | 'coupons' | 'inventory' | 'moderators' | 'category_management' | 'brand_management' | 'flash_sale' | 'highlight_spotlight' | 'about_settings' | 'landing_setup' | 'payment_settings' | 'delivery_settings' | 'pixel_settings' | 'courier_settings' | 'profile' | 'points';
 
 export interface ContactMessage {
   id: string;

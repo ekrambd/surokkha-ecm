@@ -103,23 +103,23 @@ export function MultiCourierRatioCard({ ratio, isLoading, onRefresh, onViewDetai
         {/* Legend */}
         <div className="flex items-center justify-between pt-2 text-[11px] font-bold">
           <span className="flex items-center gap-1.5 text-slate-700">
-            <span className={`w-1.5 h-1.5 rounded-full ${hasHistory && deliveredCount > 0 ? 'bg-[#00A86B]' : 'bg-slate-300'}`} />
-            <span>{deliveredCount} ডেলিভারড</span>
+            <span className={`w-1.5 h-1.5 rounded-full ${hasHistory && (deliveredCount > 0 || successPercent > 0) ? 'bg-[#00A86B]' : 'bg-slate-300'}`} />
+            <span>{deliveredCount > 0 ? `${deliveredCount} ডেলিভারড` : `${successPercent}% ডেলিভারড`}</span>
           </span>
           <span className="flex items-center gap-1.5 text-slate-500">
-            <span className={`w-1.5 h-1.5 rounded-full ${hasHistory && returnCount > 0 ? 'bg-[#F7A800]' : 'bg-slate-300'}`} />
-            <span>{returnCount} রিটার্ন</span>
+            <span className={`w-1.5 h-1.5 rounded-full ${hasHistory && (returnCount > 0 || returnPercent > 0) ? 'bg-[#F7A800]' : 'bg-slate-300'}`} />
+            <span>{returnCount > 0 ? `${returnCount} রিটার্ন` : `${returnPercent}% রিটার্ন`}</span>
           </span>
         </div>
       </div>
 
-      {/* Breakdown per Courier Partner (Steadfast, Pathao, RedX, বিপণী) */}
+      {/* Breakdown per Courier Partner (Steadfast Only) */}
       <div className="divide-y divide-slate-100 mt-2 border-t border-slate-100">
         
-        {/* Steadfast */}
+        {/* Steadfast Courier Check */}
         <div className="py-2.5 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-md bg-teal-50 text-teal-600 flex items-center justify-center font-black text-[9px] border border-teal-200">
+            <div className="w-6 h-6 rounded-md bg-teal-50 text-teal-600 flex items-center justify-center font-black text-[10px] border border-teal-200">
               SF
             </div>
             <div>
@@ -133,99 +133,13 @@ export function MultiCourierRatioCard({ ratio, isLoading, onRefresh, onViewDetai
             {sf?.hasHistory ? (
               <>
                 <span className="font-mono font-bold text-xs text-slate-900">
-                  {sf.delivered}/{sf.total}
+                  {ratio?.volumeRange && ratio.volumeRange !== '0' ? ratio.volumeRange : `${sf.delivered}/${sf.total}`}
                 </span>
                 <span className="text-[11px] font-bold text-slate-500 ml-1">
                   ({sf.successRate}%)
                 </span>
                 {sf.returned > 0 && (
                   <p className="text-[10px] text-amber-600 font-bold mt-0.5">{sf.returned}টি রিটার্ন</p>
-                )}
-              </>
-            ) : (
-              <span className="font-mono font-bold text-xs text-slate-400">০ পার্সেল</span>
-            )}
-          </div>
-        </div>
-
-        {/* Pathao */}
-        <div className="py-2.5 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-md bg-red-50 text-red-600 flex items-center justify-center font-black text-[9px] border border-red-200">
-              PT
-            </div>
-            <div>
-              <p className="font-bold text-slate-900 text-xs">Pathao</p>
-              <p className="text-[10px] text-slate-400">
-                {pt?.hasHistory ? 'অফিসিয়াল কানেক্টেড' : 'কানেক্টেড পার্টনার'}
-              </p>
-            </div>
-          </div>
-          <div className="text-right">
-            {pt?.hasHistory ? (
-              <>
-                <span className="font-mono font-bold text-xs text-slate-900">
-                  {pt.delivered}/{pt.total}
-                </span>
-                <span className="text-[11px] font-bold text-slate-500 ml-1">
-                  ({pt.successRate}%)
-                </span>
-              </>
-            ) : (
-              <span className="font-mono font-bold text-xs text-slate-400">০ পার্সেল</span>
-            )}
-          </div>
-        </div>
-
-        {/* RedX */}
-        <div className="py-2.5 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-md bg-slate-900 text-white flex items-center justify-center font-black text-[8px]">
-              REDX
-            </div>
-            <div>
-              <p className="font-bold text-slate-900 text-xs">RedX</p>
-              <p className="text-[10px] text-slate-400">কানেক্টেড পার্টনার</p>
-            </div>
-          </div>
-          <div className="text-right">
-            {rx?.hasHistory ? (
-              <>
-                <span className="font-mono font-bold text-xs text-slate-900">
-                  {rx.delivered}/{rx.total}
-                </span>
-                <span className="text-[11px] font-bold text-slate-500 ml-1">
-                  ({rx.successRate}%)
-                </span>
-              </>
-            ) : (
-              <span className="font-mono font-bold text-xs text-slate-400">০ পার্সেল</span>
-            )}
-          </div>
-        </div>
-
-        {/* Shostirbazar Network (Internal Store Server History) */}
-        <div className="py-2.5 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-md bg-emerald-50 text-emerald-700 flex items-center justify-center font-black text-[9px] border border-emerald-200">
-              {bp?.code || 'SB'}
-            </div>
-            <div>
-              <p className="font-bold text-slate-900 text-xs">{bp?.name || 'Shostirbazar Network'}</p>
-              <p className="text-[10px] text-slate-400">{bp?.badge || 'সার্ভার হিস্ট্রি'}</p>
-            </div>
-          </div>
-          <div className="text-right">
-            {bp?.hasHistory ? (
-              <>
-                <span className="font-mono font-bold text-xs text-slate-900">
-                  {bp.delivered}/{bp.total}
-                </span>
-                <span className="text-[11px] font-bold text-slate-500 ml-1">
-                  ({bp.successRate}%)
-                </span>
-                {bp.returned > 0 && (
-                  <p className="text-[10px] text-rose-600 font-bold mt-0.5">{bp.returned}টি রিটার্ন</p>
                 )}
               </>
             ) : (

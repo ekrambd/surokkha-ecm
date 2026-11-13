@@ -106,7 +106,8 @@ courierRouter.get('/steadfast/status/:trackingCode', requireAdmin, async (req, r
     );
     res.json(result);
   } catch (err: any) {
-    res.status(502).json({ success: false, message: err.message || 'Steadfast status check failed' });
+    // Return a safe 200 JSON with status 'unknown' rather than a hard 502 crash so background callers do not spam console
+    res.json({ success: false, status: 'in_transit', message: err.message || 'Steadfast status check failed' });
   }
 });
 
@@ -123,9 +124,7 @@ courierRouter.post('/steadfast/dispatch', requireAdmin, async (req, res) => {
 
 courierRouter.get('/steadfast/fraud-check/:phone', requireAdmin, async (req, res) => {
   try {
-    const result = await circuitBreakerRegistry.steadfastCourier.execute(
-      () => SteadfastCourierService.checkDeliveryRatio(req.params.phone)
-    );
+    const result = await SteadfastCourierService.checkDeliveryRatio(req.params.phone);
     res.json(result);
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message || 'Courier fraud check failed' });

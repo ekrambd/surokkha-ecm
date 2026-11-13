@@ -12,7 +12,7 @@ import { compressImage } from '../lib/imageUtils';
 import { getProductSlug, slugifyProductText } from '../lib/seoUtils';
 import { FeedbackDialog } from './ui/FeedbackDialog';
 
-type DetailTab = 'title-summary' | 'price' | 'category' | 'image' | 'publishing';
+type DetailTab = 'overview' | 'title-summary' | 'price' | 'category' | 'image' | 'seo' | 'publishing';
 
 interface ProductManagerProps {
   products: Product[];
@@ -285,7 +285,7 @@ export default function ProductManager({
       setGiftWrapEnabled(false);
       setGiftWrapPrice(0);
     }
-    setActiveTab('title-summary');
+    setActiveTab('overview');
     setIsModalOpen(true);
   };
 
@@ -506,6 +506,33 @@ export default function ProductManager({
     };
   };
 
+  // Toggle product Active / Inactive status directly from table / overview
+  const handleToggleProductStatus = async (product: Product, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const newStatus = !product.isAvailable;
+    const updated: Product = {
+      ...product,
+      isAvailable: newStatus,
+      updatedAt: new Date().toISOString()
+    };
+    try {
+      await onUpdateProduct(updated);
+      setFeedback({
+        isOpen: true,
+        type: 'success',
+        title: newStatus ? 'Product Activated' : 'Product Deactivated',
+        message: `"${product.title}" is now ${newStatus ? 'Active & visible in store' : 'Inactive & hidden from store'}.`
+      });
+    } catch (err: any) {
+      setFeedback({
+        isOpen: true,
+        type: 'error',
+        title: 'Status Update Failed',
+        message: err?.message || 'Could not update product active status.'
+      });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
@@ -693,17 +720,17 @@ export default function ProductManager({
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 border-b border-slate-200/80 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
                 <tr>
-                  <th className="py-3 px-4">Products and titles</th>
-                  <th className="py-3 px-4">Category</th>
-                  <th className="py-3 px-4">Purchase Price</th>
-                  <th className="py-3 px-4">Selling Price</th>
-                  <th className="py-3 px-4">Margin / Profit</th>
-                  <th className="py-3 px-4">Stock and status</th>
+                  <th className="py-3 px-4">#</th>
+                  <th className="py-3 px-4">Product</th>
+                  <th className="py-3 px-4">Stock</th>
+                  <th className="py-3 px-4">Price</th>
+                  <th className="py-3 px-4 text-center">Active</th>
+                  <th className="py-3 px-4">Updated</th>
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredProducts.map((p) => {
+                {filteredProducts.map((p, idx) => {
                   const hasVar = Boolean(p.hasVariants && p.variants && p.variants.length > 0);
                   const validVariants = hasVar ? p.variants!.filter(v => v.price > 0) : [];
                   const variantPrices = validVariants.map(v => v.price);
@@ -712,137 +739,118 @@ export default function ProductManager({
                   const displayPrice = hasVar && minVarPrice > 0 ? minVarPrice : p.price;
                   const lowestVar = hasVar ? validVariants.find(v => v.price === displayPrice) : null;
                   const displayRegPrice = lowestVar?.regularPrice || p.regularPrice;
+                  const cost = Number(p.costPrice) || 0;
+                  const marginTk = displayPrice - cost;
+
+                  // Format updated date (e.g. 13 minutes ago / date)
+                  const updatedDate = p.updatedAt || p.createdAt;
+                  const formattedDate = updatedDate ? (() => {
+                    const diffMs = Date.now() - new Date(updatedDate).getTime();
+                    const diffMins = Math.floor(diffMs / 60000);
+                    const diffHours = Math.floor(diffMins / 60);
+                    const diffDays = Math.floor(diffHours / 24);
+                    if (diffMins < 60) return `${Math.max(1, diffMins)} minutes ago`;
+                    if (diffHours < 24) return `${diffHours} hours ago`;
+                    if (diffDays === 1) return 'a day ago';
+                    if (diffDays < 30) return `${diffDays} days ago`;
+                    return new Date(updatedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                  })() : 'recently';
 
                   return (
                   <tr key={p.id} className="hover:bg-slate-50/80 transition-colors">
+                    {/* Index */}
+                    <td className="py-3 px-4 font-mono text-slate-400 font-bold text-[11px] w-10">
+                      {idx + 1}
+                    </td>
+
                     {/* Thumbnail & Product Info */}
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
-                        <div className="h-14 w-14 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center p-1">
+                        <div className="h-12 w-12 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center p-1">
                           <img
-                            src={p.image}
+                            src={p.image || p.coverImage || 'https://images.unsplash.com/photo-1608248597359-0098f98a329d?w=200&auto=format&fit=crop&q=80'}
                             alt={p.title}
                             className="max-h-full max-w-full object-contain"
                           />
                         </div>
                         <div className="min-w-0">
-                          <h4 className="font-bold text-slate-900 text-xs leading-snug line-clamp-1">
+                          <h4 
+                            onClick={() => handleOpenModal(p)}
+                            className="font-bold text-slate-900 text-xs leading-snug line-clamp-1 hover:text-teal-600 cursor-pointer"
+                          >
                             {p.title}
                           </h4>
-                          {p.subtitle && (
-                            <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">{p.subtitle}</p>
-                          )}
-                          <div className="flex items-center gap-2 mt-1">
+                          <div className="flex items-center gap-2 mt-0.5">
                             {p.sku && (
-                              <span className="text-[10px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
-                                SKU: {p.sku}
+                              <span className="text-[10px] font-mono text-slate-500 font-medium">
+                                {p.sku}
                               </span>
                             )}
-                            {p.authorName && (
-                              <span className="text-[10px] text-slate-500">
-                                the writer: {p.authorName}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Category & Brand */}
-                    <td className="py-3 px-4 whitespace-nowrap">
-                      <div className="space-y-1">
-                        <span className="inline-block bg-teal-50 text-teal-800 text-[11px] font-bold px-2.5 py-1 rounded-lg border border-teal-200">
-                          {p.category}
-                        </span>
-                        {p.brand && (
-                          <div>
-                            <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-md border border-amber-200">
-                              <Bookmark className="h-2.5 w-2.5" />
-                              {p.brand}
+                            <span className="text-[10px] text-slate-400">
+                              • {p.productType || 'Physical product'}
                             </span>
                           </div>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Stock */}
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      <span className={`font-mono text-xs font-bold ${
+                        Number(p.stock) <= 5 ? 'text-rose-600' : 'text-slate-800'
+                      }`}>
+                        {typeof p.stock === 'number' ? p.stock : (p as any).stockQuantity || 0}
+                      </span>
+                    </td>
+
+                    {/* Price, Cost & Margin */}
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      <div className="space-y-0.5">
+                        <div className="text-xs font-black text-slate-900 font-mono">
+                          ৳{displayPrice.toLocaleString()}
+                        </div>
+                        {displayRegPrice && displayRegPrice > displayPrice && (
+                          <div className="text-[10px] text-slate-400 line-through font-mono">
+                            ৳{displayRegPrice.toLocaleString()}
+                          </div>
                         )}
-                        {p.subCategory && (
-                          <div className="text-[10px] text-slate-400">
-                            › {p.subCategory}
+                        {cost > 0 && (
+                          <div className="text-[10px] text-slate-500 font-mono">
+                            Cost ৳{cost.toLocaleString()} • Margin ৳{marginTk.toLocaleString()}
                           </div>
                         )}
                       </div>
                     </td>
 
-                    {/* Purchase Price */}
-                    <td className="py-3 px-4 whitespace-nowrap">
-                      {p.costPrice && p.costPrice > 0 ? (
-                        <div className="text-xs font-bold font-mono text-slate-700">
-                          Tk.{p.costPrice.toLocaleString('bn-BD')}
-                        </div>
-                      ) : (
-                        <span className="text-[11px] text-slate-400 italic">সেট নেই</span>
-                      )}
-                    </td>
-
-                    {/* Selling Price */}
-                    <td className="py-3 px-4 whitespace-nowrap">
-                      <div className="text-sm font-extrabold text-teal-700 flex items-center gap-1 font-mono">
-                        <span>Tk.{displayPrice.toLocaleString('bn-BD')}</span>
-                        {hasVar && minVarPrice !== maxVarPrice && (
-                          <span className="text-[11px] font-bold text-slate-500">- Tk.{maxVarPrice.toLocaleString('bn-BD')}</span>
-                        )}
-                      </div>
-                      {displayRegPrice && displayRegPrice > displayPrice && (
-                        <div className="text-[11px] text-slate-400 line-through font-mono">
-                          Tk.{displayRegPrice.toLocaleString('bn-BD')}
-                        </div>
-                      )}
-                      {hasVar && (
-                        <div className="mt-1">
-                          <span className="text-[10px] font-semibold text-teal-700 bg-teal-50 px-1.5 py-0.5 rounded border border-teal-200">
-                            {p.variants!.length}T variant
-                          </span>
-                        </div>
-                      )}
-                    </td>
-
-                    {/* Margin / Profit */}
-                    <td className="py-3 px-4 whitespace-nowrap">
-                      {p.costPrice && p.costPrice > 0 ? (
-                        (() => {
-                          const marginTk = displayPrice - p.costPrice;
-                          const marginPercent = Math.round((marginTk / displayPrice) * 100);
-                          const isProfit = marginTk >= 0;
-                          return (
-                            <div className="space-y-0.5">
-                              <span className={`inline-flex items-center gap-1 text-[11px] font-black font-mono px-2 py-0.5 rounded-md ${
-                                isProfit 
-                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
-                                  : 'bg-rose-50 text-rose-700 border border-rose-200'
-                              }`}>
-                                {isProfit ? '+' : ''}Tk.{marginTk.toLocaleString('bn-BD')}
-                              </span>
-                              <div className="text-[10px] font-bold text-slate-500 font-mono">
-                                ({marginPercent}% মার্জিন)
-                              </div>
-                            </div>
-                          );
-                        })()
-                      ) : (
-                        <span className="text-[11px] text-slate-400 font-mono">—</span>
-                      )}
-                    </td>
-
-                    {/* Stock & Badges */}
-                    <td className="py-3 px-4 whitespace-nowrap">
-                      <div className="flex flex-col gap-1 items-start">
+                    {/* Active / Inactive Toggle Switch */}
+                    <td className="py-3 px-4 whitespace-nowrap text-center">
+                      <button
+                        type="button"
+                        onClick={(e) => handleToggleProductStatus(p, e)}
+                        title={p.isAvailable ? 'Click to deactivate' : 'Click to activate'}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                          p.isAvailable ? 'bg-teal-600' : 'bg-slate-300'
+                        }`}
+                      >
                         <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                            p.isAvailable && p.stock > 0
-                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                              : 'bg-rose-100 text-rose-800 border border-rose-200'
+                          aria-hidden="true"
+                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                            p.isAvailable ? 'translate-x-5' : 'translate-x-0'
                           }`}
-                        >
-                          {p.isAvailable && p.stock > 0 ? `stock: ${p.stock}` : 'out of stock'}
-                        </span>
+                        />
+                      </button>
+                    </td>
+
+                    {/* Updated Timestamp */}
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      <div className="text-[11px] font-semibold text-slate-700">
+                        {formattedDate}
                       </div>
+                      {updatedDate && (
+                        <div className="text-[10px] text-slate-400 font-mono">
+                          {new Date(updatedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </div>
+                      )}
                     </td>
 
                     {/* Action Buttons */}
@@ -1076,67 +1084,312 @@ export default function ProductManager({
               </button>
             </div>
 
-            {/* TAB-WISE NAVIGATION HEADER */}
-            <div className="bg-slate-50 border-b border-slate-200 px-6 py-2.5 flex items-center gap-2 overflow-x-auto shrink-0 scrollbar-hide">
+            {/* TAB-WISE NAVIGATION HEADER (White clean UI matching screenshot) */}
+            <div className="bg-slate-50/80 border-b border-slate-200 px-6 py-2.5 flex items-center gap-2 overflow-x-auto shrink-0 scrollbar-hide">
+              <button
+                type="button"
+                onClick={() => setActiveTab('overview')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
+                  activeTab === 'overview' ? 'bg-teal-700 text-white shadow-xs' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                <Layers className="h-3.5 w-3.5" />
+                <span>Overview</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => setActiveTab('title-summary')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
                   activeTab === 'title-summary' ? 'bg-teal-700 text-white shadow-xs' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
                 }`}
               >
-                <FileText className="h-4 w-4" />
-                <span>Title and description</span>
+                <FileText className="h-3.5 w-3.5" />
+                <span>Title & Details</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab('price')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
                   activeTab === 'price' ? 'bg-teal-700 text-white shadow-xs' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
                 }`}
               >
-                <span className="text-sm font-black">Tk.</span>
-                <span>Price and Selling</span>
+                <span className="font-bold">৳</span>
+                <span>Price</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab('category')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
                   activeTab === 'category' ? 'bg-teal-700 text-white shadow-xs' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
                 }`}
               >
-                <Tag className="h-4 w-4" />
-                <span>category</span>
+                <Tag className="h-3.5 w-3.5" />
+                <span>Category</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab('image')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
                   activeTab === 'image' ? 'bg-teal-700 text-white shadow-xs' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
                 }`}
               >
-                <ImageIcon className="h-4 w-4" />
-                <span>Photos and Gallery</span>
+                <ImageIcon className="h-3.5 w-3.5" />
+                <span>Photos</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('seo')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
+                  activeTab === 'seo' ? 'bg-teal-700 text-white shadow-xs' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                <Search className="h-3.5 w-3.5" />
+                <span>SEO</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab('publishing')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
                   activeTab === 'publishing' ? 'bg-teal-700 text-white shadow-xs' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
                 }`}
               >
-                <ShieldCheck className="h-4 w-4" />
-                <span>Publishing Control</span>
+                <ShieldCheck className="h-3.5 w-3.5" />
+                <span>Publishing</span>
               </button>
             </div>
 
             {/* Scrollable Form Body */}
             <form onSubmit={handleSubmit} className="p-6 overflow-y-auto text-xs flex-1 space-y-6">
               
+              {/* TAB 0: OVERVIEW (Summary & keywords, Codes, Highlights as requested) */}
+              {activeTab === 'overview' && (
+                <div className="space-y-6 animate-fadeIn">
+                  {/* Summary & keywords */}
+                  <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4 shadow-2xs">
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900">Summary & keywords</h4>
+                      <p className="text-[11px] text-slate-500">Brief summary of the product features and quick keyword tags for searching.</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1.5">Summary</label>
+                      <textarea
+                        rows={3}
+                        value={shortSummary}
+                        onChange={(e) => setShortSummary(e.target.value)}
+                        placeholder="e.g. 28 Pods ( 1 pods can wash 5kg dry cloths)&#10;Detergent + Bacteria & Mites Removal 99.9% + Softener + Long Lasting Fragrances"
+                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-teal-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1.5">Keyword</label>
+                      <div className="flex gap-2 mb-2">
+                        <input
+                          type="text"
+                          id="keyword-quick-input"
+                          placeholder="Type a keyword and press + Add"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              const val = (e.currentTarget.value || '').trim();
+                              if (val) {
+                                const currentKeywords = seoKeywordsText ? seoKeywordsText.split(',').map(s => s.trim()).filter(Boolean) : [];
+                                if (!currentKeywords.includes(val)) {
+                                  setSeoKeywordsText([...currentKeywords, val].join(', '));
+                                }
+                                e.currentTarget.value = '';
+                              }
+                            }
+                          }}
+                          className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-teal-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const input = document.getElementById('keyword-quick-input') as HTMLInputElement | null;
+                            if (input && input.value.trim()) {
+                              const val = input.value.trim();
+                              const currentKeywords = seoKeywordsText ? seoKeywordsText.split(',').map(s => s.trim()).filter(Boolean) : [];
+                              if (!currentKeywords.includes(val)) {
+                                setSeoKeywordsText([...currentKeywords, val].join(', '));
+                              }
+                              input.value = '';
+                            }
+                          }}
+                          className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-xs transition-colors cursor-pointer"
+                        >
+                          + Add
+                        </button>
+                      </div>
+
+                      {/* Keyword pills */}
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {(seoKeywordsText ? seoKeywordsText.split(',').map(s => s.trim()).filter(Boolean) : []).map((kw, i) => (
+                          <span
+                            key={i}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 border border-slate-200 text-slate-700 text-[11px] font-medium rounded-lg"
+                          >
+                            <span>{kw}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const currentKeywords = seoKeywordsText.split(',').map(s => s.trim()).filter(Boolean);
+                                const nextKeywords = currentKeywords.filter((_, idx) => idx !== i);
+                                setSeoKeywordsText(nextKeywords.join(', '));
+                              }}
+                              className="text-slate-400 hover:text-rose-600 cursor-pointer"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {/* Codes Section */}
+                    <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4 shadow-2xs">
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-900">Codes</h4>
+                        <p className="text-[11px] text-slate-500">Inventory identification codes</p>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">SKU</label>
+                          <input
+                            type="text"
+                            value={sku}
+                            onChange={(e) => setSku(e.target.value)}
+                            placeholder="e.g. hvfx1"
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-teal-500"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">Barcode</label>
+                          <input
+                            type="text"
+                            value={barcode}
+                            onChange={(e) => setBarcode(e.target.value)}
+                            placeholder="e.g. 8977718"
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-teal-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Highlights Section with exact switch toggles */}
+                    <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-3 shadow-2xs">
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-900">Highlights</h4>
+                        <p className="text-[11px] text-slate-500">Badges and display controls for the product</p>
+                      </div>
+
+                      <div className="divide-y divide-slate-100 space-y-1">
+                        {/* Featured */}
+                        <div className="flex items-center justify-between py-2.5">
+                          <span className="text-xs font-semibold text-slate-800">Featured</span>
+                          <button
+                            type="button"
+                            onClick={() => setIsFeatured(!isFeatured)}
+                            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                              isFeatured ? 'bg-teal-600' : 'bg-slate-300'
+                            }`}
+                          >
+                            <span
+                              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                                isFeatured ? 'translate-x-5' : 'translate-x-0'
+                              }`}
+                            />
+                          </button>
+                        </div>
+
+                        {/* Campaign */}
+                        <div className="flex items-center justify-between py-2.5">
+                          <span className="text-xs font-semibold text-slate-800">Campaign</span>
+                          <button
+                            type="button"
+                            onClick={() => setIsCampaign(!isCampaign)}
+                            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                              isCampaign ? 'bg-teal-600' : 'bg-slate-300'
+                            }`}
+                          >
+                            <span
+                              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                                isCampaign ? 'translate-x-5' : 'translate-x-0'
+                              }`}
+                            />
+                          </button>
+                        </div>
+
+                        {/* New arrival */}
+                        <div className="flex items-center justify-between py-2.5">
+                          <span className="text-xs font-semibold text-slate-800">New arrival</span>
+                          <button
+                            type="button"
+                            onClick={() => setIsNewArrival(!isNewArrival)}
+                            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                              isNewArrival ? 'bg-teal-600' : 'bg-slate-300'
+                            }`}
+                          >
+                            <span
+                              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                                isNewArrival ? 'translate-x-5' : 'translate-x-0'
+                              }`}
+                            />
+                          </button>
+                        </div>
+
+                        {/* QR code on photo */}
+                        <div className="flex items-center justify-between py-2.5">
+                          <span className="text-xs font-semibold text-slate-800">QR code on photo</span>
+                          <button
+                            type="button"
+                            onClick={() => setAddQrToImage(!addQrToImage)}
+                            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                              addQrToImage ? 'bg-teal-600' : 'bg-slate-300'
+                            }`}
+                          >
+                            <span
+                              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                                addQrToImage ? 'translate-x-5' : 'translate-x-0'
+                              }`}
+                            />
+                          </button>
+                        </div>
+
+                        {/* Barcode on photo */}
+                        <div className="flex items-center justify-between py-2.5">
+                          <span className="text-xs font-semibold text-slate-800">Barcode on photo</span>
+                          <button
+                            type="button"
+                            onClick={() => setAddBarcodeToImage(!addBarcodeToImage)}
+                            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                              addBarcodeToImage ? 'bg-teal-600' : 'bg-slate-300'
+                            }`}
+                          >
+                            <span
+                              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                                addBarcodeToImage ? 'translate-x-5' : 'translate-x-0'
+                              }`}
+                            />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* TAB 1: TITLE & SUMMARY CONTENT */}
               {activeTab === 'title-summary' && (
                 <div className="space-y-6 animate-fadeIn">
@@ -1938,10 +2191,10 @@ export default function ProductManager({
                     <div>
                       <h4 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                         <Search className="h-4 w-4 text-teal-600" />
-                        <span>SEO</span>
+                        <span>SEO & Search Indexing</span>
                       </h4>
                       <p className="text-[11px] text-slate-500">
-                        Google Search results and productof URL take control। If left blank productof general Information will be used।
+                        Configure Meta Title, Meta Description and Search Keywords. (Also editable in the dedicated SEO tab).
                       </p>
                     </div>
 
@@ -1959,68 +2212,229 @@ export default function ProductManager({
                       <input
                         type="text"
                         value={slug}
-                        onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/\\s+/g, '-'))}
+                        onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
                         placeholder="my-awesome-product"
                         className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs font-mono text-slate-900 outline-none focus:ring-2 focus:ring-teal-500"
-                      />
-                    </div>
-
-                    <div>
-                      <div className="mb-1 flex items-center justify-between gap-3">
-                        <label className="block text-[11px] font-bold text-slate-700">SEOMeta Title</label>
-                        <span className={`text-[10px] ${seoTitle.length > 60 ? 'font-bold text-amber-600' : 'text-slate-400'}`}>{seoTitle.length}/60</span>
-                      </div>
-                      <input
-                        type="text"
-                        maxLength={100}
-                        value={seoTitle}
-                        onChange={(e) => setSeoTitle(e.target.value)}
-                        placeholder={title || 'Product title to display on Google'}
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs font-medium text-slate-900 outline-none focus:ring-2 focus:ring-teal-500"
-                      />
-                      <p className="mt-1 text-[10px] text-slate-400">Keep around 50–60 characters for best results.</p>
-                    </div>
-
-                    <div>
-                      <div className="mb-1 flex items-center justify-between gap-3">
-                        <label className="block text-[11px] font-bold text-slate-700">SEOMeta Description</label>
-                        <span className={`text-[10px] ${seoDescription.length > 160 ? 'font-bold text-amber-600' : 'text-slate-400'}`}>{seoDescription.length}/160</span>
-                      </div>
-                      <textarea
-                        rows={2}
-                        maxLength={240}
-                        value={seoDescription}
-                        onChange={(e) => setSeoDescription(e.target.value)}
-                        placeholder={shortSummary || 'Short description to show in Google search'}
-                        className="w-full resize-y rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs leading-relaxed text-slate-900 outline-none focus:ring-2 focus:ring-teal-500"
-                      />
-                      <p className="mt-1 text-[10px] text-slate-400">Keep around 140–160 characters for best results.</p>
-                    </div>
-
-                    <div>
-                      <label className="mb-1 block text-[11px] font-bold text-slate-700">SEO keywords</label>
-                      <textarea
-                        rows={2}
-                        value={seoKeywordsText}
-                        onChange={(e) => setSeoKeywordsText(e.target.value)}
-                        placeholder="such as: book, Simple Quran, Islamic book"
-                        className="w-full resize-y rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-900 outline-none focus:ring-2 focus:ring-teal-500"
                       />
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* {/* Bottom Sticky Action Bar */}
+              {/* TAB 6: SEO (Dedicated tab matching screenshot with Title Format presets & Live Google/Facebook preview) */}
+              {activeTab === 'seo' && (
+                <div className="space-y-6 animate-fadeIn">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Left 2 Cols: Meta Title & Snippet Builder */}
+                    <div className="lg:col-span-2 space-y-5">
+                      <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4 shadow-2xs">
+                        <div>
+                          <h4 className="text-sm font-bold text-slate-900">Meta Title & Snippet Builder</h4>
+                          <p className="text-[11px] text-slate-500">Optimize how this product appears on Google Search and Social Media previews.</p>
+                        </div>
+
+                        {/* Title Format Presets */}
+                        <div className="space-y-2">
+                          <label className="block text-[11px] font-bold text-slate-700">Title Format Presets:</label>
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setSeoTitle(title)}
+                              className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold rounded-lg transition-colors cursor-pointer"
+                            >
+                              + Copy Product Title
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setSeoTitle(`${title} | Official Store`)}
+                              className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold rounded-lg transition-colors cursor-pointer"
+                            >
+                              Title | Store
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setSeoTitle(`Buy ${title} online`)}
+                              className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold rounded-lg transition-colors cursor-pointer"
+                            >
+                              Buy title online
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setSeoTitle(`${title} (Free Shipping)`)}
+                              className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold rounded-lg transition-colors cursor-pointer"
+                            >
+                              Title (Free Shipping)
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Meta Title Input with check icon */}
+                        <div className="space-y-1">
+                          <div className="flex justify-between items-center text-[11px]">
+                            <label className="font-bold text-slate-700">Meta Title ({seoTitle.length}/60 chars)</label>
+                            {seoTitle.length > 0 && <span className="text-emerald-600 font-bold flex items-center gap-0.5"><Check className="h-3 w-3" /> Ready</span>}
+                          </div>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              value={seoTitle}
+                              onChange={(e) => setSeoTitle(e.target.value)}
+                              placeholder={title || 'e.g. 5-in-1 Laundry Pods'}
+                              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-teal-500 pr-9"
+                            />
+                            {seoTitle.length > 0 && (
+                              <div className="absolute right-3 top-2.5 text-emerald-500">
+                                <Check className="h-4 w-4" />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Meta Description Input */}
+                        <div className="space-y-1 pt-2">
+                          <div className="flex justify-between items-center text-[11px]">
+                            <label className="font-bold text-slate-700">Meta Description ({seoDescription.length}/160 chars)</label>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const cleanDesc = (description || shortSummary || title).replace(/<[^>]*>?/gm, '').slice(0, 155);
+                                setSeoDescription(cleanDesc);
+                              }}
+                              className="text-teal-600 hover:underline font-bold text-[10px] cursor-pointer"
+                            >
+                              + Extract from Description
+                            </button>
+                          </div>
+                          <div className="relative">
+                            <textarea
+                              rows={3}
+                              value={seoDescription}
+                              onChange={(e) => setSeoDescription(e.target.value)}
+                              placeholder="e.g. 30 Pods (1 pods can wash 3kg dry cloths) Detergent + Bacteria & Mites Removal 99.9% + Softener"
+                              className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-teal-500"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Write with AI assistant box */}
+                        <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                          <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+                            <Sparkles className="h-3.5 w-3.5 text-teal-600" />
+                            Write with AI
+                          </span>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSeoTitle(`${title || 'Premium Product'} - Best Price & Quality`);
+                                setSeoDescription(`Discover ${title || 'our featured product'}. Top quality, fast courier delivery across Bangladesh. Order online today!`);
+                              }}
+                              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-[11px] font-bold rounded-xl transition-colors cursor-pointer"
+                            >
+                              Write title & description
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(`Create an SEO Title and Meta Description for product: ${title}`);
+                                setFeedback({
+                                  isOpen: true,
+                                  type: 'info',
+                                  title: 'Prompt Copied',
+                                  message: 'AI prompt copied to clipboard!'
+                                });
+                              }}
+                              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-semibold rounded-xl transition-colors cursor-pointer"
+                            >
+                              Copy prompt
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right 1 Col: Google & Facebook Snippet Previews */}
+                    <div className="space-y-4">
+                      <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4 shadow-2xs">
+                        <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Preview</h4>
+
+                        {/* Google Search Result Card */}
+                        <div className="space-y-1.5">
+                          <span className="text-[11px] font-bold text-slate-500">Google</span>
+                          <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1 text-left">
+                            <div className="flex items-center gap-2">
+                              {image && (
+                                <img src={image} alt="preview" className="h-8 w-8 rounded object-cover border border-slate-200 shrink-0" />
+                              )}
+                              <div className="min-w-0">
+                                <span className="text-[10px] text-emerald-700 truncate block">https://yourstore.com › {slug || 'product'}</span>
+                                <h5 className="text-xs font-bold text-blue-700 hover:underline line-clamp-1 leading-snug">
+                                  {seoTitle || title || 'Product Title'}
+                                </h5>
+                              </div>
+                            </div>
+                            <p className="text-[11px] text-slate-600 line-clamp-2 leading-relaxed mt-1">
+                              {seoDescription || shortSummary || 'Product description will appear in Google search snippets like this.'}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Facebook / Social Result Card */}
+                        <div className="space-y-1.5 pt-2">
+                          <span className="text-[11px] font-bold text-slate-500">Facebook</span>
+                          <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1 text-left">
+                            <div className="flex items-center gap-2">
+                              {image && (
+                                <img src={image} alt="preview" className="h-10 w-10 rounded-lg object-cover border border-slate-200 shrink-0" />
+                              )}
+                              <div className="min-w-0">
+                                <span className="text-[10px] text-slate-400 uppercase tracking-wider">YOURSTORE.COM</span>
+                                <h5 className="text-xs font-bold text-slate-900 line-clamp-1">
+                                  {seoTitle || title || 'Product Title'}
+                                </h5>
+                                <p className="text-[10px] text-slate-500 line-clamp-1">
+                                  {seoDescription || shortSummary || 'Product description preview'}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Bottom Sticky Action Bar matching screenshot */}
               <div className="flex items-center justify-between pt-4 pb-2 border-t border-slate-200 bg-white sticky -bottom-6 z-30">
-                <div>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsAvailable(!isAvailable)}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                        isAvailable ? 'bg-teal-600' : 'bg-slate-300'
+                      }`}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                          isAvailable ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                    <span className="text-xs font-bold text-slate-800">
+                      {isAvailable ? 'Published / Active' : 'Draft / Inactive'}
+                    </span>
+                  </div>
+
                   {editingProduct && (
                     <button
                       type="button"
                       onClick={() => setProductToDelete(editingProduct)}
-                      className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
+                      className="ml-3 px-3 py-1.5 text-rose-600 hover:bg-rose-50 font-bold text-xs rounded-xl transition-colors cursor-pointer"
                     >
-                      Delete the product
+                      Delete
                     </button>
                   )}
                 </div>
@@ -2028,10 +2442,18 @@ export default function ProductManager({
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
-                    onClick={() => handleDuplicateProduct()}
-                    className="px-5 py-2.5 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs rounded-xl border border-slate-300 shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-5 py-2.5 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 shadow-xs transition-all cursor-pointer"
                   >
-                    <Copy className="h-4 w-4 text-slate-600" />
+                    Cancel
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleDuplicateProduct()}
+                    className="px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Copy className="h-3.5 w-3.5 text-slate-500" />
                     <span>Duplicate</span>
                   </button>
 
@@ -2039,7 +2461,7 @@ export default function ProductManager({
                     type="submit"
                     className="px-6 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer"
                   >
-                    product save
+                    Save Product
                   </button>
                 </div>
               </div>

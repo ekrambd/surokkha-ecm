@@ -1,13 +1,17 @@
 import crypto from 'crypto';
-import { storeSettings } from '../data/store';
+import { storeSettings, storeModerators } from '../data/store';
+import { StaffPermission } from '../../types';
 
 const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET || 'fantine-store-secure-vps-admin-key-2026';
 
 export interface AdminUserPayload {
   uid: string;
+  name?: string;
   email: string;
   phone?: string;
   admin: boolean;
+  role: 'admin' | 'moderator';
+  permissions?: StaffPermission[];
   iat: number;
   exp: number;
 }
@@ -21,16 +25,19 @@ function base64UrlDecode(str: string): string {
 }
 
 /**
- * Generate a cryptographically signed HMAC-SHA256 JWT for the admin session.
+ * Generate a cryptographically signed HMAC-SHA256 JWT for admin or staff session.
  */
-export function generateAdminToken(user: { uid: string; email: string; phone?: string }): string {
+export function generateAdminToken(user: { uid: string; name?: string; email: string; phone?: string; role?: 'admin' | 'moderator'; permissions?: StaffPermission[] }): string {
   const header = base64UrlEncode(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
   const now = Math.floor(Date.now() / 1000);
   const payload = base64UrlEncode(JSON.stringify({
     uid: user.uid,
+    name: user.name || '',
     email: user.email,
     phone: user.phone || '',
-    admin: true,
+    admin: user.role !== 'moderator',
+    role: user.role || 'admin',
+    permissions: user.permissions || [],
     iat: now,
     exp: now + (30 * 24 * 60 * 60) // 30-day token lifetime
   }));
@@ -78,7 +85,10 @@ export function verifyAdminToken(token: string): AdminUserPayload | null {
 /**
  * Verify login credentials against environment variables and persisted store settings.
  */
-export function verifyAdminCredentials(identifier: string, passwordInput: string): { valid: boolean; user?: { uid: string; email: string; phone: string } } {
+export function verifyAdminCredentials(identifier: string, passwordInput: string): { 
+  valid: boolean; 
+  user?: { uid: string; name?: string; email: string; phone: string; role: 'admin' | 'moderator'; permissions: StaffPermission[] } 
+} {
   const cleanInput = (identifier || '').trim();
   const digitsInput = cleanInput.replace(/\D/g, '');
 
@@ -99,24 +109,52 @@ export function verifyAdminCredentials(identifier: string, passwordInput: string
     (cleanInput.endsWith('fantinebd.com') && digitsInput && digitsInput === digitsEnvPhone)
   );
 
-  if (!isEmailMatch && !isPhoneMatch) {
-    return { valid: false };
-  }
-
-  // Verify against custom password or environment password
-  const validPassword = storedCustomPassword || envPassword;
-  const isPasswordValid = passwordInput === validPassword;
-
-  if (!isPasswordValid) {
-    return { valid: false };
-  }
-
-  return {
-    valid: true,
-    user: {
-      uid: 'admin-vps-root',
-      email: envEmail,
-      phone: envPhone
+  if (isEmailMatch || isPhoneMatch) {
+    const validPassword = storedCustomPassword || envPassword;
+    if (passwordInput === validPassword) {
+      return {
+        valid: true,
+        user: {
+          uid: 'admin-vps-root',
+          name: 'Super Admin',
+          email: envEmail,
+          phone: envPhone,
+          role: 'admin',
+          permissions: [
+            'orders', 'pos', 'inventory', 'products', 'customers', 'coupons', 
+            'flash_sale', 'category_management', 'brand_management', 
+            'landing_setup', 'payment_settings', 'delivery_settings', 
+            'courier_settings', 'pixel_settings', 'profile'
+          ]
+        }
+      };
     }
-  };
+  }
+
+  // Check persisted Staff / Moderator accounts
+  const moderators = storeModerators || [];
+  const foundModerator = moderators.find(m => {
+    if (!m.isActive) return false;
+    const modEmail = (m.email || '').trim().toLowerCase();
+    const modPhone = (m.phone || '').trim().replace(/\D/g, '');
+    const isModEmail = modEmail && cleanInput.toLowerCase() === modEmail;
+    const isModPhone = modPhone && (digitsInput === modPhone || digitsInput.endsWith(modPhone) || modPhone.endsWith(digitsInput));
+    return isModEmail || isModPhone;
+  });
+
+  if (foundModerator && foundModerator.password === passwordInput) {
+    return {
+      valid: true,
+      user: {
+        uid: foundModerator.id,
+        name: foundModerator.name,
+        email: foundModerator.email || `${foundModerator.phone}@staff.local`,
+        phone: foundModerator.phone,
+        role: foundModerator.role || 'moderator',
+        permissions: foundModerator.permissions || []
+      }
+    };
+  }
+
+  return { valid: false };
 }

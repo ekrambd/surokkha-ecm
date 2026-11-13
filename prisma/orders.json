@@ -1,5 +1,58 @@
 [
   {
+    "id": "POS-2026-1737",
+    "createdAt": "2026-11-13T16:52:21.180Z",
+    "status": "Delivered",
+    "_shardMeta": {
+      "shardIndex": 1,
+      "partition": "orders_2026_11"
+    },
+    "customerName": "Walk-in Customer",
+    "phone": "01700000000",
+    "address": "In-store Walk-in Purchase",
+    "orderType": "physical",
+    "paymentMethod": "Cash on Delivery",
+    "totalPrice": 2200,
+    "totalAmount": 2200,
+    "deliveryCharge": 0,
+    "deliveryFee": 0,
+    "quantity": 2,
+    "items": [
+      {
+        "product": {
+          "id": "prod-1792008008951",
+          "title": "🍯 লিচু ফুলের মধু | Lychee Honey",
+          "price": 1000,
+          "regularPrice": 1000,
+          "image": "/uploads/file-1792007998814-75550648.jpg",
+          "category": "Honey",
+          "stock": 100,
+          "isAvailable": true
+        },
+        "quantity": 1,
+        "price": 1000
+      },
+      {
+        "product": {
+          "id": "prod-1792007690982",
+          "title": "সুন্দরবনের খলিশা ফুলের মধু।",
+          "price": 1200,
+          "regularPrice": 1250,
+          "image": "/uploads/file-1792007681242-172108578.jpg",
+          "category": "Honey",
+          "stock": 100,
+          "isAvailable": true
+        },
+        "quantity": 1,
+        "price": 1200
+      }
+    ],
+    "productTitle": "🍯 লিচু ফুলের মধু | Lychee Honey (x1), সুন্দরবনের খলিশা ফুলের মধু। (x1)",
+    "productName": "🍯 লিচু ফুলের মধু | Lychee Honey (x1), সুন্দরবনের খলিশা ফুলের মধু। (x1)",
+    "notes": "POS Sale • Hand over now • Payment: cash",
+    "orderDate": "2026-11-13T16:52:21.180Z"
+  },
+  {
     "id": "ORD-2026-9853",
     "customerName": "Lincon Ahmed",
     "phone": "01521300512",

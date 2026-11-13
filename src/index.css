@@ -1,9 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&family=Anek+Bangla:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: 'Hind Siliguri', 'Plus Jakarta Sans', 'Inter', 'Noto Sans Bengali', system-ui, -apple-system, sans-serif;
-  --font-serif: 'Hind Siliguri', 'Plus Jakarta Sans', 'Noto Sans Bengali', sans-serif;
+  --font-sans: 'Hind Siliguri', 'Noto Sans Bengali', 'Anek Bangla', 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-serif: 'Hind Siliguri', 'Noto Sans Bengali', 'Anek Bangla', sans-serif;
   --color-brand: #F7A800;
   --color-brand-hover: #e09900;
   --color-brand-active: #c98800;
@@ -16,7 +16,7 @@
   }
 
   body {
-    font-family: 'Hind Siliguri', 'Plus Jakarta Sans', 'Inter', 'Noto Sans Bengali', system-ui, -apple-system, sans-serif;
+    font-family: 'Hind Siliguri', 'Noto Sans Bengali', 'Anek Bangla', 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
     background-color: #ffffff;
     color: #0f172a;
     -webkit-font-smoothing: antialiased;
@@ -25,7 +25,7 @@
 
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Hind Siliguri', 'Plus Jakarta Sans', 'Inter', 'Noto Sans Bengali', sans-serif;
+    font-family: 'Hind Siliguri', 'Noto Sans Bengali', 'Anek Bangla', 'Plus Jakarta Sans', sans-serif;
     letter-spacing: -0.01em;
   }
 
@@ -71,23 +71,29 @@ video.hero-bg-video::-webkit-media-controls-start-playback-button {
   pointer-events: none !important;
 }
 
-/* Custom Scrollbar */
+/* Scrollbar Hidden Globally / Clean Look */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 0px;
+  height: 0px;
+  display: none;
 }
 
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
+* {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
 }
 
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 9999px;
+.no-scrollbar::-webkit-scrollbar,
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+  width: 0px;
+  height: 0px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+.no-scrollbar,
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 @media print {

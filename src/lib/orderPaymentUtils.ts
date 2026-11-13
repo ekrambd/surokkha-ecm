@@ -35,12 +35,21 @@ export function isOrderPaid(order?: {
   steadfastStatus?: string | null;
   pathaoStatus?: string | null;
   trxId?: string | null;
+  paidAmount?: number | null;
+  dueAmount?: number | null;
+  totalPrice?: number | null;
+  totalAmount?: number | null;
 } | null): boolean {
   if (!order) return false;
 
   const rawPaymentStatus = (order.paymentStatus || '').trim().toLowerCase();
   if (rawPaymentStatus === 'paid') return true;
-  if (rawPaymentStatus === 'unpaid' || rawPaymentStatus === 'due' || rawPaymentStatus === 'pending') return false;
+  if (rawPaymentStatus === 'unpaid' || rawPaymentStatus === 'due') return false;
+
+  if (typeof order.dueAmount === 'number') {
+    if (order.dueAmount <= 0 && (order.paidAmount || 0) > 0) return true;
+    if (order.dueAmount > 0) return false;
+  }
 
   const isCod = isOrderCod(order.paymentMethod);
 

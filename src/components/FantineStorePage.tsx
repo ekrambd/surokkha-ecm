@@ -1291,6 +1291,11 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
   // Filtered & Sorted Catalog for Shop Page
   const filteredCatalog = useMemo(() => {
     return products.filter(p => {
+      // Hide inactive or unlisted products from public catalog
+      if (p.isAvailable === false || p.isPrivate === true || p.isUnlisted === true) {
+        return false;
+      }
+
       const matchesSearch = !searchTerm.trim() || 
         p.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
         p.description?.toLowerCase().includes(searchTerm.toLowerCase());
