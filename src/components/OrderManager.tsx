@@ -2903,6 +2903,40 @@ export default function OrderManager({
 
                                 <button
                                   type="button"
+                                  onClick={() => handleSteadfastDispatch(order)}
+                                  disabled={dispatchingId === order.id || Boolean(order.steadfastTrackingCode)}
+                                  className="flex w-full items-center gap-3 px-4 py-2 hover:bg-amber-50 hover:text-amber-700 text-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  <Send className="h-4 w-4 text-amber-600" />
+                                  <span>{dispatchingId === order.id ? 'Booking...' : 'Transfer to Steadfast'}</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handlePathaoDispatch(order)}
+                                  disabled={dispatchingId === order.id || Boolean(order.pathaoConsignmentId)}
+                                  className="flex w-full items-center gap-3 px-4 py-2 hover:bg-rose-50 hover:text-rose-700 text-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  <Send className="h-4 w-4 text-rose-600" />
+                                  <span>{dispatchingId === order.id ? 'Booking...' : 'Transfer to Pathao'}</span>
+                                </button>
+
+                                <div className="border-t border-slate-100 my-1.5" />
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenActionMenuOrderId(null);
+                                    openEditOrder(order);
+                                  }}
+                                  className="flex w-full items-center gap-3 px-4 py-2 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                                >
+                                  <Edit3 className="h-4 w-4 text-slate-500" />
+                                  <span>Edit</span>
+                                </button>
+
+                                <button
+                                  type="button"
                                   onClick={() => {
                                     setOpenActionMenuOrderId(null);
                                     handleOpenPrintView('stickers', order);
