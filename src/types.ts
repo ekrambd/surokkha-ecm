@@ -553,7 +553,7 @@ export interface BookOrder {
   trxId?: string;
   senderPhone?: string;
   orderType?: 'landing' | 'physical' | 'store' | 'storefront';
-  source?: string;
+  source?: 'Facebook' | 'Messenger' | 'WhatsApp' | 'Phone Call' | 'Showroom' | 'Website' | 'Landing' | string;
   deliveryArea?: string;
   status: 'Pending' | 'Confirmed' | 'Packaging' | 'Ready for Shipment' | 'Shipped' | 'Delivered' | 'Hold' | 'Under Review' | 'Not Responding' | 'Return' | 'Cancelled' | string;
   createdAt: string;

@@ -134,40 +134,40 @@ export function InvoicePreview({ order, onBack }: Props) {
     : (order.productTitle ? `${order.productTitle} (x${order.quantity || 1})` : ''));
 
   return (
-    <div className="bg-slate-100 min-h-screen p-3 sm:p-6 font-sans">
+    <div className="bg-slate-100 min-h-screen p-3 sm:p-5 font-clean text-xs">
       
       {/* Top Controls Toolbar */}
-      <div className="max-w-4xl mx-auto mb-4 flex flex-wrap items-center justify-between gap-3">
+      <div className="max-w-3xl mx-auto mb-3 flex flex-wrap items-center justify-between gap-2.5">
         <div className="flex items-center gap-2">
           {onBack && (
             <button
               onClick={onBack}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-slate-700 shadow-xs transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 shadow-2xs transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" /> Back to parcel
             </button>
           )}
-          <span className="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-700 shadow-xs">
+          <span className="px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-600 shadow-2xs">
             Label
           </span>
           <button
             onClick={handleWhatsApp}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-medium transition-colors cursor-pointer"
           >
             <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
           </button>
         </div>
 
         {/* Paper Size Selector + Print Button */}
-        <div className="flex items-center gap-2.5">
-          <div className="flex bg-white p-0.5 rounded-lg border border-slate-300 shadow-xs text-xs font-bold">
+        <div className="flex items-center gap-2">
+          <div className="flex bg-white p-0.5 rounded-lg border border-slate-200 shadow-2xs text-xs font-medium">
             {(['A4', 'A5', '3in'] as const).map(fmt => (
               <button
                 key={fmt}
                 onClick={() => setFormat(fmt)}
-                className={`px-3 py-1 rounded-md transition-colors cursor-pointer ${
+                className={`px-2.5 py-1 rounded transition-colors cursor-pointer ${
                   format === fmt 
-                    ? 'bg-slate-900 text-white shadow-xs' 
+                    ? 'bg-slate-900 text-white font-semibold shadow-2xs' 
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -178,9 +178,9 @@ export function InvoicePreview({ order, onBack }: Props) {
 
           <button
             onClick={handlePrint}
-            className="flex items-center gap-1.5 px-4 py-2 bg-[#00A86B] hover:bg-[#00925c] text-white rounded-lg text-xs font-bold shadow-xs transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#00A86B] hover:bg-[#00925c] text-white rounded-lg text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
           >
-            <Printer className="w-4 h-4" /> Print invoice
+            <Printer className="w-3.5 h-3.5" /> Print invoice
           </button>
         </div>
       </div>
@@ -189,76 +189,74 @@ export function InvoicePreview({ order, onBack }: Props) {
       <div className="flex justify-center">
         <div 
           ref={printRef}
-          className={`bg-white border border-slate-300 shadow-md text-slate-900 transition-all ${
+          className={`bg-white border border-slate-200 shadow-sm text-slate-800 transition-all font-clean leading-normal ${
             format === '3in'
-              ? 'w-full max-w-[340px] p-5 rounded-2xl'
+              ? 'w-full max-w-[280px] p-3.5 rounded-xl text-[10px]'
               : format === 'A5'
-              ? 'w-full max-w-[650px] p-8 rounded-2xl'
-              : 'w-full max-w-[760px] p-10 rounded-2xl'
+              ? 'w-full max-w-[500px] p-5 rounded-xl text-[11px]'
+              : 'w-full max-w-[620px] p-6 rounded-xl text-xs'
           }`}
         >
           {/* Header Section */}
-          <div className={`${format === '3in' ? 'space-y-4' : 'flex justify-between items-start gap-4'} mb-4`}>
+          <div className={`${format === '3in' ? 'space-y-3' : 'flex justify-between items-start gap-4'} mb-3`}>
             {/* Merchant Details */}
-            <div className="space-y-0.5 text-xs">
-              <h1 className="text-xl font-black lowercase tracking-tight text-slate-900">{storeName}</h1>
-              <p className="text-slate-600 font-semibold text-[11px]">Merchant ID: {merchantId}</p>
-              <p className="text-slate-600 text-[11px] font-mono">{storePhone}</p>
-              <p className="text-slate-500 text-[10px] leading-relaxed max-w-[280px]">
+            <div className="space-y-0.5">
+              <h1 className="text-base font-bold lowercase tracking-tight text-slate-900">{storeName}</h1>
+              <p className="text-slate-600 text-[10px]">Merchant ID: {merchantId}</p>
+              <p className="text-slate-600 text-[10px] font-mono">{storePhone}</p>
+              <p className="text-slate-500 text-[9px] leading-tight max-w-[240px]">
                 {storeAddress}
               </p>
             </div>
 
             {/* Invoice Meta */}
-            <div className={`${format === '3in' ? 'border-t border-slate-100 pt-3' : 'text-right'} space-y-1`}>
-              <h2 className="text-2xl font-black uppercase tracking-wider text-slate-900">INVOICE</h2>
-              <div className="text-xs space-y-0.5 font-medium">
-                <div className={`flex ${format === '3in' ? 'justify-between' : 'justify-end gap-3'}`}>
-                  <span className="text-slate-500">Invoice no</span>
-                  <span className="font-mono font-bold text-slate-900">#{order.id.replace('ORD-', 'ORD-2026-')}</span>
+            <div className={`${format === '3in' ? 'border-t border-slate-100 pt-2' : 'text-right'} space-y-0.5`}>
+              <h2 className="text-base font-bold uppercase tracking-wider text-slate-900">INVOICE</h2>
+              <div className="text-[10px] space-y-0.5 text-slate-600 font-normal">
+                <div className={`flex ${format === '3in' ? 'justify-between' : 'justify-end gap-2'}`}>
+                  <span className="text-slate-400">Invoice:</span>
+                  <span className="font-mono font-medium text-slate-800">#{order.id.replace('ORD-', '')}</span>
                 </div>
-                <div className={`flex ${format === '3in' ? 'justify-between' : 'justify-end gap-3'}`}>
-                  <span className="text-slate-500">Parcel ID</span>
-                  <span className="font-mono font-bold text-slate-900">{parcelId}</span>
+                <div className={`flex ${format === '3in' ? 'justify-between' : 'justify-end gap-2'}`}>
+                  <span className="text-slate-400">Parcel ID:</span>
+                  <span className="font-mono font-medium text-slate-800">{parcelId}</span>
                 </div>
-                <div className={`flex ${format === '3in' ? 'justify-between' : 'justify-end gap-3'}`}>
-                  <span className="text-slate-500">Date</span>
-                  <span className="font-semibold text-slate-900">{formattedDate}</span>
+                <div className={`flex ${format === '3in' ? 'justify-between' : 'justify-end gap-2'}`}>
+                  <span className="text-slate-400">Date:</span>
+                  <span className="font-medium text-slate-800">{formattedDate}</span>
                 </div>
-                <div className={`flex ${format === '3in' ? 'justify-between' : 'justify-end gap-3'}`}>
-                  <span className="text-slate-500">Tracking</span>
-                  <span className="font-mono font-bold text-slate-900">{trackingNumber}</span>
+                <div className={`flex ${format === '3in' ? 'justify-between' : 'justify-end gap-2'}`}>
+                  <span className="text-slate-400">Tracking:</span>
+                  <span className="font-mono font-medium text-slate-800">{trackingNumber}</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="border-b-2 border-slate-900 my-4"></div>
+          <div className="border-b border-slate-200 my-2.5"></div>
 
-          {/* Deliver To + Real Barcode & QR Code Section */}
-          <div className={`${format === '3in' ? 'space-y-4' : 'flex items-start justify-between gap-6'} mb-6`}>
+          {/* Deliver To + Barcode & QR Code Section */}
+          <div className={`${format === '3in' ? 'space-y-3' : 'flex items-start justify-between gap-4'} mb-3`}>
             {/* Customer Details */}
-            <div className="space-y-1 text-xs">
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500 block">
+            <div className="space-y-0.5">
+              <span className="text-[9px] font-semibold uppercase tracking-widest text-slate-400 block">
                 DELIVER TO
               </span>
-              <h3 className="text-sm font-black text-slate-900">{order.customerName}</h3>
-              <p className="font-mono font-bold text-slate-800 text-xs">{order.phone}</p>
-              <p className="text-slate-600 text-xs max-w-[260px] leading-relaxed">
+              <h3 className="text-xs font-semibold text-slate-900">{order.customerName}</h3>
+              <p className="font-mono font-medium text-slate-700 text-[10px]">{order.phone}</p>
+              <p className="text-slate-600 text-[10px] max-w-[240px] leading-tight">
                 {order.address}{order.thana ? `, ${order.thana}` : ''}{order.district ? `, ${order.district}` : ''}
               </p>
             </div>
 
-            {/* Real Barcode & QR Code Block */}
-            <div className={`flex ${format === '3in' ? 'flex-col items-center gap-3 pt-2' : 'items-center gap-4'} shrink-0`}>
-              {/* Real Code128 Barcode rendered with SVG */}
+            {/* Barcode & QR Code Block */}
+            <div className={`flex ${format === '3in' ? 'flex-col items-center gap-2 pt-1' : 'items-center gap-3'} shrink-0`}>
               <div className="flex flex-col items-center">
-                <svg ref={barcodeRef} className="max-w-[200px] h-auto"></svg>
+                <svg ref={barcodeRef} className="max-w-[150px] h-auto"></svg>
               </div>
 
-              {/* Real QR Code */}
               {qrCodeDataUrl && (
-                <div className="w-[74px] h-[74px] border border-slate-200 rounded p-0.5 shrink-0 bg-white shadow-2xs">
+                <div className="w-[50px] h-[50px] border border-slate-200 rounded p-0.5 shrink-0 bg-white">
                   <img src={qrCodeDataUrl} alt="QR Code" className="w-full h-full object-contain" />
                 </div>
               )}
@@ -266,51 +264,45 @@ export function InvoicePreview({ order, onBack }: Props) {
           </div>
 
           {/* Description & Amount Table */}
-          <div className="mb-4">
-            <div className="flex justify-between items-center text-[11px] font-black uppercase tracking-wider text-slate-600 pb-2 border-b border-slate-200">
+          <div className="mb-3">
+            <div className="flex justify-between items-center text-[10px] font-semibold uppercase tracking-wider text-slate-500 pb-1.5 border-b border-slate-200">
               <span>DESCRIPTION</span>
               <span>AMOUNT</span>
             </div>
             
-            <div className="py-3 flex justify-between items-center text-xs border-b border-slate-100">
-              <span className="font-bold text-slate-900">Parcel #{parcelId}</span>
-              <span className="font-mono font-bold text-slate-900">৳{totalAmount.toLocaleString()}</span>
-            </div>
-
-            <div className="pt-2 text-xs">
-              <button className="text-[#00A86B] hover:underline font-bold text-xs inline-flex items-center gap-1 cursor-pointer">
-                + Add item description
-              </button>
+            <div className="py-2 flex justify-between items-center text-[11px] border-b border-slate-100">
+              <span className="font-medium text-slate-800">Parcel #{parcelId}</span>
+              <span className="font-mono font-semibold text-slate-900">৳{totalAmount.toLocaleString()}</span>
             </div>
           </div>
 
           {/* Amount To Collect Box */}
-          <div className="my-5 p-3 sm:p-4 rounded-xl border-2 border-[#52c41a] bg-[#f6ffed] flex items-center justify-between">
-            <span className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-900">
-              AMOUNT TO COLLECT
+          <div className="my-3 p-2.5 sm:p-3 rounded-lg border border-emerald-400 bg-emerald-50/60 flex items-center justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-emerald-900">
+              AMOUNT TO COLLECT (COD)
             </span>
-            <span className="text-xl sm:text-2xl font-black font-mono text-slate-900">
+            <span className="text-base sm:text-lg font-bold font-mono text-emerald-800">
               ৳{totalAmount.toLocaleString()}
             </span>
           </div>
 
           {/* Note Section */}
           {noteContent && (
-            <div className="border-l-2 border-slate-300 pl-3 py-1 my-4 text-xs">
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 block mb-0.5">
+            <div className="border-l-2 border-slate-200 pl-2.5 py-0.5 my-2.5 text-[10px]">
+              <span className="text-[8px] font-semibold uppercase tracking-widest text-slate-400 block">
                 NOTE
               </span>
-              <p className="text-slate-800 font-medium leading-relaxed">{noteContent}</p>
+              <p className="text-slate-700 leading-snug">{noteContent}</p>
             </div>
           )}
 
           {/* Footer with Powered by Steadfast */}
-          <div className="pt-6 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-[11px] text-slate-400">
+          <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-[10px] text-slate-400">
             <span>Thank you for your order.</span>
-            <div className="flex items-center gap-1.5 font-medium">
+            <div className="flex items-center gap-1.5 font-normal">
               <span>Powered by</span>
-              <span className="font-black text-slate-900 flex items-center gap-1">
-                <svg className="w-3.5 h-3.5 text-[#00A86B] fill-current" viewBox="0 0 24 24">
+              <span className="font-semibold text-slate-700 flex items-center gap-1">
+                <svg className="w-3 h-3 text-[#00A86B] fill-current" viewBox="0 0 24 24">
                   <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                 </svg>
                 steadfast

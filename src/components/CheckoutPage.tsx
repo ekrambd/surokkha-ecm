@@ -127,16 +127,16 @@ export default function CheckoutPage({
 
   // Free delivery logic: Store threshold OR product-level "Free delivery" toggle
   const isFreeDelivery = useMemo(() => {
+    const minPurchase = Number(liveSettings?.freeDeliveryMinPurchase || 0);
     const storeWideFree = Boolean(
       liveSettings?.freeDeliveryEnabled && 
-      liveSettings?.freeDeliveryMinPurchase && 
-      cartSubtotal >= liveSettings.freeDeliveryMinPurchase
+      (minPurchase === 0 || cartSubtotal >= minPurchase)
     );
 
     const productFree = cart.length > 0 && cart.some(item => 
-      item.product.deliveryChargeEnabled === false || 
+      (item.product as any).isFreeDelivery === true ||
       (item.product as any).freeDelivery === true ||
-      (item.product as any).isFreeDelivery === true
+      item.product.deliveryChargeEnabled === false
     );
 
     return storeWideFree || productFree;

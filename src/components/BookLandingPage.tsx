@@ -525,8 +525,10 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
 
   const selectedDeliveryMethod = activeDeliveryMethods.find(m => m.id === selectedDeliveryMethodId) || activeDeliveryMethods[0];
   const subtotal = (displayPrice || 0) * quantity;
-  const isProductFreeDelivery = product?.deliveryChargeEnabled === false || (product as any)?.freeDelivery === true;
-  const isFreeDelivery = isProductFreeDelivery || (Boolean((storeSettings as any)?.freeDeliveryEnabled || storeSettings?.freeDeliveryActive) && subtotal >= Number((storeSettings as any)?.freeDeliveryMinPurchase || (storeSettings as any)?.freeDeliveryMinAmount || 0));
+  const isProductFreeDelivery = (product as any)?.isFreeDelivery === true || (product as any)?.freeDelivery === true || product?.deliveryChargeEnabled === false;
+  const minFreePurchase = Number((storeSettings as any)?.freeDeliveryMinPurchase || (storeSettings as any)?.freeDeliveryMinAmount || 0);
+  const isStoreWideFree = Boolean((storeSettings as any)?.freeDeliveryEnabled || storeSettings?.freeDeliveryActive) && (minFreePurchase === 0 || subtotal >= minFreePurchase);
+  const isFreeDelivery = isProductFreeDelivery || isStoreWideFree;
 
   const deliveryCalc = useMemo(() => {
     return calculateDeliveryCharge({

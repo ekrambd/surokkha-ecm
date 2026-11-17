@@ -1,6 +1,3 @@
-const db = null;
-const isFirebaseEnabled = false;
-const auth = null;
 import { BookOrder, Product, EcomSettings, Customer, PaymentGatewayItem, DeliveryMethodItem, Coupon, LandingPageData, InstituteInfo, Review, Brand, ContactMessage, ModeratorUser, StaffSalaryPayment } from '../types';
 import { ApiClient } from '../services/apiClient';
 
@@ -393,22 +390,7 @@ export const dbService = {
       keysToCheck.push('landing_page_default');
     }
 
-    if (isFirebaseEnabled && db) {
-      for (const key of keysToCheck) {
-        try {
-          const docRef = doc(db, 'settings', key);
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists()) {
-            const data = docSnap.data() as LandingPageData;
-            setLocalData(`noor_${key}`, data);
-            return { ...DEFAULT_LANDING_PAGE_SETTINGS, ...data };
-          }
-        } catch (e) {
-          console.warn(`Error reading landing page settings for ${key} from Firestore:`, e);
-        }
-      }
-    }
-
+    
     for (const key of keysToCheck) {
       const saved = getLocalData<LandingPageData | null>(`noor_${key}`, null);
       if (saved) {
@@ -457,24 +439,7 @@ export const dbService = {
     if (settings.slug) statusMap[settings.slug] = isEnabled;
     setLocalData('noor_landing_status_map', statusMap);
 
-    if (isFirebaseEnabled && db) {
-      try {
-        const sanitized = sanitizeForFirestore(settingsWithEnabled);
-        for (const key of keysToSave) {
-          await setDoc(doc(db, 'settings', key), sanitized, { merge: true });
-        }
-        await setDoc(doc(db, 'settings', 'customized_landing_slugs_index'), { slugs: updatedSlugs }, { merge: true });
-        if (settings.productId || settings.slug) {
-          await setDoc(doc(db, 'settings', 'product_landing_status_map'), {
-            ...(settings.productId ? { [settings.productId]: isEnabled } : {}),
-            ...(settings.slug ? { [settings.slug]: isEnabled } : {})
-          }, { merge: true });
-        }
-      } catch (e) {
-        console.error('Error saving landing page settings to Firestore:', e);
-      }
-    }
-
+    
     window.dispatchEvent(new Event('landing-page-settings-updated'));
   },
 
@@ -485,14 +450,7 @@ export const dbService = {
       if (existing) {
         const updated = { ...existing, isEnabled };
         setLocalData(`noor_${key}`, updated);
-        if (isFirebaseEnabled && db) {
-          try {
-            await setDoc(doc(db, 'settings', key), { isEnabled }, { merge: true });
-          } catch (e) {
-            console.error('Error toggling landing page status in Firestore:', e);
-          }
-        }
-      }
+              }
     }
 
     const statusMap = getLocalData<Record<string, boolean>>('noor_landing_status_map', {});
@@ -500,49 +458,16 @@ export const dbService = {
     statusMap[slug] = isEnabled;
     setLocalData('noor_landing_status_map', statusMap);
     
-    if (isFirebaseEnabled && db) {
-      try {
-        await setDoc(doc(db, 'settings', 'product_landing_status_map'), { [productId]: isEnabled, [slug]: isEnabled }, { merge: true });
-      } catch (e) {
-        // ignore
-      }
-    }
-
+    
     window.dispatchEvent(new Event('landing-page-settings-updated'));
   },
 
   async getLandingStatusMap(): Promise<Record<string, boolean>> {
-    if (isFirebaseEnabled && db) {
-      try {
-        const docRef = doc(db, 'settings', 'product_landing_status_map');
-        const snap = await getDoc(docRef);
-        if (snap.exists()) {
-          const map = snap.data() as Record<string, boolean>;
-          setLocalData('noor_landing_status_map', map);
-          return map;
-        }
-      } catch (e) {
-        // ignore
-      }
-    }
-    return getLocalData<Record<string, boolean>>('noor_landing_status_map', {});
+        return getLocalData<Record<string, boolean>>('noor_landing_status_map', {});
   },
 
   async getCustomizedLandingSlugs(): Promise<string[]> {
-    if (isFirebaseEnabled && db) {
-      try {
-        const docRef = doc(db, 'settings', 'customized_landing_slugs_index');
-        const snap = await getDoc(docRef);
-        if (snap.exists() && snap.data()?.slugs) {
-          const slugs = snap.data().slugs as string[];
-          setLocalData('noor_customized_landing_slugs', slugs);
-          return slugs;
-        }
-      } catch (e) {
-        // ignore
-      }
-    }
-    return getLocalData<string[]>('noor_customized_landing_slugs', []);
+        return getLocalData<string[]>('noor_customized_landing_slugs', []);
   },
 
   async getInstituteInfo(): Promise<InstituteInfo> {
@@ -558,20 +483,7 @@ export const dbService = {
       // offline / fallback
     }
 
-    if (isFirebaseEnabled && db) {
-      try {
-        const docRef = doc(db, 'settings', 'institute_info');
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = migrateBusinessPhone(docSnap.data() as InstituteInfo);
-          setLocalData('noor_institute_info', data);
-          return data;
-        }
-      } catch (e) {
-        console.warn('Error reading institute info from Firestore:', e);
-      }
-    }
-
+    
     const saved = getLocalData<InstituteInfo | null>('noor_institute_info', null);
     if (saved && saved.name) {
       return migrateBusinessPhone(saved);
@@ -627,14 +539,7 @@ export const dbService = {
       console.warn('Could not save institute info to server API:', e);
     }
 
-    if (isFirebaseEnabled && db) {
-      try {
-        await setDoc(doc(db, 'settings', 'institute_info'), sanitizedInfo, { merge: true });
-      } catch (e) {
-        console.error('Error saving institute info to Firestore:', e);
-      }
-    }
-
+    
     window.dispatchEvent(new Event('institute-info-updated'));
   },
 
@@ -669,25 +574,7 @@ export const dbService = {
       // Server fetch failed, fall through to Firestore / localStorage
     }
 
-    if (isFirebaseEnabled && db) {
-      try {
-        const querySnapshot = await getDocs(collection(db, 'book_orders'));
-        const orders: BookOrder[] = [];
-        querySnapshot.forEach((docSnap) => {
-          const data = docSnap.data() as BookOrder;
-          if (data.id !== 'ORD-2026-001') {
-            orders.push({ ...data, id: docSnap.id });
-          }
-        });
-        setLocalData('noor_book_orders', orders);
-        const sortedOrders = orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        this._ordersCache = { data: sortedOrders, timestamp: Date.now() };
-        return sortedOrders;
-      } catch (error) {
-        handleFirestoreError(error, OperationType.LIST, 'book_orders');
-      }
-    }
-    const orders = getLocalData<BookOrder[]>('noor_book_orders', []).filter(o => o.id !== 'ORD-2026-001');
+        const orders = getLocalData<BookOrder[]>('noor_book_orders', []).filter(o => o.id !== 'ORD-2026-001');
     const sorted = orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     this._ordersCache = { data: sorted, timestamp: Date.now() };
     return sorted;
@@ -714,15 +601,7 @@ export const dbService = {
       console.warn('ApiClient.createOrder failed (local fallback):', err);
     }
 
-    if (isFirebaseEnabled && db) {
-      try {
-        const sanitized = sanitizeForFirestore(order);
-        await setDoc(doc(db, 'book_orders', order.id), sanitized);
-      } catch (error) {
-        handleFirestoreError(error, OperationType.CREATE, `book_orders/${order.id}`);
-      }
-    }
-
+    
     const localList = getLocalData<BookOrder[]>('noor_book_orders', []);
     const updated = [order, ...localList.filter(o => o.id !== order.id)];
     setLocalData('noor_book_orders', updated);
@@ -750,15 +629,7 @@ export const dbService = {
       await ApiClient.updateOrder(order);
     } catch {}
 
-    if (isFirebaseEnabled && db) {
-      try {
-        const sanitized = sanitizeForFirestore(order);
-        await setDoc(doc(db, 'book_orders', order.id), sanitized, { merge: true });
-      } catch (error) {
-        handleFirestoreError(error, OperationType.UPDATE, `book_orders/${order.id}`);
-      }
-    }
-
+    
     const localOrders = getLocalData<BookOrder[]>('noor_book_orders', []);
     const updated = localOrders.map(o => o.id === order.id ? order : o);
     setLocalData('noor_book_orders', updated);
@@ -782,14 +653,7 @@ export const dbService = {
       console.warn('Failed deleting order from server API:', e);
     }
 
-    if (isFirebaseEnabled && db) {
-      try {
-        await deleteDoc(doc(db, 'book_orders', id));
-      } catch (error) {
-        handleFirestoreError(error, OperationType.DELETE, `book_orders/${id}`);
-      }
-    }
-
+    
     const orders = await this.getBookOrders();
     this._ordersCache = null; // invalidate cache
     const updated = orders.filter(o => o.id !== id);
@@ -799,54 +663,7 @@ export const dbService = {
 
   // --- E-Commerce Products Management ---
   async getProductsPaginated(limitCount = 20, lastDocRef?: any): Promise<{ products: Product[], lastDoc: any }> {
-    if (isFirebaseEnabled && db) {
-      try {
-        let q = collection(db, 'ecom_products');
-        let queryConstraints: any[] = [limit(limitCount)];
-        if (lastDocRef) {
-          queryConstraints.push(startAfter(lastDocRef));
-        }
-        
-        const querySnapshot = await getDocs(query(q, ...queryConstraints));
-        const productsMap = new Map<string, Product>();
-
-        querySnapshot.forEach((docSnap) => {
-          const data = docSnap.data() as Product;
-          if (!data.id?.startsWith('prod-book-01') && !data.id?.startsWith('prod-map-holder') && !data.id?.startsWith('prod-gunia') && !data.id?.startsWith('prod-tape')) {
-            productsMap.set(docSnap.id, { ...data, id: docSnap.id });
-          }
-        });
-
-        if (productsMap.size === 0 && !lastDocRef) {
-          try {
-            const legacySnap = await getDocs(query(collection(db, 'products'), limit(limitCount)));
-            legacySnap.forEach((docSnap) => {
-              const data = docSnap.data() as Product;
-              if (docSnap.id && !productsMap.has(docSnap.id)) {
-                if (!data.id?.startsWith('prod-book-01') && !data.id?.startsWith('prod-map-holder') && !data.id?.startsWith('prod-gunia') && !data.id?.startsWith('prod-tape')) {
-                  productsMap.set(docSnap.id, { ...data, id: docSnap.id });
-                }
-              }
-            });
-            return {
-              products: Array.from(productsMap.values()),
-              lastDoc: legacySnap.docs[legacySnap.docs.length - 1]
-            };
-          } catch (e) {
-            console.error('Legacy fallback failed:', e);
-          }
-        }
-
-        return {
-          products: Array.from(productsMap.values()),
-          lastDoc: querySnapshot.docs[querySnapshot.docs.length - 1]
-        };
-      } catch (err) {
-        console.error('Error fetching paginated products:', err);
         return { products: [], lastDoc: null };
-      }
-    }
-    return { products: [], lastDoc: null };
   },
 
   async getProducts(): Promise<Product[]> {
@@ -1000,20 +817,7 @@ export const dbService = {
       }
     }
 
-    if (isFirebaseEnabled && db) {
-      try {
-        const docRef = doc(db, 'settings', 'ecom_settings');
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data() as EcomSettings;
-          result = { ...result, ...data };
-          setLocalData('noor_ecom_settings', stripIntegrationSecrets(result));
-        }
-      } catch (e) {
-        console.warn('Error reading ecom settings from Firestore:', e);
-      }
-    }
-
+    
     // Ensure categoryItems exists if categories exists
     if ((!result.categoryItems || result.categoryItems.length === 0) && result.categories && result.categories.length > 0) {
       result.categoryItems = result.categories.map((c, idx) => ({
@@ -1065,21 +869,7 @@ export const dbService = {
       console.warn('Could not save ecom settings to server API:', e);
     }
 
-    if (isFirebaseEnabled && db) {
-      try {
-        const sanitized = sanitizeForFirestore(safeSettings);
-        await setDoc(doc(db, 'settings', 'ecom_settings'), {
-          ...sanitized,
-          pixelId: deleteField(),
-          metaApiToken: deleteField(),
-          steadfastApiKey: deleteField(),
-          steadfastSecretKey: deleteField()
-        }, { merge: true });
-      } catch (e) {
-        console.error('Error saving ecom settings to Firestore:', e);
-      }
-    }
-
+    
     window.dispatchEvent(new Event('ecom-settings-updated'));
   },
 
@@ -1127,18 +917,7 @@ export const dbService = {
     const cleanPhone = phone.trim().replace(/\s+/g, '');
     if (!cleanPhone) return null;
 
-    if (isFirebaseEnabled && db) {
-      try {
-        const docRef = doc(db, 'ecom_customers', cleanPhone);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          return { id: docSnap.id, ...docSnap.data() } as Customer;
-        }
-      } catch (e) {
-        console.warn('Firestore getCustomerByPhone failed:', e);
-      }
-    }
-
+    
     const customers = getLocalData<Customer[]>('noor_registered_customers', []);
     const found = customers.find(c => c.phone.replace(/\s+/g, '') === cleanPhone);
     if (found) return found;
@@ -1171,20 +950,7 @@ export const dbService = {
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail) return null;
 
-    if (isFirebaseEnabled && db) {
-      try {
-        const querySnapshot = await getDocs(collection(db, 'ecom_customers'));
-        for (const docSnap of querySnapshot.docs) {
-          const data = docSnap.data() as Customer;
-          if ((data.email || '').trim().toLowerCase() === cleanEmail) {
-            return { id: docSnap.id, ...data };
-          }
-        }
-      } catch (e) {
-        console.warn('Firestore getCustomerByEmail failed:', e);
-      }
-    }
-
+    
     const customers = getLocalData<Customer[]>('noor_registered_customers', []);
     const found = customers.find(c => (c.email || '').trim().toLowerCase() === cleanEmail);
     if (found) return found;
@@ -1218,15 +984,7 @@ export const dbService = {
   },
 
   async saveCustomer(customer: Customer): Promise<void> {
-    if (isFirebaseEnabled && db) {
-      try {
-        const sanitized = sanitizeForFirestore(customer);
-        await setDoc(doc(db, 'ecom_customers', customer.id), sanitized, { merge: true });
-      } catch (e) {
-        console.warn('Firestore saveCustomer failed:', e);
-      }
-    }
-
+    
     const customers = getLocalData<Customer[]>('noor_registered_customers', []);
     const updated = [customer, ...customers.filter(c => c.id !== customer.id)];
     setLocalData('noor_registered_customers', updated);
@@ -1330,21 +1088,7 @@ export const dbService = {
   // CUSTOMER COUPONS MANAGEMENT
   // ==========================================
   async getCoupons(): Promise<Coupon[]> {
-    if (isFirebaseEnabled && db) {
-      try {
-        const querySnapshot = await getDocs(collection(db, 'coupons'));
-        if (!querySnapshot.empty) {
-          const list: Coupon[] = [];
-          querySnapshot.forEach(docSnap => {
-            list.push({ id: docSnap.id, ...docSnap.data() } as Coupon);
-          });
-          return list;
-        }
-      } catch (e) {
-        console.warn('Firestore coupons fetch failed, using local/defaults:', e);
-      }
-    }
-
+    
     try {
       const res = await fetch('/api/coupons');
       if (res.ok) {
@@ -1376,14 +1120,7 @@ export const dbService = {
       console.warn('Failed saving coupon to server API:', e);
     }
 
-    if (isFirebaseEnabled && db) {
-      try {
-        await setDoc(doc(db, 'coupons', id), newCoupon);
-      } catch (e) {
-        console.warn('Firestore add coupon error:', e);
-      }
-    }
-
+    
     const existing = await this.getCoupons();
     const updated = [newCoupon, ...existing.filter(c => c.id !== id)];
     setLocalData('noor_coupons', updated);
@@ -1401,14 +1138,7 @@ export const dbService = {
       console.warn('Failed updating coupon on server API:', e);
     }
 
-    if (isFirebaseEnabled && db) {
-      try {
-        await setDoc(doc(db, 'coupons', coupon.id), coupon, { merge: true });
-      } catch (e) {
-        console.warn('Firestore update coupon error:', e);
-      }
-    }
-
+    
     const existing = await this.getCoupons();
     const updated = existing.map(c => c.id === coupon.id ? coupon : c);
     setLocalData('noor_coupons', updated);
@@ -1425,14 +1155,7 @@ export const dbService = {
       console.warn('Failed deleting coupon on server API:', e);
     }
 
-    if (isFirebaseEnabled && db) {
-      try {
-        await deleteDoc(doc(db, 'coupons', id));
-      } catch (e) {
-        console.warn('Firestore delete coupon error:', e);
-      }
-    }
-
+    
     const existing = await this.getCoupons();
     const updated = existing.filter(c => c.id !== id);
     setLocalData('noor_coupons', updated);
@@ -1512,14 +1235,7 @@ export const dbService = {
       createdAt: review.createdAt || new Date().toISOString()
     };
     
-    if (isFirebaseEnabled && db) {
-      try {
-        await setDoc(doc(db, 'reviews', finalReview.id), finalReview);
-      } catch (error) {
-        console.error('Error saving review to Firestore:', error);
-      }
-    }
-    
+        
     // Save to local storage as fallback/cache
     const current = getLocalData<Review[]>('noor_reviews', []);
     current.push(finalReview);
@@ -1529,19 +1245,7 @@ export const dbService = {
   },
 
   async getReviews(productId?: string, customerPhone?: string): Promise<Review[]> {
-    if (isFirebaseEnabled && db) {
-      try {
-        const querySnapshot = await getDocs(collection(db, 'reviews'));
-        const list: Review[] = [];
-        querySnapshot.forEach((docSnap) => {
-          list.push(docSnap.data() as Review);
-        });
-        setLocalData('noor_reviews', list);
-      } catch (error) {
-        console.warn('Error reading reviews from Firestore:', error);
-      }
-    }
-    
+        
     let list = getLocalData<Review[]>('noor_reviews', []);
     if (productId) {
       list = list.filter(r => r.productId === productId);
@@ -1553,20 +1257,7 @@ export const dbService = {
   },
 
   async getBrands(): Promise<Brand[]> {
-    if (isFirebaseEnabled && db) {
-      try {
-        const querySnapshot = await getDocs(collection(db, 'brands'));
-        const list: Brand[] = [];
-        querySnapshot.forEach((docSnap) => {
-          list.push({ ...(docSnap.data() as Brand), id: docSnap.id });
-        });
-        setLocalData('noor_brands', list);
-        return list;
-      } catch (error) {
-        console.warn('Error reading brands from Firestore:', error);
-      }
-    }
-
+    
     try {
       const res = await fetch('/api/brands');
       if (res.ok) {
@@ -1600,15 +1291,7 @@ export const dbService = {
       console.warn('Failed saving brand to server API:', e);
     }
 
-    if (isFirebaseEnabled && db) {
-      try {
-        const sanitized = sanitizeForFirestore(finalBrand);
-        await setDoc(doc(db, 'brands', finalBrand.id), sanitized, { merge: true });
-      } catch (error) {
-        console.error('Error saving brand to Firestore:', error);
-      }
-    }
-
+    
     const current = await this.getBrands();
     const existingIndex = current.findIndex(b => b.id === finalBrand.id);
     let updated: Brand[];
@@ -1634,14 +1317,7 @@ export const dbService = {
       console.warn('Failed deleting brand on server API:', e);
     }
 
-    if (isFirebaseEnabled && db) {
-      try {
-        await deleteDoc(doc(db, 'brands', id));
-      } catch (error) {
-        console.error('Error deleting brand from Firestore:', error);
-      }
-    }
-
+    
     const current = await this.getBrands();
     const updated = current.filter(b => b.id !== id);
     setLocalData('noor_brands', updated);
@@ -1650,40 +1326,14 @@ export const dbService = {
   },
 
   async saveBrands(brands: Brand[]): Promise<void> {
-    if (isFirebaseEnabled && db) {
-      try {
-        for (const b of brands) {
-          const sanitized = sanitizeForFirestore(b);
-          await setDoc(doc(db, 'brands', b.id), sanitized, { merge: true });
-        }
-      } catch (error) {
-        console.error('Error batch saving brands to Firestore:', error);
-      }
-    }
-    setLocalData('noor_brands', brands);
+        setLocalData('noor_brands', brands);
     window.dispatchEvent(new CustomEvent('brands-updated', { detail: brands }));
     window.dispatchEvent(new CustomEvent('ecom-brands-updated', { detail: brands }));
   },
 
   // --- Contact Form Messages Management ---
   async getContactMessages(): Promise<ContactMessage[]> {
-    if (isFirebaseEnabled && db) {
-      try {
-        const q = query(collection(db, 'contact_messages'), orderBy('createdAt', 'desc'));
-        const snap = await getDocs(q);
-        if (!snap.empty) {
-          const list: ContactMessage[] = [];
-          snap.forEach(docSnap => {
-            list.push({ ...(docSnap.data() as ContactMessage), id: docSnap.id });
-          });
-          setLocalData('noor_contact_messages', list);
-          return list;
-        }
-      } catch (e) {
-        console.warn('Error reading contact messages from Firestore:', e);
-      }
-    }
-    return getLocalData<ContactMessage[]>('noor_contact_messages', []);
+        return getLocalData<ContactMessage[]>('noor_contact_messages', []);
   },
 
   async saveContactMessage(message: Partial<ContactMessage>): Promise<ContactMessage> {
@@ -1699,14 +1349,7 @@ export const dbService = {
       replyNote: message.replyNote || ''
     };
 
-    if (isFirebaseEnabled && db) {
-      try {
-        await setDoc(doc(db, 'contact_messages', msgToSave.id), msgToSave);
-      } catch (e) {
-        console.error('Error saving contact message to Firestore:', e);
-      }
-    }
-
+    
     const current = await this.getContactMessages();
     const updated = [msgToSave, ...current.filter(m => m.id !== msgToSave.id)];
     setLocalData('noor_contact_messages', updated);
@@ -1715,14 +1358,7 @@ export const dbService = {
   },
 
   async updateContactMessage(message: ContactMessage): Promise<ContactMessage> {
-    if (isFirebaseEnabled && db) {
-      try {
-        await setDoc(doc(db, 'contact_messages', message.id), message, { merge: true });
-      } catch (e) {
-        console.error('Error updating contact message in Firestore:', e);
-      }
-    }
-
+    
     const current = await this.getContactMessages();
     const updated = current.map(m => m.id === message.id ? message : m);
     setLocalData('noor_contact_messages', updated);
@@ -1731,14 +1367,7 @@ export const dbService = {
   },
 
   async deleteContactMessage(id: string): Promise<void> {
-    if (isFirebaseEnabled && db) {
-      try {
-        await deleteDoc(doc(db, 'contact_messages', id));
-      } catch (e) {
-        console.error('Error deleting contact message from Firestore:', e);
-      }
-    }
-
+    
     const current = await this.getContactMessages();
     const updated = current.filter(m => m.id !== id);
     setLocalData('noor_contact_messages', updated);
@@ -1926,27 +1555,11 @@ export function subscribeToOrders(
     }).catch(() => {});
   }, 2500);
 
-  // 5. Firebase fallback if enabled
-  let firebaseUnsub: (() => void) | null = null;
-  if (isFirebaseEnabled && db) {
-    try {
-      const q = query(collection(db, 'book_orders'), orderBy('createdAt', 'desc'));
-      firebaseUnsub = onSnapshot(q, (snapshot) => {
-        const orders: BookOrder[] = [];
-        snapshot.forEach((docSnap) => {
-          orders.push({ ...(docSnap.data() as BookOrder), id: docSnap.id });
-        });
-        if (isSubscribed) onData(orders);
-      }, () => {});
-    } catch {}
-  }
-
   return () => {
     isSubscribed = false;
     clearInterval(pollInterval);
     if (channel) channel.close();
     if (eventSource) eventSource.close();
-    if (firebaseUnsub) firebaseUnsub();
     window.removeEventListener('book-orders-updated', handleOrderNotification);
     window.removeEventListener('storage', handleStorage);
   };

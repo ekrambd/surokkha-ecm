@@ -14,7 +14,9 @@ function injectServerMeta(html: string, reqPath: string, host: string, proto: st
   let title = storeSettings?.storeName?.trim()
     ? (storeSettings?.storeTagline?.trim() ? `${storeName} - ${storeTagline} | স্বস্তির বাজার Official Store` : `${storeName} - COMFORT TO WELLNESS | স্বস্তির বাজার Official Store`)
     : "SHOSTIR BAZAR - COMFORT TO WELLNESS | স্বস্তির বাজার Official Store";
-  let description = storeSettings?.storeTagline?.trim() || storeSettings?.footerDescription?.trim() || "SHOSTIR BAZAR (স্বস্তির বাজার) - COMFORT TO WELLNESS. Discover premium organic dates, fresh dry fruits, raw nuts, seeds, and healthy lifestyle products delivered across Bangladesh.";
+  let description = (storeSettings?.footerDescription && storeSettings.footerDescription.trim().length > 30)
+    ? storeSettings.footerDescription.trim()
+    : "স্বস্তির বাজার (SHOSTIR BAZAR / Sosthir Bazar / Sostir Bazar) - COMFORT TO WELLNESS. খাঁটি ও প্রিমিয়াম অর্গানিক মধু, গাওয়া ঘি, প্রিমিয়াম খেজুর, ড্রাই ফ্রুটস ও পুষ্টিকর খাদ্য। সারা বাংলাদেশে ক্যাশ অন ডেলিভারি।";
   
   // Use user-uploaded logo/favicon if configured, otherwise use real brand assets
   const uploadedLogo = storeSettings?.storeLogo?.trim();
@@ -125,8 +127,8 @@ function injectServerMeta(html: string, reqPath: string, host: string, proto: st
   }
 
   // Dynamically update favicon tag if a custom uploaded favicon is present
-  const faviconUrl = (uploadedFavicon && !uploadedFavicon.includes('placeholder')) ? uploadedFavicon : '/favicon/favicon.ico';
-  modified = modified.replace(/<link rel="icon" [^>]*>/i, `<link rel="icon" type="image/x-icon" href="${faviconUrl}" />`);
+  const faviconUrl = (uploadedFavicon && !uploadedFavicon.includes('placeholder')) ? uploadedFavicon : '/favicon.ico';
+  modified = modified.replace(/<link rel="icon" type="image\/x-icon" [^>]*>/i, `<link rel="icon" type="image/x-icon" href="${faviconUrl}" />`);
   modified = modified.replace(/<link rel="shortcut icon" [^>]*>/i, `<link rel="shortcut icon" href="${faviconUrl}" />`);
 
   return modified;

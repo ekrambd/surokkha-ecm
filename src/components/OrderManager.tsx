@@ -299,6 +299,8 @@ export default function OrderManager({
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [sourceFilter, setSourceFilter] = useState<string>('all');
+  const [moderatorFilter, setModeratorFilter] = useState<string>('all');
   const [dispatchingId, setDispatchingId] = useState<string | null>(null);
   const [dispatchDialog, setDispatchDialog] = useState<{ orderId: string; message: string; success: boolean } | null>(null);
   const [openActionMenuOrderId, setOpenActionMenuOrderId] = useState<string | null>(null);
@@ -422,6 +424,7 @@ export default function OrderManager({
 
   // Add Physical Order Modal
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [formData, setFormData] = useState({
     customerName: '',
     phone: '',
@@ -431,6 +434,8 @@ export default function OrderManager({
     deliveryCharge: 0,
     quantity: 1,
     orderType: 'physical' as 'physical' | 'landing' | 'store',
+    source: 'Facebook' as string,
+    acceptedByModeratorId: '',
     status: 'Confirmed' as BookOrder['status'],
     notes: ''
   });
@@ -445,6 +450,8 @@ export default function OrderManager({
     price: 0,
     quantity: 1,
     deliveryCharge: 0,
+    source: 'Facebook',
+    acceptedByModeratorId: '',
     couponCode: '',
     luckyCouponCode: '',
     discountAmount: 0,
@@ -515,6 +522,8 @@ export default function OrderManager({
       price: order.price || 0,
       quantity: order.quantity || 1,
       deliveryCharge: order.deliveryCharge || 0,
+      source: order.source || (order.orderType === 'landing' ? 'Landing' : (order.orderType === 'store' || order.orderType === 'storefront') ? 'Website' : 'Facebook'),
+      acceptedByModeratorId: order.acceptedByModeratorId || '',
       couponCode: order.couponCode || '',
       luckyCouponCode: order.luckyCouponCode || '',
       discountAmount: order.discountAmount || 0,
@@ -545,6 +554,8 @@ export default function OrderManager({
         discountAmount
       );
 
+      const selectedMod = staffList.find(m => m.id === editFormData.acceptedByModeratorId);
+
       const updatedOrder: BookOrder = {
         ...editingOrder,
         customerName: (editFormData.customerName || '').trim(),
@@ -554,6 +565,10 @@ export default function OrderManager({
         price: Number(editFormData.price) || 0,
         quantity: Math.max(1, Number(editFormData.quantity) || 1),
         deliveryCharge: Number(editFormData.deliveryCharge) || 0,
+        source: editFormData.source || editingOrder.source || 'Facebook',
+        acceptedByModeratorId: editFormData.acceptedByModeratorId || undefined,
+        acceptedByModeratorName: selectedMod ? selectedMod.name : (editFormData.acceptedByModeratorId ? editingOrder.acceptedByModeratorName : undefined),
+        acceptedAt: editFormData.acceptedByModeratorId ? (editingOrder.acceptedAt || new Date().toISOString()) : undefined,
         couponCode: (editFormData.couponCode || '').trim() || undefined,
         luckyCouponCode: (editFormData.luckyCouponCode || '').trim() || undefined,
         discountAmount: discountAmount > 0 ? discountAmount : undefined,
@@ -582,8 +597,12 @@ export default function OrderManager({
     
     const matchesType = typeFilter === 'all' || order.orderType === typeFilter;
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+    const orderSource = order.source || (order.orderType === 'landing' ? 'Landing' : (order.orderType === 'store' || order.orderType === 'storefront') ? 'Website' : 'Facebook');
+    const matchesSource = sourceFilter === 'all' || orderSource.toLowerCase() === sourceFilter.toLowerCase();
+    const matchesModerator = moderatorFilter === 'all' || 
+      (moderatorFilter === 'unassigned' ? !order.acceptedByModeratorId : order.acceptedByModeratorId === moderatorFilter);
 
-    return matchesSearch && matchesType && matchesStatus;
+    return matchesSearch && matchesType && matchesStatus && matchesSource && matchesModerator;
   });
 
   // Pagination logic
@@ -593,7 +612,7 @@ export default function OrderManager({
   // Reset page to 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, typeFilter]);
+  }, [searchTerm, statusFilter, typeFilter, sourceFilter, moderatorFilter]);
 
   // Selected orders array
   const selectedOrders = orders.filter(o => selectedOrderIds.includes(o.id));
@@ -996,6 +1015,8 @@ export default function OrderManager({
       const num = orders.length + 1001;
       const sub = formData.price * formData.quantity;
       const tot = sub + formData.deliveryCharge;
+      const selectedMod = staffList.find(m => m.id === formData.acceptedByModeratorId);
+      const selectedProd = products.find(p => p.id === selectedProductId);
 
       const newOrder: BookOrder = {
         id: `ORD-${year}-${num}`,
@@ -1003,21 +1024,38 @@ export default function OrderManager({
         name: formData.customerName.trim(),
         phone: formData.phone.trim(),
         address: formData.address.trim() || 'Buy directly from the showroom',
-        productTitle: formData.productTitle,
-        productName: formData.productTitle,
+        productTitle: formData.productTitle.trim() || selectedProd?.title || 'General Product',
+        productName: formData.productTitle.trim() || selectedProd?.title || 'General Product',
+        productId: selectedProd?.id,
         price: formData.price,
         deliveryCharge: formData.deliveryCharge,
         quantity: formData.quantity,
         totalPrice: tot,
         totalAmount: tot,
         orderType: formData.orderType,
+        source: formData.source || 'Facebook',
+        acceptedByModeratorId: formData.acceptedByModeratorId || undefined,
+        acceptedByModeratorName: selectedMod ? selectedMod.name : undefined,
+        acceptedAt: formData.acceptedByModeratorId ? new Date().toISOString() : undefined,
         status: formData.status,
         createdAt: new Date().toISOString(),
-        notes: formData.notes
+        notes: formData.notes,
+        items: selectedProd ? [{
+          product: {
+            id: selectedProd.id,
+            title: selectedProd.title,
+            price: formData.price,
+            image: selectedProd.image,
+            category: selectedProd.category
+          },
+          quantity: formData.quantity,
+          price: formData.price
+        }] : undefined
       };
 
       await onAddOrder(newOrder);
       setIsAddModalOpen(false);
+      setSelectedProductId('');
       setFormData({
         customerName: '',
         phone: '',
@@ -1027,6 +1065,8 @@ export default function OrderManager({
         deliveryCharge: 0,
         quantity: 1,
         orderType: 'physical',
+        source: 'Facebook',
+        acceptedByModeratorId: '',
         status: 'Confirmed',
         notes: ''
       });
@@ -2089,6 +2129,17 @@ export default function OrderManager({
       <OrderDetailsView 
         order={viewingOrder} 
         allOrders={orders}
+        staffList={staffList}
+        onAssignModerator={async (orderId, modId, modName) => {
+          const updated = {
+            ...viewingOrder,
+            acceptedByModeratorId: modId,
+            acceptedByModeratorName: modName,
+            acceptedAt: modId ? (viewingOrder.acceptedAt || new Date().toISOString()) : undefined
+          };
+          await onUpdateOrder(updated);
+          setViewingOrder(updated);
+        }}
         onClose={() => setViewingOrder(null)} 
         onUpdateStatus={async (id, newStatus) => {
           await onUpdateOrder({ ...viewingOrder, status: newStatus });
@@ -2115,6 +2166,15 @@ export default function OrderManager({
         </div>
 
         <div className="flex items-center space-x-2">
+          <button 
+            onClick={() => setIsAddModalOpen(true)}
+            className="inline-flex items-center justify-center px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all shrink-0 cursor-pointer"
+            title="নতুন অর্ডার তৈরি করুন"
+          >
+            <Plus className="h-4 w-4 mr-1.5" />
+            <span>নতুন অর্ডার (New Order)</span>
+          </button>
+
           {onRefreshOrders && (
             <button 
               onClick={async () => {
@@ -2250,7 +2310,7 @@ export default function OrderManager({
           <select 
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full md:w-40 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none"
+            className="w-full md:w-36 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none"
           >
             <option value="all">All status</option>
             <option value="Pending">waiting</option>
@@ -2264,6 +2324,37 @@ export default function OrderManager({
             <option value="Not Responding">no response</option>
             <option value="Return">return</option>
             <option value="Cancelled">canceled</option>
+          </select>
+
+          {/* Source Filter */}
+          <select 
+            value={sourceFilter}
+            onChange={(e) => setSourceFilter(e.target.value)}
+            className="w-full md:w-36 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none"
+            title="Filter by Order Source"
+          >
+            <option value="all">All Sources</option>
+            <option value="Facebook">Facebook</option>
+            <option value="Messenger">Messenger</option>
+            <option value="WhatsApp">WhatsApp</option>
+            <option value="Phone Call">Phone Call</option>
+            <option value="Showroom">Showroom</option>
+            <option value="Website">Website</option>
+            <option value="Landing">Landing Page</option>
+          </select>
+
+          {/* Moderator Filter */}
+          <select 
+            value={moderatorFilter}
+            onChange={(e) => setModeratorFilter(e.target.value)}
+            className="w-full md:w-40 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none"
+            title="Filter by Assigned Moderator"
+          >
+            <option value="all">All Staff / Mods</option>
+            <option value="unassigned">(Unassigned)</option>
+            {staffList.map(m => (
+              <option key={m.id} value={m.id}>{m.name}</option>
+            ))}
           </select>
 
           {/* BULK ACTIONS DROPDOWN BUTTON (Matching Screenshots) */}
@@ -2592,7 +2683,7 @@ export default function OrderManager({
                   const relativeCreated = formatRelativeTime(order.createdAt);
 
                   // Order channel tag (Web, POS, Landing, Facebook, etc.)
-                  const channelTag = order.orderType === 'landing' ? 'Landing' : (order.orderType === 'store' || order.orderType === 'storefront') ? 'Web' : 'Store';
+                  const channelTag = order.source || (order.orderType === 'landing' ? 'Landing' : (order.orderType === 'store' || order.orderType === 'storefront') ? 'Web' : 'Store');
 
                   return (
                     <tr 
@@ -3396,6 +3487,237 @@ export default function OrderManager({
 
 
       <AnimatePresence>
+        {/* Add Order Modal */}
+        {isAddModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-2 sm:p-4 overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-3xl max-w-2xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden my-auto"
+            >
+              <div className="flex justify-between items-center border-b border-slate-100 p-5 bg-white shrink-0 sticky top-0 z-10">
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 flex items-center space-x-2">
+                    <Plus className="h-5 w-5 text-teal-600" />
+                    <span>নতুন ম্যানুয়াল অর্ডার তৈরি করুন (New Order)</span>
+                  </h3>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    ফেসবুক, হোয়াটসঅ্যাপ বা শোরুমের অর্ডারের জন্য প্রয়োজনীয় তথ্য পূরণ করুন।
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setIsAddModalOpen(false)} 
+                  className="text-slate-400 hover:text-slate-600 p-1 rounded-xl hover:bg-slate-100"
+                >
+                  <XCircle className="h-5 w-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreatePhysicalOrder} className="p-5 overflow-y-auto space-y-4 text-xs flex-1">
+                {/* 1. Moderator & Source Picker */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-teal-50/50 border border-teal-100 rounded-2xl">
+                  <div>
+                    <label className="block text-xs font-bold text-teal-900 mb-1">
+                      মডারেটর / স্টাফ পিক করুন (Moderator) *
+                    </label>
+                    <select
+                      value={formData.acceptedByModeratorId}
+                      onChange={(e) => setFormData({ ...formData, acceptedByModeratorId: e.target.value })}
+                      className="w-full px-3 py-2 border border-teal-200 bg-white rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                    >
+                      <option value="">(আন-অ্যাসাইনড / Unassigned)</option>
+                      {staffList.filter(m => m.isActive).map(m => (
+                        <option key={m.id} value={m.id}>{m.name} ({m.role || 'Staff'})</option>
+                      ))}
+                    </select>
+                    <span className="text-[10px] text-teal-600 mt-0.5 block">
+                      অর্ডারটি যিনি কনফার্ম করেছেন তার নাম সিলেক্ট করুন
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-teal-900 mb-1">
+                      অর্ডার সোর্স পিক করুন (Order Source) *
+                    </label>
+                    <select
+                      value={formData.source}
+                      onChange={(e) => setFormData({ ...formData, source: e.target.value })}
+                      className="w-full px-3 py-2 border border-teal-200 bg-white rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                    >
+                      <option value="Facebook">Facebook (মেসেজ/পোস্ট)</option>
+                      <option value="Messenger">Messenger</option>
+                      <option value="WhatsApp">WhatsApp</option>
+                      <option value="Phone Call">Phone Call (ফোন কল)</option>
+                      <option value="Showroom">Showroom (সরাসরি শোরুম)</option>
+                      <option value="Website">Website (ওয়েবসাইট)</option>
+                    </select>
+                    <span className="text-[10px] text-teal-600 mt-0.5 block">
+                      কাস্টমার যে মাধ্যমে অর্ডার দিয়েছেন
+                    </span>
+                  </div>
+                </div>
+
+                {/* 2. Product Picker */}
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5">
+                  <label className="block text-xs font-bold text-slate-800">
+                    প্রোডাক্ট সিলেক্ট করুন (Item Picker)
+                  </label>
+                  <select
+                    value={selectedProductId}
+                    onChange={(e) => {
+                      const pId = e.target.value;
+                      setSelectedProductId(pId);
+                      const prod = products.find(p => p.id === pId);
+                      if (prod) {
+                        setFormData(prev => ({
+                          ...prev,
+                          productTitle: prod.title,
+                          price: prod.price || 0
+                        }));
+                      }
+                    }}
+                    className="w-full px-3 py-2.5 border border-slate-200 bg-white rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                  >
+                    <option value="">-- ক্যাটালগ থেকে প্রোডাক্ট সিলেক্ট করুন --</option>
+                    {products.map(prod => (
+                      <option key={prod.id} value={prod.id}>
+                        {prod.title} — ৳ {prod.price} {prod.sku ? `(${prod.sku})` : ''}
+                      </option>
+                    ))}
+                  </select>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                      প্রোডাক্টের নাম / কাস্টম আইটেম টাইটেল
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="যেমন: প্রিমিয়াম কাশ্মীরি শাল বা কাস্টম প্রোডাক্ট"
+                      value={formData.productTitle}
+                      onChange={(e) => setFormData({ ...formData, productTitle: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-200 bg-white rounded-xl text-xs font-bold text-slate-800"
+                    />
+                  </div>
+                </div>
+
+                {/* 3. Customer Info */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">কাস্টমারের নাম *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="পুরো নাম"
+                      value={formData.customerName}
+                      onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">মোবাইল নম্বর *</label>
+                    <input
+                      type="tel"
+                      required
+                      placeholder="017xxxxxxxx"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">ডেলিভারি ঠিকানা *</label>
+                  <textarea
+                    rows={2}
+                    required
+                    placeholder="থানা, জেলা ও বিস্তারিত ঠিকানা"
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
+                  />
+                </div>
+
+                {/* 4. Pricing & Quantity */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">ইউনিট মূল্য (৳)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={formData.price}
+                      onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">পরিমাণ (Qty)</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={formData.quantity}
+                      onChange={(e) => setFormData({ ...formData, quantity: Math.max(1, Number(e.target.value)) })}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">ডেলিভারি চার্জ (৳)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={formData.deliveryCharge}
+                      onChange={(e) => setFormData({ ...formData, deliveryCharge: Number(e.target.value) })}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
+                    />
+                  </div>
+                </div>
+
+                {/* Total Summary */}
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-600">সর্বমোট প্রদেয় (Total Amount):</span>
+                  <span className="text-base font-extrabold text-teal-700">
+                    ৳ {(formData.price * formData.quantity + formData.deliveryCharge).toLocaleString()}
+                  </span>
+                </div>
+
+                {/* Notes */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">অর্ডার নোট / মন্তব্য</label>
+                  <textarea
+                    rows={2}
+                    placeholder="অতিরিক্ত নির্দেশনা বা বিশেষ নোট..."
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
+                  />
+                </div>
+
+                <div className="pt-2 border-t border-slate-100 flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddModalOpen(false)}
+                    className="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50 cursor-pointer"
+                  >
+                    বাতিল
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold shadow-sm cursor-pointer disabled:opacity-50"
+                  >
+                    {isSubmitting ? 'তৈরি হচ্ছে...' : 'অর্ডার তৈরি করুন'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+
         {isEditModalOpen && editingOrder && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-2 sm:p-4 overflow-y-auto">
             <motion.div
@@ -3420,6 +3742,39 @@ export default function OrderManager({
               </div>
 
               <form onSubmit={handleSaveOrderEdit} className="p-5 overflow-y-auto space-y-4 text-xs flex-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">অ্যাসাইন্ড মডারেটর (Moderator)</label>
+                    <select
+                      value={editFormData.acceptedByModeratorId}
+                      onChange={(e) => setEditFormData({ ...editFormData, acceptedByModeratorId: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 bg-white"
+                    >
+                      <option value="">(আন-অ্যাসাইনড / Unassigned)</option>
+                      {staffList.filter(m => m.isActive).map(m => (
+                        <option key={m.id} value={m.id}>{m.name} ({m.role || 'Staff'})</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">অর্ডার সোর্স (Order Source)</label>
+                    <select
+                      value={editFormData.source}
+                      onChange={(e) => setEditFormData({ ...editFormData, source: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 bg-white"
+                    >
+                      <option value="Facebook">Facebook (ম্যাসেজ/কমেন্ট)</option>
+                      <option value="Messenger">Messenger</option>
+                      <option value="WhatsApp">WhatsApp</option>
+                      <option value="Phone Call">Phone Call (ফোন কল)</option>
+                      <option value="Showroom">Showroom (সরাসরি শোরুম)</option>
+                      <option value="Website">Website (ওয়েবসাইট)</option>
+                      <option value="Landing">Landing Page</option>
+                    </select>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">Customer Name *</label>

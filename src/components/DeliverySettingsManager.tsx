@@ -13,7 +13,8 @@ import {
   X,
   Scale,
   Sparkles,
-  Info
+  Info,
+  Gift
 } from 'lucide-react';
 import { FeedbackDialog } from './ui/FeedbackDialog';
 import { ConfirmDialog } from './ui/ConfirmDialog';
@@ -30,7 +31,9 @@ export default function DeliverySettingsManager() {
     defaultBaseWeightKg: 1,
     defaultExtraPerKgInsideDhaka: 20,
     defaultExtraPerKgOutsideDhaka: 25,
-    defaultProductWeightKg: 0.5
+    defaultProductWeightKg: 0.5,
+    freeDeliveryEnabled: false,
+    freeDeliveryMinPurchase: 0
   });
 
   const [isLoading, setIsLoading] = useState(true);
@@ -68,6 +71,8 @@ export default function DeliverySettingsManager() {
       if (data) {
         setSettings({
           ...data,
+          freeDeliveryEnabled: Boolean(data.freeDeliveryEnabled),
+          freeDeliveryMinPurchase: Number(data.freeDeliveryMinPurchase) || 0,
           weightBasedDeliveryEnabled: data.weightBasedDeliveryEnabled ?? true,
           defaultBaseWeightKg: data.defaultBaseWeightKg ?? 1,
           defaultExtraPerKgInsideDhaka: data.defaultExtraPerKgInsideDhaka ?? 20,
@@ -546,6 +551,75 @@ export default function DeliverySettingsManager() {
                 <li><strong>Inside Dhaka:</strong> ৳60 base (1kg) + ৳20/extra kg</li>
                 <li><strong>Outside Dhaka:</strong> ৳120 base (1kg) + ৳25/extra kg</li>
               </ul>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Free Delivery Rules Card */}
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 space-y-4 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          <div className="flex items-center space-x-2.5">
+            <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-200">
+              <Gift className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-extrabold text-slate-900">
+                Free Delivery Promotion (ফ্রি ডেলিভারি অফার)
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Enable store-wide free delivery for all orders or when customer reaches a minimum order amount.
+              </p>
+            </div>
+          </div>
+
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={Boolean(settings.freeDeliveryEnabled)}
+              onChange={(e) => {
+                const newSettings = { ...settings, freeDeliveryEnabled: e.target.checked };
+                setSettings(newSettings);
+                dbService.saveEcomSettings(newSettings);
+              }}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+            <span className="ml-3 text-xs font-bold text-slate-800">
+              {settings.freeDeliveryEnabled ? 'Active (চালু)' : 'Inactive (বন্ধ)'}
+            </span>
+          </label>
+        </div>
+
+        {settings.freeDeliveryEnabled && (
+          <div className="p-4 bg-emerald-50/50 rounded-xl border border-emerald-200/80 space-y-3">
+            <div className="max-w-md space-y-1.5">
+              <label className="block text-xs font-bold text-slate-800">
+                Minimum Purchase Amount for Free Delivery (নূন্যতম ক্রয়ের পরিমাণ)
+              </label>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-600 text-xs font-bold">
+                  Tk
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  step="50"
+                  value={settings.freeDeliveryMinPurchase ?? 0}
+                  onChange={(e) => {
+                    const newSettings = { ...settings, freeDeliveryMinPurchase: Number(e.target.value) || 0 };
+                    setSettings(newSettings);
+                    dbService.saveEcomSettings(newSettings);
+                  }}
+                  placeholder="e.g. 1500"
+                  className="flex-1 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-900 focus:border-teal-500 focus:ring-teal-500 outline-none"
+                />
+              </div>
+              <p className="text-[11px] text-slate-500">
+                {Number(settings.freeDeliveryMinPurchase) > 0
+                  ? `কাস্টমার কার্টে নূন্যতম ৳${settings.freeDeliveryMinPurchase} টাকার পণ্য রাখলে ডেলিভারি চার্জ সম্পূর্ণ ফ্রি (৳০) হবে।`
+                  : '০ (শূন্য) দিলে স্টোরের সকল অর্ডারে ফ্রি ডেলিভারি প্রযোজ্য হবে।'}
+              </p>
             </div>
           </div>
         )}

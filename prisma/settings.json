@@ -194,5 +194,7 @@
   "heroBannerLeftImage": "/uploads/file-1792185577063-331672488.jpg",
   "heroBannerLeftLink": "",
   "heroBannerRightImage": "/uploads/file-1792185581499-616845250.jpg",
-  "heroBannerRightLink": ""
+  "heroBannerRightLink": "",
+  "freeDeliveryEnabled": false,
+  "freeDeliveryMinPurchase": 0
 }

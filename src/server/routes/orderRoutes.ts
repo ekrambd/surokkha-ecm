@@ -250,14 +250,16 @@ orderRouter.post('/checkout', checkoutRateLimiter, async (req, res) => {
 
     const hasFreeDeliveryProduct = validatedItems.some(i => {
       const p = productLookupMap.get(i.product.id);
-      return p?.deliveryChargeEnabled === false || (p as any)?.freeDelivery === true || (p as any)?.isFreeDelivery === true;
+      return (p as any)?.isFreeDelivery === true || (p as any)?.freeDelivery === true || p?.deliveryChargeEnabled === false;
     });
 
-    if (hasFreeDeliveryProduct || (
-        (storeSettings as any)?.freeDeliveryEnabled && 
-        (storeSettings as any)?.freeDeliveryMinPurchase && 
-        calculatedSubtotal >= Number((storeSettings as any).freeDeliveryMinPurchase)
-    )) {
+    const minFreePurchase = Number((storeSettings as any)?.freeDeliveryMinPurchase || 0);
+    const isStoreWideFree = Boolean(
+      (storeSettings as any)?.freeDeliveryEnabled && 
+      (minFreePurchase === 0 || calculatedSubtotal >= minFreePurchase)
+    );
+
+    if (hasFreeDeliveryProduct || isStoreWideFree) {
       deliveryFee = 0;
     }
 

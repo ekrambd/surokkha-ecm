@@ -218,7 +218,8 @@ export default function ProductManager({
       setIsUnlisted(product.isUnlisted ?? false);
       setCodAvailable(product.codAvailable ?? true);
 
-      setDeliveryChargeEnabled(product.deliveryChargeEnabled ?? true);
+      const isFree = (product as any).isFreeDelivery === true || (product as any).freeDelivery === true || product.deliveryChargeEnabled === false;
+      setDeliveryChargeEnabled(!isFree);
       setDeliveryChargeAmount(product.deliveryChargeAmount ?? 0);
       setWeight(product.weight ?? '');
       setExclusiveDelivery(product.exclusiveDelivery ?? true);
@@ -482,6 +483,8 @@ export default function ProductManager({
       codAvailable,
       weight: weight !== '' ? Number(weight) : undefined,
       deliveryChargeEnabled,
+      isFreeDelivery: !deliveryChargeEnabled,
+      freeDelivery: !deliveryChargeEnabled,
       deliveryChargeAmount: Number(deliveryChargeAmount) || 0,
       exclusiveDelivery,
       addQrToImage,
@@ -1180,11 +1183,11 @@ export default function ProductManager({
                     <div>
                       <label className="block text-[11px] font-bold text-slate-700 mb-1.5">Summary</label>
                       <textarea
-                        rows={3}
+                        rows={7}
                         value={shortSummary}
                         onChange={(e) => setShortSummary(e.target.value)}
                         placeholder="e.g. 28 Pods ( 1 pods can wash 5kg dry cloths)&#10;Detergent + Bacteria & Mites Removal 99.9% + Softener + Long Lasting Fragrances"
-                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-teal-500"
+                        className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-teal-500 min-h-[160px] resize-y leading-relaxed"
                       />
                     </div>
 
@@ -1408,7 +1411,7 @@ export default function ProductManager({
                     <div className="grid grid-cols-1 md:grid-cols-10 gap-4">
                       {/* Title */}
                       <div className="md:col-span-10">
-                        <label className="block text-[11px] font-bold text-slate-700 mb-1">Product Titleproductof name *</label>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">Product Title (পণ্যের নাম) *</label>
                         <input
                           type="text"
                           required
@@ -1416,21 +1419,6 @@ export default function ProductManager({
                           value={title}
                           onChange={(e) => setTitle(e.target.value)}
                           className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:ring-2 focus:ring-teal-500 outline-none"
-                        />
-                      </div>
-
-                      {/* Short Summary (as Description size) */}
-                      <div className="md:col-span-10">
-                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                          <span>Short SummaryBrief summary *</span>
-                        </label>
-                        <textarea
-                          required
-                          rows={6}
-                          placeholder="Write details about product details, specifications or features..."
-                          value={shortSummary}
-                          onChange={(e) => setShortSummary(e.target.value)}
-                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:ring-2 focus:ring-teal-500 outline-none resize-y leading-relaxed"
                         />
                       </div>
 
@@ -2121,8 +2109,21 @@ export default function ProductManager({
                       {/* Free Delivery */}
                       <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center justify-between gap-4">
                         <div>
-                          <label className="block text-xs font-bold text-slate-800">Free delivery</label>
-                          <span className="text-[10px] text-slate-400">Whether delivery charges are applicable for this product</span>
+                          <label className="block text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                            <span>Free Delivery (ফ্রি ডেলিভারি)</span>
+                            {!deliveryChargeEnabled ? (
+                              <span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-1.5 py-0.5 rounded border border-emerald-300">
+                                ফ্রি সক্রিয়
+                              </span>
+                            ) : (
+                              <span className="bg-slate-100 text-slate-600 text-[10px] font-bold px-1.5 py-0.5 rounded border border-slate-300">
+                                নিয়মিত চার্জ
+                              </span>
+                            )}
+                          </label>
+                          <span className="text-[10px] text-slate-500">
+                            {!deliveryChargeEnabled ? 'এই পণ্যের অর্ডারে ডেলিভারি চার্জ সম্পূর্ণ ফ্রি (৳০) থাকবে' : 'এই পণ্যের অর্ডারে সাধারণ ডেলিভারি চার্জ প্রযোজ্য হবে'}
+                          </span>
                         </div>
                         <label className="relative inline-flex items-center cursor-pointer">
                           <input

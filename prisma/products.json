@@ -34,7 +34,7 @@
     "continueSelling": true,
     "isUnlisted": false,
     "codAvailable": true,
-    "deliveryChargeEnabled": true,
+    "deliveryChargeEnabled": false,
     "deliveryChargeAmount": 0,
     "exclusiveDelivery": true,
     "addQrToImage": false,
@@ -62,7 +62,9 @@
         "price": 1820,
         "image": ""
       }
-    ]
+    ],
+    "isFreeDelivery": true,
+    "freeDelivery": true
   },
   {
     "id": "prod-1792008552631",
@@ -99,7 +101,7 @@
     "continueSelling": true,
     "isUnlisted": false,
     "codAvailable": true,
-    "deliveryChargeEnabled": false,
+    "deliveryChargeEnabled": true,
     "deliveryChargeAmount": 0,
     "exclusiveDelivery": true,
     "addQrToImage": false,
@@ -126,7 +128,9 @@
         "price": 2400,
         "image": ""
       }
-    ]
+    ],
+    "isFreeDelivery": false,
+    "freeDelivery": false
   },
   {
     "id": "prod-1792008438864",
@@ -163,7 +167,7 @@
     "continueSelling": true,
     "isUnlisted": false,
     "codAvailable": true,
-    "deliveryChargeEnabled": false,
+    "deliveryChargeEnabled": true,
     "deliveryChargeAmount": 0,
     "exclusiveDelivery": true,
     "addQrToImage": false,
@@ -193,7 +197,9 @@
         "image": "",
         "regularPrice": 3050
       }
-    ]
+    ],
+    "isFreeDelivery": false,
+    "freeDelivery": false
   },
   {
     "id": "prod-1792008313063",
@@ -230,7 +236,7 @@
     "continueSelling": true,
     "isUnlisted": false,
     "codAvailable": true,
-    "deliveryChargeEnabled": false,
+    "deliveryChargeEnabled": true,
     "deliveryChargeAmount": 0,
     "exclusiveDelivery": true,
     "addQrToImage": false,
@@ -252,7 +258,9 @@
         "image": "",
         "regularPrice": 2300
       }
-    ]
+    ],
+    "isFreeDelivery": false,
+    "freeDelivery": false
   },
   {
     "id": "prod-1792008240184",
@@ -289,7 +297,7 @@
     "continueSelling": true,
     "isUnlisted": false,
     "codAvailable": true,
-    "deliveryChargeEnabled": false,
+    "deliveryChargeEnabled": true,
     "deliveryChargeAmount": 0,
     "exclusiveDelivery": true,
     "addQrToImage": false,
@@ -313,7 +321,9 @@
         "price": 4000,
         "image": ""
       }
-    ]
+    ],
+    "isFreeDelivery": false,
+    "freeDelivery": false
   },
   {
     "id": "prod-1792008111113",
@@ -350,7 +360,7 @@
     "continueSelling": true,
     "isUnlisted": false,
     "codAvailable": true,
-    "deliveryChargeEnabled": false,
+    "deliveryChargeEnabled": true,
     "deliveryChargeAmount": 0,
     "exclusiveDelivery": true,
     "addQrToImage": false,
@@ -377,7 +387,9 @@
         "price": 1800,
         "image": ""
       }
-    ]
+    ],
+    "isFreeDelivery": false,
+    "freeDelivery": false
   },
   {
     "id": "prod-1792008008951",
@@ -414,7 +426,7 @@
     "continueSelling": true,
     "isUnlisted": false,
     "codAvailable": true,
-    "deliveryChargeEnabled": false,
+    "deliveryChargeEnabled": true,
     "deliveryChargeAmount": 0,
     "exclusiveDelivery": true,
     "addQrToImage": false,
@@ -438,7 +450,9 @@
         "price": 2000,
         "image": ""
       }
-    ]
+    ],
+    "isFreeDelivery": false,
+    "freeDelivery": false
   },
   {
     "id": "prod-1792007690982",
@@ -501,7 +515,9 @@
         "image": "",
         "regularPrice": 2450
       }
-    ]
+    ],
+    "isFreeDelivery": false,
+    "freeDelivery": false
   },
   {
     "id": "prod-1792005346723",
@@ -538,7 +554,7 @@
     "continueSelling": true,
     "isUnlisted": false,
     "codAvailable": true,
-    "deliveryChargeEnabled": false,
+    "deliveryChargeEnabled": true,
     "deliveryChargeAmount": 0,
     "exclusiveDelivery": true,
     "addQrToImage": false,
@@ -568,7 +584,9 @@
         "image": "",
         "regularPrice": 2450
       }
-    ]
+    ],
+    "isFreeDelivery": false,
+    "freeDelivery": false
   },
   {
     "id": "prod-1792003423633",
@@ -605,7 +623,7 @@
     "continueSelling": true,
     "isUnlisted": false,
     "codAvailable": true,
-    "deliveryChargeEnabled": false,
+    "deliveryChargeEnabled": true,
     "deliveryChargeAmount": 0,
     "exclusiveDelivery": true,
     "addQrToImage": false,
@@ -628,6 +646,8 @@
         "image": "/uploads/file-1792003334373-744437343.jpg",
         "regularPrice": 2500
       }
-    ]
+    ],
+    "isFreeDelivery": false,
+    "freeDelivery": false
   }
 ]

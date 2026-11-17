@@ -32,6 +32,10 @@
   .font-luxury {
     font-family: 'Playfair Display', Georgia, serif;
   }
+
+  .font-clean {
+    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Noto Sans Bengali', sans-serif;
+  }
 }
 
 /* Custom Utilities */

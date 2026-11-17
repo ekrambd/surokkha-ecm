@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, CheckCircle, Package, RefreshCw, ShoppingBag, Truck, Calendar, MapPin, AlertCircle, Edit3, FileText, FileSpreadsheet, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Package, RefreshCw, ShoppingBag, Truck, Calendar, MapPin, AlertCircle, Edit3, FileText, FileSpreadsheet, ShieldCheck, UserCheck, Share2 } from 'lucide-react';
 import { BookOrder } from '../types';
 import { InvoicePreview } from './InvoicePreview';
 import { CompactInvoiceCard } from './CompactInvoiceCard';
@@ -15,6 +15,8 @@ interface Props {
   onClose: () => void;
   onUpdateStatus: (orderId: string, newStatus: string) => Promise<void>;
   onEditOrder: (order: BookOrder) => void;
+  staffList?: Array<{ id: string; name: string }>;
+  onAssignModerator?: (orderId: string, moderatorId?: string, moderatorName?: string) => Promise<void>;
 }
 
 const ORDER_STATUSES = [
@@ -28,7 +30,15 @@ const ORDER_STATUSES = [
   'Cancelled'
 ];
 
-export function OrderDetailsView({ order, allOrders = [], onClose, onUpdateStatus, onEditOrder }: Props) {
+export function OrderDetailsView({ 
+  order, 
+  allOrders = [], 
+  onClose, 
+  onUpdateStatus, 
+  onEditOrder,
+  staffList = [],
+  onAssignModerator
+}: Props) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [showInvoice, setShowInvoice] = useState(false);
   const [courierRatio, setCourierRatio] = useState<CustomerCourierRatio | null>(null);
@@ -115,7 +125,7 @@ export function OrderDetailsView({ order, allOrders = [], onClose, onUpdateStatu
   };
 
   return (
-    <div className="flex-1 min-h-screen bg-slate-50 font-sans p-3 sm:p-5 lg:p-6 animate-fadeIn text-xs sm:text-sm">
+    <div className="flex-1 min-h-screen bg-slate-50 font-clean p-3 sm:p-5 lg:p-6 animate-fadeIn text-xs sm:text-sm">
       {/* Header */}
       <div className="flex items-center justify-between bg-white px-4 sm:px-5 py-3 rounded-xl shadow-xs border border-slate-200 mb-4 sm:mb-5">
         <div className="flex items-center gap-2.5">
@@ -126,21 +136,21 @@ export function OrderDetailsView({ order, allOrders = [], onClose, onUpdateStatu
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div>
-            <h2 className="text-base sm:text-lg font-black text-slate-900 leading-tight">Order #{order.id.replace('ORD-', '')}</h2>
-            <span className="text-[11px] text-slate-400">{formatDate(order.createdAt)}</span>
+            <h2 className="text-base font-bold text-slate-900 leading-tight">Order #{order.id.replace('ORD-', '')}</h2>
+            <span className="text-[11px] text-slate-400 font-normal">{formatDate(order.createdAt)}</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowInvoice(!showInvoice)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold border border-indigo-200 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium border border-slate-200 transition-colors cursor-pointer"
           >
-            <FileSpreadsheet className="w-3.5 h-3.5" />
+            <FileSpreadsheet className="w-3.5 h-3.5 text-slate-500" />
             <span>{showInvoice ? 'Details' : 'Invoice'}</span>
           </button>
           <button
             onClick={() => onEditOrder(order)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg text-xs font-bold border border-amber-200 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg text-xs font-medium border border-amber-200 transition-colors cursor-pointer"
           >
             <Edit3 className="w-3.5 h-3.5" />
             <span>Edit</span>
@@ -160,20 +170,20 @@ export function OrderDetailsView({ order, allOrders = [], onClose, onUpdateStatu
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3 mb-5">
               <div className="flex items-center gap-4 flex-wrap">
                 <div className="flex items-center gap-1.5 text-xs">
-                  <span className="text-slate-500 font-semibold">Order Status :</span>
-                  <span className="px-2 py-0.5 bg-blue-100 text-blue-700 font-bold rounded">
+                  <span className="text-slate-500 font-medium">Order Status:</span>
+                  <span className="px-2 py-0.5 bg-blue-50 text-blue-700 font-semibold rounded text-[11px] border border-blue-200">
                     {order.status}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 text-xs">
-                  <span className="text-slate-500 font-semibold">Payment :</span>
-                  <span className="font-semibold text-slate-800">
+                  <span className="text-slate-500 font-medium">Payment:</span>
+                  <span className="font-medium text-slate-800">
                     {order.paymentMethod || 'Cash on Delivery'}
                   </span>
-                  <span className={`px-2 py-0.5 font-bold text-[10px] rounded ${
+                  <span className={`px-2 py-0.5 font-semibold text-[10px] rounded border ${
                     isOrderPaid(order)
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : 'bg-amber-100 text-amber-700'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : 'bg-amber-50 text-amber-700 border-amber-200'
                   }`}>
                     {isOrderPaid(order) ? 'PAID' : 'UNPAID'}
                   </span>
@@ -184,7 +194,7 @@ export function OrderDetailsView({ order, allOrders = [], onClose, onUpdateStatu
                   value={order.status}
                   onChange={handleStatusChange}
                   disabled={isUpdating}
-                  className="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-700 focus:outline-none focus:border-teal-500"
+                  className="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-medium text-slate-700 focus:outline-none focus:border-teal-500"
                 >
                   {ORDER_STATUSES.map(s => (
                     <option key={s} value={s}>{s} Order</option>
@@ -192,18 +202,18 @@ export function OrderDetailsView({ order, allOrders = [], onClose, onUpdateStatu
                 </select>
                 <button 
                   disabled={isUpdating}
-                  className="px-3 py-1.5 bg-[#52c41a] hover:bg-[#49b017] text-white font-bold text-xs rounded-lg shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+                  className="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white font-medium text-xs rounded-lg shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
                 >
-                  {isUpdating ? 'Saving...' : 'Change Status'}
+                  {isUpdating ? 'Saving...' : 'Update'}
                 </button>
               </div>
             </div>
 
             {/* Stepper */}
             <div className="relative flex justify-between items-start px-2 sm:px-6">
-              <div className="absolute top-4 left-8 right-8 h-1 bg-slate-200 rounded-full z-0"></div>
+              <div className="absolute top-4 left-8 right-8 h-0.5 bg-slate-200 rounded-full z-0"></div>
               <div 
-                className="absolute top-4 left-8 h-1 bg-[#52c41a] rounded-full z-0 transition-all duration-500"
+                className="absolute top-4 left-8 h-0.5 bg-teal-600 rounded-full z-0 transition-all duration-500"
                 style={{ width: `${Math.min(100, Math.max(0, (currentStep - 2) * 25))}%` }}
               ></div>
 
@@ -212,12 +222,12 @@ export function OrderDetailsView({ order, allOrders = [], onClose, onUpdateStatu
                 const Icon = step.icon;
                 return (
                   <div key={idx} className="relative z-10 flex flex-col items-center w-16 sm:w-20">
-                    <div className={`w-8 h-8 flex items-center justify-center rounded-xl shadow-xs transition-colors mb-1.5 ${
-                      isActive ? 'bg-[#52c41a] text-white' : 'bg-slate-100 text-slate-400'
+                    <div className={`w-8 h-8 flex items-center justify-center rounded-lg shadow-2xs transition-colors mb-1.5 ${
+                      isActive ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-400'
                     }`}>
                       <Icon className="w-4 h-4" />
                     </div>
-                    <span className={`text-[11px] font-bold text-center leading-tight ${isActive ? 'text-slate-800' : 'text-slate-400'}`}>
+                    <span className={`text-[10px] font-medium text-center leading-tight ${isActive ? 'text-slate-800' : 'text-slate-400'}`}>
                       {step.label}
                     </span>
                     <span className="text-[9px] text-slate-400 mt-0.5 text-center">
@@ -233,11 +243,11 @@ export function OrderDetailsView({ order, allOrders = [], onClose, onUpdateStatu
           <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-slate-100 text-[11px] font-black text-slate-500 uppercase">
-                  <th className="pb-2 font-semibold">Product</th>
-                  <th className="pb-2 font-semibold text-center">Unit Price</th>
-                  <th className="pb-2 font-semibold text-center">Quantity</th>
-                  <th className="pb-2 font-semibold text-right">Total</th>
+                <tr className="border-b border-slate-100 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                  <th className="pb-2">Product</th>
+                  <th className="pb-2 text-center">Unit Price</th>
+                  <th className="pb-2 text-center">Qty</th>
+                  <th className="pb-2 text-right">Total</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 text-xs">
@@ -252,24 +262,24 @@ export function OrderDetailsView({ order, allOrders = [], onClose, onUpdateStatu
                       <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
                         <td className="py-2.5">
                           <div className="flex items-center gap-2.5">
-                            <div className="w-9 h-9 bg-slate-100 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                            <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 border border-slate-100">
                               {itemImg ? (
                                 <img src={itemImg} alt={itemTitle} className="w-full h-full object-cover" />
                               ) : (
-                                <Package className="w-4 h-4 text-slate-400" />
+                                <Package className="w-3.5 h-3.5 text-slate-400" />
                               )}
                             </div>
                             <div>
-                              <p className="font-bold text-xs text-slate-800 line-clamp-1">{itemTitle}</p>
+                              <p className="font-medium text-xs text-slate-800 line-clamp-1">{itemTitle}</p>
                               {item.variant?.name && (
-                                <span className="text-[10px] text-slate-500">{item.variant.name}</span>
+                                <span className="text-[10px] text-slate-400 font-normal">{item.variant.name}</span>
                               )}
                             </div>
                           </div>
                         </td>
-                        <td className="py-2.5 text-center font-mono text-xs text-slate-600">৳ {itemUnitPrice}</td>
-                        <td className="py-2.5 text-center font-mono text-xs text-slate-600">{itemQty}</td>
-                        <td className="py-2.5 text-right font-mono font-bold text-slate-800">৳ {itemUnitPrice * itemQty}</td>
+                        <td className="py-2.5 text-center font-mono tabular-nums text-xs text-slate-600">৳ {itemUnitPrice}</td>
+                        <td className="py-2.5 text-center font-mono tabular-nums text-xs text-slate-600">{itemQty}</td>
+                        <td className="py-2.5 text-right font-mono tabular-nums font-semibold text-slate-800">৳ {itemUnitPrice * itemQty}</td>
                       </tr>
                     );
                   })
@@ -277,48 +287,44 @@ export function OrderDetailsView({ order, allOrders = [], onClose, onUpdateStatu
                   <tr className="hover:bg-slate-50/50">
                     <td className="py-2.5">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-9 h-9 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <Package className="w-4 h-4 text-slate-400" />
+                        <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0 border border-slate-100">
+                          <Package className="w-3.5 h-3.5 text-slate-400" />
                         </div>
-                        <p className="font-bold text-xs text-slate-800 line-clamp-1">{order.productTitle}</p>
+                        <p className="font-medium text-xs text-slate-800 line-clamp-1">{order.productTitle}</p>
                       </div>
                     </td>
-                    <td className="py-2.5 text-center font-mono text-xs text-slate-600">৳ {order.price}</td>
-                    <td className="py-2.5 text-center font-mono text-xs text-slate-600">{order.quantity}</td>
-                    <td className="py-2.5 text-right font-mono font-bold text-slate-800">৳ {(order.price || 0) * (order.quantity || 1)}</td>
+                    <td className="py-2.5 text-center font-mono tabular-nums text-xs text-slate-600">৳ {order.price}</td>
+                    <td className="py-2.5 text-center font-mono tabular-nums text-xs text-slate-600">{order.quantity}</td>
+                    <td className="py-2.5 text-right font-mono tabular-nums font-semibold text-slate-800">৳ {(order.price || 0) * (order.quantity || 1)}</td>
                   </tr>
                 )}
               </tbody>
             </table>
 
             {/* Cart Totals */}
-            <div className="mt-4 pt-3 border-t border-slate-200">
-              <div className="grid grid-cols-2 bg-slate-50 p-2.5 rounded-lg mb-2">
-                <span className="font-bold text-slate-800 text-xs">Cart Totals</span>
-                <span className="font-bold text-slate-800 text-xs text-right">Price</span>
-              </div>
-              <div className="px-2 space-y-2 text-xs">
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-600 font-medium">Sub Total</span>
-                  <span className="font-mono text-slate-800 font-bold">
+            <div className="mt-3 pt-3 border-t border-slate-100">
+              <div className="px-1 space-y-1.5 text-xs">
+                <div className="flex justify-between items-center text-slate-600">
+                  <span className="font-normal">Sub Total</span>
+                  <span className="font-mono tabular-nums text-slate-800 font-medium">
                     ৳ {order.totalPrice ? order.totalPrice - (order.deliveryCharge || 0) + (order.couponDiscount || order.discountAmount || 0) : ((order.price || 0) * (order.quantity || 1))}
                   </span>
                 </div>
-                {order.couponDiscount && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-rose-500 font-medium">Discount</span>
-                    <span className="font-mono text-rose-600 font-bold">- ৳ {order.couponDiscount || order.discountAmount}</span>
+                {Boolean(order.couponDiscount || order.discountAmount) && (
+                  <div className="flex justify-between items-center text-rose-500">
+                    <span className="font-normal">Discount</span>
+                    <span className="font-mono tabular-nums font-medium">- ৳ {order.couponDiscount || order.discountAmount}</span>
                   </div>
                 )}
-                <div className="flex justify-between items-center pb-2 border-b border-slate-100">
-                  <span className="text-slate-600 font-medium">Shipping</span>
-                  <span className="font-mono text-slate-800 font-bold">
+                <div className="flex justify-between items-center text-slate-600 pb-1.5 border-b border-slate-100">
+                  <span className="font-normal">Shipping</span>
+                  <span className="font-mono tabular-nums text-slate-800 font-medium">
                     {order.deliveryCharge ? `৳ ${order.deliveryCharge}` : 'Free'}
                   </span>
                 </div>
-                <div className="flex justify-between items-center pt-1">
-                  <span className="font-bold text-slate-900 text-sm">Total price</span>
-                  <span className="font-mono font-black text-orange-500 text-base">
+                <div className="flex justify-between items-center pt-0.5">
+                  <span className="font-semibold text-slate-900 text-xs">Total Amount</span>
+                  <span className="font-mono tabular-nums font-bold text-slate-900 text-sm">
                     ৳ {order.totalAmount || order.totalPrice || ((order.price || 0) * (order.quantity || 1) + (order.deliveryCharge || 0))}
                   </span>
                 </div>
@@ -326,7 +332,7 @@ export function OrderDetailsView({ order, allOrders = [], onClose, onUpdateStatu
             </div>
           </div>
 
-          {/* Embedded Compact Invoice Preview (Matching Screenshot 1) */}
+          {/* Embedded Compact Invoice Preview */}
           <CompactInvoiceCard order={order} />
         </div>
 
@@ -335,22 +341,52 @@ export function OrderDetailsView({ order, allOrders = [], onClose, onUpdateStatu
           
           {/* Summary */}
           <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4">
-            <h3 className="font-bold text-slate-900 text-xs flex items-center gap-1.5 mb-3">
-              <FileText className="w-4 h-4 text-slate-400" />
+            <h3 className="font-semibold text-slate-900 text-xs flex items-center gap-1.5 mb-2.5">
+              <FileText className="w-3.5 h-3.5 text-slate-400" />
               Summary
             </h3>
-            <div className="space-y-2.5 text-xs">
-              <div className="flex justify-between">
-                <span className="text-slate-500">Order ID</span>
-                <span className="font-bold text-slate-900 font-mono">#{order.id.replace('ORD-', '')}</span>
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">Order ID:</span>
+                <span className="font-medium text-slate-800 font-mono">#{order.id.replace('ORD-', '')}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Date</span>
-                <span className="font-bold text-slate-900">{formatDate(order.createdAt)}</span>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">Source:</span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                  <Share2 className="w-3 h-3 text-indigo-500" />
+                  <span>{order.source || (order.orderType === 'landing' ? 'Landing' : (order.orderType === 'storefront' || order.orderType === 'store') ? 'Website' : 'Showroom')}</span>
+                </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Total</span>
-                <span className="font-bold font-mono text-orange-500">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">Moderator:</span>
+                {onAssignModerator && staffList.length > 0 ? (
+                  <select
+                    value={order.acceptedByModeratorId || ''}
+                    onChange={(e) => {
+                      const selId = e.target.value;
+                      const selectedMod = staffList.find(m => m.id === selId);
+                      onAssignModerator(order.id, selId || undefined, selectedMod?.name);
+                    }}
+                    className="text-[11px] font-semibold py-0.5 px-2 rounded border border-slate-200 bg-slate-50 text-slate-800 cursor-pointer focus:outline-none focus:border-teal-500"
+                  >
+                    <option value="">(Unassigned)</option>
+                    {staffList.map(m => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="font-medium text-slate-800">
+                    {order.acceptedByModeratorName || '(Not Assigned)'}
+                  </span>
+                )}
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">Date:</span>
+                <span className="font-medium text-slate-800">{formatDate(order.createdAt)}</span>
+              </div>
+              <div className="flex justify-between border-t border-slate-100 pt-1.5 items-center">
+                <span className="text-slate-500 font-medium">Total:</span>
+                <span className="font-bold font-mono tabular-nums text-slate-900">
                   ৳ {order.totalAmount || order.totalPrice || ((order.price || 0) * (order.quantity || 1) + (order.deliveryCharge || 0))}
                 </span>
               </div>
@@ -359,24 +395,24 @@ export function OrderDetailsView({ order, allOrders = [], onClose, onUpdateStatu
 
           {/* Shipping Address */}
           <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4">
-            <h3 className="font-bold text-slate-900 text-xs flex items-center gap-1.5 mb-3">
-              <MapPin className="w-4 h-4 text-slate-400" />
+            <h3 className="font-semibold text-slate-900 text-xs flex items-center gap-1.5 mb-2.5">
+              <MapPin className="w-3.5 h-3.5 text-slate-400" />
               Shipping Address
             </h3>
             <div className="space-y-1.5 text-xs text-slate-600">
-              <p className="font-bold text-slate-900">{order.customerName}</p>
-              <p>{order.address}</p>
+              <p className="font-semibold text-slate-900">{order.customerName}</p>
+              <p className="leading-relaxed">{order.address}</p>
               {(order.thana || order.district) && (
-                <p>{order.thana ? `${order.thana}, ` : ''}{order.district}</p>
+                <p className="text-slate-500">{order.thana ? `${order.thana}, ` : ''}{order.district}</p>
               )}
-              {order.email && <p>{order.email}</p>}
+              {order.email && <p className="text-slate-500">{order.email}</p>}
               <div className="flex items-center justify-between pt-1">
-                <span className="font-mono text-slate-800 font-medium">{order.phone}</span>
+                <span className="font-mono tabular-nums text-slate-800 font-medium">{order.phone}</span>
                 {order.phone && (
                   <button
                     type="button"
                     onClick={handleCheckRatio}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 text-[11px] font-bold transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 text-[10px] font-medium transition-colors cursor-pointer"
                   >
                     <ShieldCheck className="h-3 w-3 text-teal-600" />
                     <span>Check Steadfast Ratio</span>
