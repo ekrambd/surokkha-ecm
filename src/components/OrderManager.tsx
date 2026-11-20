@@ -27,6 +27,9 @@ interface OrderManagerProps {
   onUpdateOrder: (order: BookOrder) => Promise<void>;
   onDeleteOrder: (id: string) => Promise<void>;
   onRefreshOrders?: () => Promise<void>;
+  mode?: 'all' | 'manual_only';
+  currentModeratorId?: string;
+  currentModeratorName?: string;
 }
 
 // Helper for relative timestamps (e.g. '20 minutes ago', '4 hours ago', 'a day ago')
@@ -288,8 +291,12 @@ export default function OrderManager({
   onAddOrder,
   onUpdateOrder,
   onDeleteOrder,
-  onRefreshOrders
+  onRefreshOrders,
+  mode = 'all',
+  currentModeratorId,
+  currentModeratorName
 }: OrderManagerProps) {
+  const isManualOnly = mode === 'manual_only';
   const [isRefreshing, setIsRefreshing] = useState(false);
   // Filters & Search
   const [searchTerm, setSearchTerm] = useState('');
@@ -436,7 +443,7 @@ export default function OrderManager({
     quantity: 1,
     orderType: 'physical' as 'physical' | 'landing' | 'store',
     source: 'Facebook' as string,
-    acceptedByModeratorId: '',
+    acceptedByModeratorId: currentModeratorId || '',
     status: 'Confirmed' as BookOrder['status'],
     notes: ''
   });
@@ -589,6 +596,18 @@ export default function OrderManager({
 
   // Filtered orders list
   const filteredOrders = orders.filter(order => {
+    // In manual_only mode, only show orders manually created/handled by this moderator (or manual sources)
+    if (isManualOnly) {
+      // Must match moderator's id if assigned, or created with manual sources
+      const isHandledByCurrentMod = currentModeratorId && order.acceptedByModeratorId === currentModeratorId;
+      const isManualOrderType = order.orderType === 'physical' || ['Facebook', 'Messenger', 'WhatsApp', 'Phone Call', 'Showroom', 'Manual'].includes(order.source || '');
+      if (currentModeratorId) {
+        if (!isHandledByCurrentMod) return false;
+      } else {
+        if (!isManualOrderType) return false;
+      }
+    }
+
     const matchesSearch = 
       order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.phone.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -618,12 +637,20 @@ export default function OrderManager({
   // Selected orders array
   const selectedOrders = orders.filter(o => selectedOrderIds.includes(o.id));
 
+  // Base orders pool depending on mode
+  const visibleOrdersPool = isManualOnly 
+    ? orders.filter(order => {
+        if (currentModeratorId) return order.acceptedByModeratorId === currentModeratorId;
+        return order.orderType === 'physical' || ['Facebook', 'Messenger', 'WhatsApp', 'Phone Call', 'Showroom', 'Manual'].includes(order.source || '');
+      })
+    : orders;
+
   // Metrics
-  const totalOrders = orders.length;
-  const landingCount = orders.filter(o => o.orderType === 'landing').length;
-  const physicalCount = orders.filter(o => o.orderType === 'physical').length;
-  const pendingCount = orders.filter(o => o.status === 'Pending').length;
-  const totalRevenue = orders
+  const totalOrders = visibleOrdersPool.length;
+  const landingCount = visibleOrdersPool.filter(o => o.orderType === 'landing').length;
+  const physicalCount = visibleOrdersPool.filter(o => o.orderType === 'physical').length;
+  const pendingCount = visibleOrdersPool.filter(o => o.status === 'Pending').length;
+  const totalRevenue = visibleOrdersPool
     .filter(o => o.status === 'Delivered' || o.status === 'Confirmed' || o.status === 'Shipped')
     .reduce((sum, o) => sum + (o.totalPrice || 580), 0);
 
@@ -2159,16 +2186,24 @@ export default function OrderManager({
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-slate-900 flex items-center space-x-2">
             <ShoppingBag className="h-6 w-6 text-teal-600" />
-            <span>Orders</span>
+            <span>{isManualOnly ? 'Manual Orders' : 'Orders'}</span>
           </h2>
           <p className="text-xs text-slate-500 font-medium mt-1">
-            Manage orders, courier bookings, and print invoices.
+            {isManualOnly 
+              ? 'নতুন ম্যানুয়াল অর্ডার তৈরি করুন এবং শুধুমাত্র নিজের তৈরি অর্ডারগুলো দেখুন।'
+              : 'Manage orders, courier bookings, and print invoices.'}
           </p>
         </div>
 
         <div className="flex items-center space-x-2">
           <button 
-            onClick={() => setIsAddModalOpen(true)}
+            onClick={() => {
+              setFormData(prev => ({
+                ...prev,
+                acceptedByModeratorId: currentModeratorId || prev.acceptedByModeratorId
+              }));
+              setIsAddModalOpen(true);
+            }}
             className="inline-flex items-center justify-center px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all shrink-0 cursor-pointer"
             title="নতুন অর্ডার তৈরি করুন"
           >

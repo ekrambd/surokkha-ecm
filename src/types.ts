@@ -586,6 +586,7 @@ export interface BookOrder {
 
 export type StaffPermission = 
   | 'orders' 
+  | 'manual_orders'
   | 'pos' 
   | 'inventory' 
   | 'products' 
@@ -687,7 +688,7 @@ export interface Brand {
   updatedAt?: string;
 }
 
-export type ActiveTab = 'dashboard' | 'pos' | 'products' | 'orders' | 'customers' | 'coupons' | 'inventory' | 'moderators' | 'category_management' | 'brand_management' | 'flash_sale' | 'highlight_spotlight' | 'about_settings' | 'landing_setup' | 'payment_settings' | 'delivery_settings' | 'pixel_settings' | 'courier_settings' | 'profile' | 'points';
+export type ActiveTab = 'dashboard' | 'pos' | 'products' | 'orders' | 'manual_orders' | 'customers' | 'coupons' | 'inventory' | 'moderators' | 'category_management' | 'brand_management' | 'flash_sale' | 'highlight_spotlight' | 'about_settings' | 'landing_setup' | 'payment_settings' | 'delivery_settings' | 'pixel_settings' | 'courier_settings' | 'profile' | 'points';
 
 export interface ContactMessage {
   id: string;

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { 
-  Users, LogOut, Menu, X, Check, ShoppingBag, ShoppingCart, ClipboardList, Package, LayoutDashboard, User, Code, Truck, CreditCard, Tag, Boxes, Store, Globe, Layout, Layers, Bell, Coins, Send, Sparkles, Eye, Bookmark, Camera, Zap, Volume2, VolumeX, RefreshCw, Shield
+  Users, LogOut, Menu, X, Check, ShoppingBag, ShoppingCart, ClipboardList, Package, LayoutDashboard, User, Code, Truck, CreditCard, Tag, Boxes, Store, Globe, Layout, Layers, Bell, Coins, Send, Sparkles, Eye, Bookmark, Camera, Zap, Volume2, VolumeX, RefreshCw, Shield, PlusCircle
 } from 'lucide-react';
 import { dbService, subscribeToOrders } from '../lib/dbService';
 import { playCuteAdminOrderTone, initAudioUnlock } from '../lib/soundUtils';
@@ -390,7 +390,8 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
     { id: 'pos' as const, label: 'Point of Sale (POS)', icon: ShoppingCart },
     { id: 'inventory' as const, label: 'Inventory', icon: Boxes },
     { id: 'products' as const, label: 'Products', icon: Package },
-    { id: 'orders' as const, label: 'Orders', icon: ShoppingBag },
+    { id: 'orders' as const, label: 'All Orders', icon: ShoppingBag },
+    { id: 'manual_orders' as const, label: 'Manual Orders', icon: PlusCircle },
     { id: 'customers' as const, label: 'Customers', icon: Users },
     { id: 'coupons' as const, label: 'Coupons', icon: Tag },
     { id: 'moderators' as const, label: 'Staff & Moderators', icon: Shield },
@@ -692,7 +693,7 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
                     onDeleteProduct={handleDeleteProduct}
                   />
                 )}
-                {activeTab === 'orders' && (
+                {(activeTab === 'orders' || activeTab === 'manual_orders') && (
                   <OrderManager 
                     orders={orders}
                     products={products}
@@ -701,6 +702,9 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
                     onUpdateOrder={handleUpdateOrder}
                     onDeleteOrder={handleDeleteOrder}
                     onRefreshOrders={handleManualRefreshOrders}
+                    mode={activeTab === 'manual_orders' ? 'manual_only' : 'all'}
+                    currentModeratorId={currentSessionUser?.id || (currentSessionUser as any)?.uid}
+                    currentModeratorName={currentSessionUser?.name}
                   />
                 )}
                 {activeTab === 'inventory' && (
