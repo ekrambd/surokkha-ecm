@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowUp, Phone, Mail, Headphones, ShieldCheck } from 'lucide-react';
+import { ArrowUp, Phone, Mail, Headphones } from 'lucide-react';
 
 interface FantineFooterProps {
   displayStoreLogo: string;
@@ -238,24 +238,9 @@ export default function FantineFooter({
 
         </div>
 
-        {/* SSLCommerz Verified Payment Methods & Bottom Bar */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-8 mt-10 pt-6 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-2 justify-center md:justify-start">
-            <span className="text-[11px] text-slate-600 font-semibold flex items-center gap-1.5 mr-1">
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              Verified & Secured by SSLCommerz:
-            </span>
-            <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-bold">
-              <span className="bg-slate-50 text-[#e2136e] border border-slate-200 px-2 py-0.5 rounded shadow-2xs font-black">bKash</span>
-              <span className="bg-slate-50 text-[#f7941d] border border-slate-200 px-2 py-0.5 rounded shadow-2xs font-black">Nagad</span>
-              <span className="bg-slate-50 text-[#8c3494] border border-slate-200 px-2 py-0.5 rounded shadow-2xs font-black">Rocket</span>
-              <span className="bg-slate-50 text-[#00579f] border border-slate-200 px-2 py-0.5 rounded shadow-2xs font-bold">VISA</span>
-              <span className="bg-slate-50 text-[#eb001b] border border-slate-200 px-2 py-0.5 rounded shadow-2xs font-bold">Mastercard</span>
-              <span className="bg-slate-50 text-[#0066b2] border border-slate-200 px-2 py-0.5 rounded shadow-2xs font-bold">Nexus</span>
-            </div>
-          </div>
-
-          <div className="text-xs text-slate-500 font-medium text-center md:text-right">
+        {/* Bottom Bar */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 mt-10 pt-6 border-t border-slate-200 flex items-center justify-center">
+          <div className="text-xs text-slate-500 font-medium text-center">
             © {new Date().getFullYear()} {displayStoreName}. All rights reserved.
           </div>
         </div>
