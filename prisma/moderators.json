@@ -1,0 +1,28 @@
+[
+  {
+    "id": "staff_1794602144408_86",
+    "name": "ddddd",
+    "phone": "01315861003",
+    "password": "12345678",
+    "role": "moderator",
+    "permissions": [
+      "orders",
+      "pos",
+      "customers"
+    ],
+    "isActive": true,
+    "baseSalary": 12000,
+    "commissionPerOrder": 15,
+    "attendance": {
+      "2026-11-08": {
+        "date": "2026-11-08",
+        "status": "present",
+        "note": "",
+        "markedAt": "2026-11-13T20:35:47.360Z"
+      }
+    },
+    "salaryPayments": [],
+    "createdAt": "2026-11-13T20:35:44.408Z",
+    "updatedAt": "2026-11-13T20:35:47.360Z"
+  }
+]

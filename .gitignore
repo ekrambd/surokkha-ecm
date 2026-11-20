@@ -11,9 +11,3 @@ public/uploads/*
 !public/uploads/logo-transparent.png
 !public/uploads/file-1792185577063-331672488.jpg
 !public/uploads/file-1792185581499-616845250.jpg
-
-# VPS Production Data (Prevent git reset --hard from wiping live settings/products/orders)
-prisma/*.json
-prisma/*.db
-prisma/*.db-journal
-!prisma/schema.prisma
