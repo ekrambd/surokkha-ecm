@@ -131,7 +131,8 @@ function AppRoutes() {
   const handleLoginSuccess = (email: string) => {
     localStorage.setItem('noor_admin_session_email', email);
     setAdminEmail(email);
-    navigate('/admin/dashboard');
+    // Replace login route in browser history so pressing Back never returns to /login
+    navigate('/admin/dashboard', { replace: true });
   };
 
   const handleLogout = async () => {
@@ -207,16 +208,24 @@ function AppRoutes() {
             <Route path="/smart-land-survey-book" element={<Navigate to="/book" replace />} />
             
             <Route path="/login" element={
-              <LoginPage 
-                onLoginSuccess={handleLoginSuccess}
-                onNavigateHome={() => navigate('/')}
-              />
+              adminEmail ? (
+                <Navigate to="/admin/dashboard" replace />
+              ) : (
+                <LoginPage 
+                  onLoginSuccess={handleLoginSuccess}
+                  onNavigateHome={() => navigate('/')}
+                />
+              )
             } />
             <Route path="/admin" element={
-              <LoginPage 
-                onLoginSuccess={handleLoginSuccess}
-                onNavigateHome={() => navigate('/')}
-              />
+              adminEmail ? (
+                <Navigate to="/admin/dashboard" replace />
+              ) : (
+                <LoginPage 
+                  onLoginSuccess={handleLoginSuccess}
+                  onNavigateHome={() => navigate('/')}
+                />
+              )
             } />
             
             <Route path="/admin/dashboard" element={

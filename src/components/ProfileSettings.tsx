@@ -2,13 +2,15 @@ import { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import { 
   User, CheckCircle, Phone, Mail, MapPin, Lock, ShieldCheck,
   Building2, KeyRound, QrCode, Receipt, ChevronDown, Download,
-  Image as ImageIcon, Upload, X, Palette, Store, Check, Sparkles, Share2, Globe
+  Image as ImageIcon, Upload, X, Palette, Store, Check, Sparkles, Share2, Globe, Link2
 } from 'lucide-react';
 import { dbService } from '../lib/dbService';
 import { CircularProgress } from './LoadingSkeleton';
 import { compressImage } from '../lib/imageUtils';
 import { uploadDataUrlToStorage } from '../lib/storageService';
 import { FeedbackDialog } from './ui/FeedbackDialog';
+import { Product } from '../types';
+import { getProductSlug } from '../lib/seoUtils';
 
 interface ProfileSettingsProps {
   adminEmail: string;
@@ -53,6 +55,7 @@ export default function ProfileSettings({ adminEmail }: ProfileSettingsProps) {
   const [heroBannerRightLink, setHeroBannerRightLink] = useState('');
   const [isUploadingBannerLeft, setIsUploadingBannerLeft] = useState(false);
   const [isUploadingBannerRight, setIsUploadingBannerRight] = useState(false);
+  const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
 
   // Store Identity & Branding state
   const [storeLogo, setStoreLogo] = useState('');
@@ -96,10 +99,15 @@ export default function ProfileSettings({ adminEmail }: ProfileSettingsProps) {
     async function loadData() {
       setIsLoading(true);
       try {
-        const [info, ecomSettings] = await Promise.all([
+        const [info, ecomSettings, prods] = await Promise.all([
           dbService.getInstituteInfo(),
-          dbService.getEcomSettings()
+          dbService.getEcomSettings(),
+          dbService.getProducts().catch(() => [])
         ]);
+
+        if (Array.isArray(prods) && prods.length > 0) {
+          setAvailableProducts(prods);
+        }
 
         if (info) {
           if (info.name) setCompanyName(info.name);
@@ -870,9 +878,11 @@ export default function ProfileSettings({ adminEmail }: ProfileSettingsProps) {
                       </div>
                     )}
 
+                    {/* Left Banner Upload */}
                     <div className="flex gap-2">
-                      <label className="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg cursor-pointer shrink-0">
-                        {isUploadingBannerLeft ? 'Uploading...' : 'Upload Image'}
+                      <label className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg cursor-pointer flex items-center justify-center gap-1.5 shadow-xs transition-colors">
+                        <Upload className="w-3.5 h-3.5" />
+                        {isUploadingBannerLeft ? 'Uploading Banner...' : 'Upload Banner Image'}
                         <input 
                           type="file" 
                           accept="image/*" 
@@ -881,23 +891,49 @@ export default function ProfileSettings({ adminEmail }: ProfileSettingsProps) {
                           className="hidden" 
                         />
                       </label>
-                      <input 
-                        type="text" 
-                        value={heroBannerLeftImage} 
-                        onChange={(e) => setHeroBannerLeftImage(e.target.value)} 
-                        placeholder="/uploads/... or paste image URL" 
-                        className="flex-1 px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-mono" 
-                      />
                     </div>
 
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-600 block mb-1">Click Link / Destination URL</label>
+                    {/* Destination / Product Link Selection */}
+                    <div className="space-y-2 pt-1">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
+                          <Link2 className="w-3.5 h-3.5 text-emerald-600" />
+                          Destination URL or Select Product
+                        </label>
+                      </div>
+
+                      {/* Quick Select from Existing Products */}
+                      {availableProducts.length > 0 && (
+                        <select
+                          className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          value={heroBannerLeftLink.startsWith('/product/') ? heroBannerLeftLink : ''}
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              setHeroBannerLeftLink(e.target.value);
+                            }
+                          }}
+                        >
+                          <option value="">-- Or Select a Product to Open --</option>
+                          <option value="/shop">All Products (/shop)</option>
+                          {availableProducts.map(p => {
+                            const pSlug = p.slug || getProductSlug(p);
+                            const path = `/product/${pSlug}`;
+                            return (
+                              <option key={p.id} value={path}>
+                                🛍️ {p.title} ({path})
+                              </option>
+                            );
+                          })}
+                        </select>
+                      )}
+
+                      {/* Custom or Selected URL Input */}
                       <input 
                         type="text" 
                         value={heroBannerLeftLink} 
                         onChange={(e) => setHeroBannerLeftLink(e.target.value)} 
-                        placeholder="/shop or https://..." 
-                        className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs" 
+                        placeholder="/shop, /product/almond or https://..." 
+                        className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500" 
                       />
                     </div>
                   </div>
@@ -910,7 +946,7 @@ export default function ProfileSettings({ adminEmail }: ProfileSettingsProps) {
                         <button 
                           type="button" 
                           onClick={() => setHeroBannerRightImage('')}
-                          className="text-xs text-rose-600 hover:underline cursor-pointer"
+                          className="text-xs text-rose-600 hover:underline cursor-pointer font-semibold"
                         >
                           Remove
                         </button>
@@ -921,7 +957,7 @@ export default function ProfileSettings({ adminEmail }: ProfileSettingsProps) {
                       <img 
                         src={heroBannerRightImage} 
                         alt="Right Banner Preview" 
-                        className="w-full h-28 object-cover rounded-lg border border-slate-200" 
+                        className="w-full h-28 object-cover rounded-lg border border-slate-200 shadow-2xs" 
                       />
                     ) : (
                       <div className="w-full h-28 bg-white border border-dashed border-slate-300 rounded-lg flex items-center justify-center text-xs text-slate-400">
@@ -929,9 +965,11 @@ export default function ProfileSettings({ adminEmail }: ProfileSettingsProps) {
                       </div>
                     )}
 
+                    {/* Right Banner Upload */}
                     <div className="flex gap-2">
-                      <label className="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg cursor-pointer shrink-0">
-                        {isUploadingBannerRight ? 'Uploading...' : 'Upload Image'}
+                      <label className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg cursor-pointer flex items-center justify-center gap-1.5 shadow-xs transition-colors">
+                        <Upload className="w-3.5 h-3.5" />
+                        {isUploadingBannerRight ? 'Uploading Banner...' : 'Upload Banner Image'}
                         <input 
                           type="file" 
                           accept="image/*" 
@@ -940,23 +978,49 @@ export default function ProfileSettings({ adminEmail }: ProfileSettingsProps) {
                           className="hidden" 
                         />
                       </label>
-                      <input 
-                        type="text" 
-                        value={heroBannerRightImage} 
-                        onChange={(e) => setHeroBannerRightImage(e.target.value)} 
-                        placeholder="/uploads/... or paste image URL" 
-                        className="flex-1 px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-mono" 
-                      />
                     </div>
 
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-600 block mb-1">Click Link / Destination URL</label>
+                    {/* Destination / Product Link Selection */}
+                    <div className="space-y-2 pt-1">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
+                          <Link2 className="w-3.5 h-3.5 text-emerald-600" />
+                          Destination URL or Select Product
+                        </label>
+                      </div>
+
+                      {/* Quick Select from Existing Products */}
+                      {availableProducts.length > 0 && (
+                        <select
+                          className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          value={heroBannerRightLink.startsWith('/product/') ? heroBannerRightLink : ''}
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              setHeroBannerRightLink(e.target.value);
+                            }
+                          }}
+                        >
+                          <option value="">-- Or Select a Product to Open --</option>
+                          <option value="/shop">All Products (/shop)</option>
+                          {availableProducts.map(p => {
+                            const pSlug = p.slug || getProductSlug(p);
+                            const path = `/product/${pSlug}`;
+                            return (
+                              <option key={p.id} value={path}>
+                                🛍️ {p.title} ({path})
+                              </option>
+                            );
+                          })}
+                        </select>
+                      )}
+
+                      {/* Custom or Selected URL Input */}
                       <input 
                         type="text" 
                         value={heroBannerRightLink} 
                         onChange={(e) => setHeroBannerRightLink(e.target.value)} 
-                        placeholder="/shop or https://..." 
-                        className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs" 
+                        placeholder="/shop, /product/dates or https://..." 
+                        className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500" 
                       />
                     </div>
                   </div>

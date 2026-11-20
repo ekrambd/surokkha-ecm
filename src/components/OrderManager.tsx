@@ -425,6 +425,7 @@ export default function OrderManager({
   // Add Physical Order Modal
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<string>('');
+  const [selectedVariantId, setSelectedVariantId] = useState<string>('');
   const [formData, setFormData] = useState({
     customerName: '',
     phone: '',
@@ -3494,27 +3495,27 @@ export default function OrderManager({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-3xl max-w-2xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden my-auto"
+              className="bg-white rounded-2xl sm:rounded-3xl max-w-2xl w-full max-h-[94vh] sm:max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden my-auto"
             >
-              <div className="flex justify-between items-center border-b border-slate-100 p-5 bg-white shrink-0 sticky top-0 z-10">
+              <div className="flex justify-between items-center border-b border-slate-100 p-4 sm:p-5 bg-white shrink-0 sticky top-0 z-10">
                 <div>
                   <h3 className="text-base font-bold text-slate-900 flex items-center space-x-2">
                     <Plus className="h-5 w-5 text-teal-600" />
                     <span>নতুন ম্যানুয়াল অর্ডার তৈরি করুন (New Order)</span>
                   </h3>
-                  <p className="text-[11px] text-slate-500 mt-1">
+                  <p className="text-[11px] text-slate-500 mt-0.5 sm:mt-1">
                     ফেসবুক, হোয়াটসঅ্যাপ বা শোরুমের অর্ডারের জন্য প্রয়োজনীয় তথ্য পূরণ করুন।
                   </p>
                 </div>
                 <button 
                   onClick={() => setIsAddModalOpen(false)} 
-                  className="text-slate-400 hover:text-slate-600 p-1 rounded-xl hover:bg-slate-100"
+                  className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 cursor-pointer"
                 >
                   <XCircle className="h-5 w-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleCreatePhysicalOrder} className="p-5 overflow-y-auto space-y-4 text-xs flex-1">
+              <form onSubmit={handleCreatePhysicalOrder} className="p-4 sm:p-5 overflow-y-auto space-y-4 text-xs flex-1 overscroll-contain [-webkit-overflow-scrolling:touch]">
                 {/* 1. Moderator & Source Picker */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-teal-50/50 border border-teal-100 rounded-2xl">
                   <div>
@@ -3558,7 +3559,7 @@ export default function OrderManager({
                   </div>
                 </div>
 
-                {/* 2. Product Picker */}
+                {/* 2. Product & Variant Picker */}
                 <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5">
                   <label className="block text-xs font-bold text-slate-800">
                     প্রোডাক্ট সিলেক্ট করুন (Item Picker)
@@ -3568,12 +3569,18 @@ export default function OrderManager({
                     onChange={(e) => {
                       const pId = e.target.value;
                       setSelectedProductId(pId);
+                      setSelectedVariantId('');
                       const prod = products.find(p => p.id === pId);
                       if (prod) {
+                        const defaultPrice = (prod.variants && prod.variants.length > 0) ? prod.variants[0].price : (prod.price || 0);
+                        const defaultVariant = (prod.variants && prod.variants.length > 0) ? prod.variants[0].name : '';
+                        if (prod.variants && prod.variants.length > 0) {
+                          setSelectedVariantId(prod.variants[0].id || prod.variants[0].name);
+                        }
                         setFormData(prev => ({
                           ...prev,
-                          productTitle: prod.title,
-                          price: prod.price || 0
+                          productTitle: defaultVariant ? `${prod.title} (${defaultVariant})` : prod.title,
+                          price: defaultPrice
                         }));
                       }
                     }}
@@ -3582,10 +3589,46 @@ export default function OrderManager({
                     <option value="">-- ক্যাটালগ থেকে প্রোডাক্ট সিলেক্ট করুন --</option>
                     {products.map(prod => (
                       <option key={prod.id} value={prod.id}>
-                        {prod.title} — ৳ {prod.price} {prod.sku ? `(${prod.sku})` : ''}
+                        {prod.title} — ৳ {prod.price} {prod.sku ? `(${prod.sku})` : ''} {prod.variants && prod.variants.length > 0 ? `[${prod.variants.length} Variants]` : ''}
                       </option>
                     ))}
                   </select>
+
+                  {/* Dynamic Variant Selector (e.g. 200G, 400G, 500G, 1KG) */}
+                  {(() => {
+                    const currentProd = products.find(p => p.id === selectedProductId);
+                    if (!currentProd || !currentProd.variants || currentProd.variants.length === 0) return null;
+
+                    return (
+                      <div className="pt-1">
+                        <label className="block text-[11px] font-bold text-teal-800 mb-1">
+                          ভেরিয়েন্ট / ওজন সিলেক্ট করুন (Variant/Weight) *
+                        </label>
+                        <select
+                          value={selectedVariantId}
+                          onChange={(e) => {
+                            const vId = e.target.value;
+                            setSelectedVariantId(vId);
+                            const variant = currentProd.variants?.find(v => (v.id || v.name) === vId);
+                            if (variant) {
+                              setFormData(prev => ({
+                                ...prev,
+                                productTitle: `${currentProd.title} (${variant.name})`,
+                                price: variant.price
+                              }));
+                            }
+                          }}
+                          className="w-full px-3 py-2 border border-teal-300 bg-teal-50/60 rounded-xl text-xs font-bold text-teal-950 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                        >
+                          {currentProd.variants.map((v, i) => (
+                            <option key={v.id || i} value={v.id || v.name}>
+                              ⚖️ {v.name} — ৳ {v.price}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    );
+                  })()}
 
                   <div>
                     <label className="block text-[11px] font-bold text-slate-600 mb-1">
@@ -3648,8 +3691,12 @@ export default function OrderManager({
                     <input
                       type="number"
                       min={0}
-                      value={formData.price}
-                      onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
+                      value={formData.price === 0 ? '' : formData.price}
+                      placeholder="0"
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData({ ...formData, price: val === '' ? 0 : Number(val) });
+                      }}
                       className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
                     />
                   </div>
@@ -3659,8 +3706,17 @@ export default function OrderManager({
                     <input
                       type="number"
                       min={1}
-                      value={formData.quantity}
-                      onChange={(e) => setFormData({ ...formData, quantity: Math.max(1, Number(e.target.value)) })}
+                      value={formData.quantity === 0 ? '' : formData.quantity}
+                      placeholder="1"
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData({ ...formData, quantity: val === '' ? 0 : Number(val) });
+                      }}
+                      onBlur={() => {
+                        if (!formData.quantity || formData.quantity < 1) {
+                          setFormData(prev => ({ ...prev, quantity: 1 }));
+                        }
+                      }}
                       className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
                     />
                   </div>
@@ -3670,8 +3726,12 @@ export default function OrderManager({
                     <input
                       type="number"
                       min={0}
-                      value={formData.deliveryCharge}
-                      onChange={(e) => setFormData({ ...formData, deliveryCharge: Number(e.target.value) })}
+                      value={formData.deliveryCharge === 0 ? '' : formData.deliveryCharge}
+                      placeholder="0"
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData({ ...formData, deliveryCharge: val === '' ? 0 : Number(val) });
+                      }}
                       className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
                     />
                   </div>

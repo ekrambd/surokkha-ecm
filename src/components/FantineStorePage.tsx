@@ -1924,7 +1924,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
       >
         {/* Main Header Top Bar: Fixed height, smoothly translates offscreen on scroll down */}
         <div className="h-[58px] sm:h-[64px] flex items-center">
-          <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3 sm:gap-6">
+          <div className="w-full max-w-[98%] 2xl:max-w-[1700px] mx-auto px-2 sm:px-4 flex items-center justify-between gap-3 sm:gap-6">
           
           {/* Left: Brand Logo (Always refreshes to home on click) */}
           <div className="flex items-center shrink-0">
@@ -2169,8 +2169,8 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
         {/* Dynamic Category Row from Admin Panel (Clean White / Light Slate Theme) */}
         {headerCategories.length > 0 && (
           <div className="border-t border-slate-100 bg-white/95 backdrop-blur-xs">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <nav className="flex items-center gap-4 sm:gap-6 md:gap-7 overflow-x-auto no-scrollbar py-2 text-xs sm:text-sm font-semibold whitespace-nowrap text-slate-700">
+            <div className="w-full max-w-[98%] 2xl:max-w-[1700px] mx-auto px-2 sm:px-4">
+              <nav className="flex items-center gap-5 sm:gap-7 md:gap-8 overflow-x-auto no-scrollbar py-2 text-xs sm:text-[13px] font-semibold whitespace-nowrap text-slate-700">
                 {headerCategories.map((catName) => {
                   const isSelected = selectedCategoryCheckbox.toLowerCase() === catName.toLowerCase();
                   return (
@@ -2191,13 +2191,13 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
                           window.scrollTo({ top: 380, behavior: 'smooth' });
                         }, 150);
                       }}
-                      className={`inline-flex items-center gap-1.5 transition-all cursor-pointer pb-1 ${
+                      className={`inline-flex items-center transition-all cursor-pointer pb-1 ${
                         isSelected
                           ? 'text-slate-950 font-bold border-b-2 border-[#F7A800]'
                           : 'text-slate-600 hover:text-slate-950 font-medium'
                       }`}
                     >
-                      {getCategoryIcon(catName)}
+                      {/* Category Text (Icons removed for clean modern look) */}
                       <span>{catName}</span>
                     </button>
                   );
@@ -3339,30 +3339,36 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
             const hasBanners = Boolean(leftImage || rightImage);
 
             return (
-              <section className="bg-white pt-4 sm:pt-6 pb-2">
-                <div className="max-w-7xl mx-auto px-4 sm:px-8">
+              <section className="bg-white pt-2 sm:pt-4 pb-2">
+                <div className="w-full max-w-[98%] 2xl:max-w-[1700px] mx-auto px-2 sm:px-4">
                   {/* Primary SEO Brand Heading for Search Engines */}
                   <h1 className="sr-only">
                     {displayStoreName} - COMFORT TO WELLNESS | স্বস্তির বাজার Official Online Store
                   </h1>
                   
-                  {/* DUAL PROMO BANNER GRID (Naturo Style: Left Wide 8 Cols, Right Square 4 Cols ~1:1) */}
+                  {/* DUAL PROMO BANNER GRID (Left & Right 50/50 Balanced Fit, Minimal Gap) */}
                   {hasBanners ? (
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 items-stretch">
-                      {/* Left Banner (Wide ~67%) */}
-                      <div className="col-span-1 lg:col-span-8 flex">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3 items-stretch">
+                      {/* Left Banner */}
+                      <div className="col-span-1 flex">
                         {leftImage ? (
                           <div 
                             onClick={() => {
                               if (leftLink.startsWith('http')) window.open(leftLink, '_blank');
-                              else navigateTo('shop');
+                              else if (leftLink) {
+                                if (leftLink.startsWith('/')) window.location.href = leftLink;
+                                else window.location.href = `/${leftLink}`;
+                              } else navigateTo('shop');
                             }}
-                            className="w-full relative rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-all duration-300 group bg-slate-900 aspect-[16/9] sm:aspect-[21/9] lg:aspect-[16/7.5] cursor-pointer"
+                            className="w-full relative rounded-xl sm:rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-all duration-300 group bg-slate-100 aspect-[16/8] sm:aspect-[16/7.5] cursor-pointer"
                           >
                             <img 
                               src={leftImage} 
                               alt="Promotional Banner" 
-                              className="w-full h-full object-contain sm:object-cover object-center group-hover:scale-102 transition-transform duration-500 cursor-pointer bg-white"
+                              loading="eager"
+                              fetchPriority="high"
+                              decoding="async"
+                              className="w-full h-full object-cover object-center group-hover:scale-[1.01] transition-transform duration-500 cursor-pointer"
                               onError={(e) => {
                                 e.currentTarget.onerror = null;
                                 e.currentTarget.src = '/placeholder-image.svg';
@@ -3401,27 +3407,33 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
                             </div>
                           </div>
                         ) : (
-                          <div className="w-full rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 text-white p-8 flex flex-col justify-center items-center text-center h-[240px] sm:h-[320px] md:h-[380px] lg:h-[420px]">
+                          <div className="w-full rounded-xl sm:rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 text-white p-8 flex flex-col justify-center items-center text-center aspect-[16/8] sm:aspect-[16/7.5]">
                             <h3 className="text-xl sm:text-2xl font-bold mb-2">{displayStoreName}</h3>
                             <p className="text-xs sm:text-sm text-amber-200">100% Pure, Organic & Lab-Tested Quality</p>
                           </div>
                         )}
                       </div>
 
-                      {/* Right Banner (Square ~1:1, hidden on mobile so only single top column is visible, shown on lg screens) */}
-                      <div className="hidden lg:flex lg:col-span-4">
+                      {/* Right Banner (50% on tablet & desktop, full fit) */}
+                      <div className="col-span-1 flex">
                         {rightImage ? (
                           <div 
                             onClick={() => {
                               if (rightLink.startsWith('http')) window.open(rightLink, '_blank');
-                              else navigateTo('shop');
+                              else if (rightLink) {
+                                if (rightLink.startsWith('/')) window.location.href = rightLink;
+                                else window.location.href = `/${rightLink}`;
+                              } else navigateTo('shop');
                             }}
-                            className="w-full relative rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-all duration-300 cursor-pointer group bg-slate-900 aspect-square"
+                            className="w-full relative rounded-xl sm:rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-all duration-300 cursor-pointer group bg-slate-100 aspect-[16/8] sm:aspect-[16/7.5]"
                           >
                             <img 
                               src={rightImage} 
                               alt="Special Offer Banner" 
-                              className="w-full h-full object-cover object-center group-hover:scale-102 transition-transform duration-500"
+                              loading="eager"
+                              fetchPriority="high"
+                              decoding="async"
+                              className="w-full h-full object-cover object-center group-hover:scale-[1.01] transition-transform duration-500"
                               onError={(e) => {
                                 e.currentTarget.onerror = null;
                                 e.currentTarget.src = '/placeholder-image.svg';
@@ -3433,7 +3445,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
                             </div>
                           </div>
                         ) : (
-                          <div className="w-full rounded-2xl bg-gradient-to-br from-[#F7A800] to-[#e09900] text-slate-950 p-8 flex flex-col justify-center items-center text-center h-[240px] sm:h-[320px] md:h-[380px] lg:h-[420px] border border-[#d99200]/50 shadow-sm">
+                          <div className="w-full rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#F7A800] to-[#e09900] text-slate-950 p-8 flex flex-col justify-center items-center text-center aspect-[16/8] sm:aspect-[16/7.5] border border-[#d99200]/50 shadow-sm">
                             <h3 className="text-lg sm:text-xl font-black mb-2">Fast Nationwide Delivery</h3>
                             <p className="text-xs sm:text-sm text-slate-900 font-medium">Cash on delivery available across Bangladesh</p>
                           </div>
@@ -3468,10 +3480,10 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
               TOP CATEGORIES SECTION ("সেরা ক্যাটাগরি" Carousel)
               ============================================================ */}
           {displayCategories.length > 0 && (
-            <section className="bg-white py-8 sm:py-12 border-b border-slate-100">
-              <div className="max-w-7xl mx-auto px-4 sm:px-8">
+            <section className="bg-white py-6 sm:py-8 border-b border-slate-100">
+              <div className="w-full max-w-[98%] 2xl:max-w-[1700px] mx-auto px-2 sm:px-4">
                 {/* Section Title */}
-                <div className="text-center mb-6 sm:mb-8">
+                <div className="text-center mb-5 sm:mb-6">
                   <h2 className="text-2xl sm:text-3xl lg:text-4xl text-slate-900 font-bold tracking-tight">
                     সেরা ক্যাটাগরি
                   </h2>
@@ -3483,7 +3495,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
                   <button
                     type="button"
                     onClick={() => scrollCategories('left')}
-                    className="absolute -left-3 sm:-left-4 md:-left-5 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-full bg-white border border-slate-200 text-slate-700 shadow-md flex items-center justify-center hover:bg-slate-50 transition-all z-10 cursor-pointer active:scale-95"
+                    className="absolute -left-2 sm:-left-3 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white border border-slate-200 text-slate-700 shadow-md flex items-center justify-center hover:bg-slate-50 transition-all z-10 cursor-pointer active:scale-95"
                     aria-label="Previous Categories"
                   >
                     <ChevronLeft className="w-5 h-5" />
@@ -3492,7 +3504,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
                   {/* Horizontal Scroll Cards / Responsive 6-col Desktop Grid */}
                   <div
                     ref={categoryScrollRef}
-                    className="flex lg:grid lg:grid-cols-6 items-stretch gap-3 sm:gap-4 md:gap-5 overflow-x-auto lg:overflow-visible scrollbar-none scroll-smooth pb-2 lg:pb-0"
+                    className="flex lg:grid lg:grid-cols-6 items-stretch gap-2 sm:gap-3 overflow-x-auto lg:overflow-visible scrollbar-none scroll-smooth pb-2 lg:pb-0"
                   >
                     {displayCategories.map((cat) => (
                       <div
@@ -3533,7 +3545,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
                   <button
                     type="button"
                     onClick={() => scrollCategories('right')}
-                    className="absolute -right-3 sm:-right-4 md:-right-5 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-full bg-white border border-slate-200 text-slate-700 shadow-md flex items-center justify-center hover:bg-slate-50 transition-all z-10 cursor-pointer active:scale-95"
+                    className="absolute -right-2 sm:-right-3 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white border border-slate-200 text-slate-700 shadow-md flex items-center justify-center hover:bg-slate-50 transition-all z-10 cursor-pointer active:scale-95"
                     aria-label="Next Categories"
                   >
                     <ChevronRight className="w-5 h-5" />
@@ -3541,7 +3553,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
                 </div>
 
                 {/* Bottom Pagination Indicator Dots */}
-                <div className="flex items-center justify-center gap-1.5 mt-5">
+                <div className="flex items-center justify-center gap-1.5 mt-4">
                   <span className="w-2 h-2 rounded-full bg-[#1e2d3d]"></span>
                   <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
                   <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
@@ -3555,11 +3567,11 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
           {/* ============================================================
               2. BEST SELLING PRODUCTS (NaturoBD Style)
               ============================================================ */}
-          <section className="pt-6 sm:pt-10 pb-4 sm:pb-6 bg-white border-b border-slate-100">
-            <div className="max-w-7xl mx-auto px-4 sm:px-8">
+          <section className="pt-6 sm:pt-8 pb-4 sm:pb-6 bg-white border-b border-slate-100">
+            <div className="w-full max-w-[98%] 2xl:max-w-[1700px] mx-auto px-2 sm:px-4">
               {products.length > 0 ? (
                 <>
-                  <div className="text-center max-w-2xl mx-auto mb-6 sm:mb-8">
+                  <div className="text-center max-w-2xl mx-auto mb-5 sm:mb-7">
                     <h2 className="text-2xl sm:text-3xl lg:text-4xl text-slate-900 font-bold tracking-tight">
                       পপুলার প্রোডাক্টস
                     </h2>
@@ -3569,7 +3581,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+                  <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4">
                     {products.slice(0, 8).map((product) => (
                       <PahariyaProductCard
                         key={product.id}
@@ -3615,11 +3627,11 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
               4. DAILY RANDOM CATEGORY SHOWCASE (Changes Once Per Day)
               ============================================================ */}
           {dailyCategoryData && dailyCategoryData.products.length > 0 && (
-            <section className="pt-6 sm:pt-10 pb-4 sm:pb-6 bg-white border-b border-slate-100">
-              <div className="max-w-7xl mx-auto px-4 sm:px-8">
+            <section className="pt-6 sm:pt-8 pb-4 sm:pb-6 bg-white border-b border-slate-100">
+              <div className="w-full max-w-[98%] 2xl:max-w-[1700px] mx-auto px-2 sm:px-4">
                 
                 {/* Section Header */}
-                <div className="text-center mb-6 sm:mb-8">
+                <div className="text-center mb-5 sm:mb-7">
                   <span className="text-[11px] font-bold tracking-widest text-slate-900 uppercase bg-amber-100 px-3 py-0.5 rounded-full border border-amber-300 inline-block mb-1.5">
                     আজকের বিশেষ কালেকশন
                   </span>
@@ -3633,7 +3645,7 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
                 </div>
 
                 {/* 4 Products Grid using PahariyaProductCard */}
-                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4">
                   {dailyCategoryData.products.map((product) => (
                     <PahariyaProductCard
                       key={'daily-cat-' + product.id}
@@ -3996,13 +4008,13 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
       </button>
 
       {/* ============================================================
-          ORDER TRACKING MODAL
+          ORDER TRACKING MODAL (Responsive & Touch-Friendly Scrolling)
           ============================================================ */}
       {isOrderTrackingOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-slate-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[92vh] sm:max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-slate-100 my-auto">
             {/* Modal Header */}
-            <div className="bg-white text-slate-900 px-5 py-4 flex items-center justify-between border-b border-slate-200">
+            <div className="bg-white text-slate-900 px-4 sm:px-5 py-3.5 sm:py-4 flex items-center justify-between border-b border-slate-200 shrink-0 sticky top-0 z-10">
               <div className="flex items-center gap-2.5">
                 <Truck className="w-5 h-5 text-[#F7A800]" />
                 <h3 className="text-base sm:text-lg font-bold text-slate-950">অর্ডার ট্র্যাকিং (Order Track)</h3>
@@ -4022,8 +4034,8 @@ export default function FantineStorePage({ onGoToLogin, onGoToLanding }: Fantine
               </button>
             </div>
 
-            {/* Modal Body */}
-            <div className="p-5 overflow-y-auto flex-1 space-y-4">
+            {/* Modal Body - Smooth Momentum Scrolling for Touch Devices */}
+            <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4 overscroll-contain [-webkit-overflow-scrolling:touch]">
               <form onSubmit={handleSearchOrderTracking} className="space-y-3">
                 <label className="block text-xs font-semibold text-slate-700">
                   আপনার ১১ ডিজিটের ফোন নম্বর বা অর্ডার আইডি লিখুন:

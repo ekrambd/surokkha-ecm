@@ -841,10 +841,24 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
             </div>
           )}
 
-          {/* Detailed Pitch Copy / Description below Grid Images */}
+          {/* Heading: আপনার পছন্দের প্যাকেজ সিলেক্ট করে অর্ডার করুন above description */}
+          <div className="pt-4 max-w-5xl mx-auto px-2">
+            <div className="space-y-1 mb-3">
+              <p className="text-xs font-bold text-[#e0562e] flex items-center justify-center gap-2">
+                <span className="w-6 h-[1px] bg-[#e0562e]"></span>
+                <span>{colorSectionTag}</span>
+                <span className="w-6 h-[1px] bg-[#e0562e]"></span>
+              </p>
+              <h2 className="text-base sm:text-xl md:text-2xl font-black text-white px-2">
+                {colorSectionTitle}
+              </h2>
+            </div>
+          </div>
+
+          {/* Detailed Pitch Copy / Description below Grid Images (Exact same max-w-5xl width as 4 images) */}
           {displayDesc && (
-            <div className="pt-2 max-w-3xl mx-auto px-2">
-              <p className="text-sm sm:text-base md:text-lg text-[#e6ded5] leading-relaxed font-normal whitespace-pre-line text-center md:text-left bg-[#16120e] p-5 sm:p-6 rounded-2xl border border-[#2e261e] font-sans antialiased tracking-wide">
+            <div className="max-w-5xl mx-auto px-2">
+              <p className="text-sm sm:text-base md:text-lg text-[#e6ded5] leading-relaxed font-normal whitespace-pre-line text-center md:text-left bg-[#16120e] p-5 sm:p-7 md:p-8 rounded-2xl border border-[#2e261e] font-sans antialiased tracking-wide">
                 {displayDesc}
               </p>
             </div>
@@ -859,7 +873,7 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
         {/* 6. SECTION: 'Color selection' & ORDER FORM (CHECKOUT)        */}
         {/* ========================================================== */}
         <section id="order-form-section" className="scroll-mt-12 text-center space-y-4 pt-3">
-          <div className="max-w-md lg:max-w-4xl mx-auto">
+          <div className="max-w-5xl mx-auto">
             {variants.length > 1 ? (
               /* Multi-Variant Mode (e.g. Silver, Black) */
               <div className="space-y-3 mb-4">
@@ -875,7 +889,7 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
                 </div>
 
                 {/* Variant Selector Pills */}
-                <div className="flex flex-wrap items-center justify-center gap-2.5 max-w-md mx-auto pt-1">
+                <div className="flex flex-wrap items-center justify-center gap-2.5 max-w-5xl mx-auto pt-1">
                   {variants.map((v, idx) => {
                     const isSelected = (selectedVariant?.id === v.id) || (!selectedVariant && idx === 0);
                     return (
@@ -911,7 +925,7 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
               </div>
             ) : (
               /* Single Variant: Clean Product Title & Highlight Badge */
-              <div className="space-y-2.5 max-w-md lg:max-w-xl mx-auto px-2 mb-4">
+              <div className="space-y-2.5 max-w-5xl mx-auto px-2 mb-4">
                 <p className="text-xs font-bold text-[#e0562e] flex items-center justify-center gap-2">
                   <span className="w-6 h-[1px] bg-[#e0562e]"></span>
                   <span>{colorSectionTag || 'colorselection'}</span>
@@ -951,8 +965,8 @@ export default function BookLandingPage({ onNavigateHome }: BookLandingPageProps
               </div>
             )}
 
-            {/* Order Placement Form - Responsive Width (compact on mobile, comfortable on desktop) */}
-            <div className="bg-[#17130e] border border-[#b8863b]/40 rounded-2xl p-4 sm:p-6 md:p-8 text-left max-w-md lg:max-w-xl mx-auto shadow-2xl space-y-4">
+            {/* Order Placement Form - Responsive Width (same exact max-w-5xl width as 4 images) */}
+            <div className="bg-[#17130e] border border-[#b8863b]/40 rounded-2xl p-4 sm:p-6 md:p-8 text-left w-full max-w-5xl mx-auto shadow-2xl space-y-4">
             
             {orderSuccess ? (
               <div className="text-center space-y-4 py-4">

@@ -36,6 +36,30 @@ interface AdminDashboardProps {
 export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Prevent mobile or browser Back button from navigating out of admin dashboard to login screen
+  useEffect(() => {
+    // Push current state to history stack
+    window.history.pushState({ adminPanel: true }, '', window.location.href);
+
+    const handlePopState = (event: PopStateEvent) => {
+      // If user was on a subtab, go back to main dashboard tab instead of exiting
+      setActiveTab(prev => {
+        if (prev !== 'dashboard') {
+          window.history.pushState({ adminPanel: true }, '', window.location.href);
+          return 'dashboard';
+        }
+        // If already on dashboard tab, maintain admin session history
+        window.history.pushState({ adminPanel: true }, '', window.location.href);
+        return prev;
+      });
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
   
   // App States
   const [orders, setOrders] = useState<BookOrder[]>([]);
