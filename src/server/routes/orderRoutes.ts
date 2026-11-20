@@ -334,6 +334,7 @@ orderRouter.post('/checkout', checkoutRateLimiter, async (req, res) => {
     SmsInBdService.sendOrderConfirmationSms({
       id: confirmedOrder.id,
       customerName: confirmedOrder.customerName,
+      productTitle: confirmedOrder.productTitle || confirmedOrder.productName,
       phone: confirmedOrder.phone,
       totalAmount: confirmedOrder.totalPrice || confirmedOrder.totalAmount
     }).catch(err => console.warn('Order confirmation SMS skipped/failed:', err));
@@ -401,6 +402,7 @@ orderRouter.post('/', checkoutRateLimiter, (req, res) => {
     SmsInBdService.sendOrderConfirmationSms({
       id: newOrder.id,
       customerName: newOrder.customerName || newOrder.name || 'Customer',
+      productTitle: newOrder.productTitle || newOrder.productName,
       phone: newOrder.phone,
       totalAmount: newOrder.totalPrice || newOrder.totalAmount || newOrder.price
     }).catch(err => console.warn('Order confirmation SMS skipped/failed:', err));

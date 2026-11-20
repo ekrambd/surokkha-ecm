@@ -81,13 +81,15 @@ export class SmsInBdService {
    */
   public static async sendOrderConfirmationSms(order: {
     customerName: string;
+    productTitle?: string;
     phone: string;
     id: string;
     totalAmount?: number;
     price?: number;
   }) {
     const total = order.totalAmount || order.price || 0;
-    const msg = `ধন্যবাদ ${order.customerName}! Shostir Bazar-এ আপনার অর্ডার #${order.id} নিশ্চিত হয়েছে। মোট বিল: ৳${total}। কুরিয়ারে দ্রুত পাঠানো হচ্ছে।`;
+    const itemInfo = order.productTitle ? ` ${order.productTitle.trim()}` : '';
+    const msg = `ধন্যবাদ ${order.customerName}! Shostir Bazar-এ আপনার${itemInfo} অর্ডারটি সফলভাবে সম্পন্ন হয়েছে। আপনার অর্ডার আইডি: #${order.id}, মোট বিল: ৳${total}। পণ্যটি কুরিয়ারে পাঠানো হচ্ছে।`;
     return this.sendSms({
       phone: order.phone,
       message: msg
